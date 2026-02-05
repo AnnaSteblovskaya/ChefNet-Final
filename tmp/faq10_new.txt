@@ -1,0 +1,35 @@
+    faq10Answer: `ChefNet unifies the entire guest journey — from the initial discovery to paying the bill.
+
+Existing players each solve only a single, narrow problem: Yelp is essentially a directory, OpenTable is a reservation utility, and Grubhub is a delivery service. ChefNet eliminates friction and gaps throughout the entire user experience.
+
+Our 5 key advantages:
+
+• **1. AI Concierge instead of filter-based search (vs. Yelp / TripAdvisor)**
+
+**Them:** Users spend hours scrolling through reviews and tweaking filters to find the right place.
+
+**Us:** Hyper-personalization. The AI assistant understands the user's tastes and delivers the perfect match in seconds — like asking a foodie friend for advice — factoring in mood, budget, and visit history.
+
+• **2. Seamless fintech: payment and bill splitting (vs. OpenTable)**
+
+**Them:** The app is useful only up to the reservation. At the end of the meal, guests still wait for the server, the terminal, and struggle to split the bill.
+
+**Us:** Pay-at-Table. A full in-app flow: reserve → order → pay → split the bill with friends in one tap. No waiting for the check means higher table turnover for restaurants.
+
+• **3. Social mechanics (vs. Grubhub / Uber Eats)**
+
+**Them:** A solitary consumption experience focused on food delivery.
+
+**Us:** Social Dining. Tools for shared planning: inviting friends, voting on a restaurant, and purchasing tickets to culinary events. We restore the social dimension of food.
+
+• **4. A fair monetization model for restaurants**
+
+**Them:** Predatory commissions (up to 30% on delivery) or fees for every referred guest, even returning regulars.
+
+**Us:** SaaS + Fintech. We provide restaurants with CRM and analytics tools via subscription, while generating core margin from financial transactions — not by squeezing businesses with commissions.
+
+• **5. A social culinary network and "live" reviews (vs. TripAdvisor)**
+
+**Them:** Boring text-heavy reviews, often written by bots or anonymous users. Food photos are frequently outdated or over-edited, misrepresenting reality.
+
+**Us:** Video content and trust. We embed short-form video reviews (Stories/Reels) directly into restaurant profiles. Guests share the real atmosphere and authentic dishes — no filters. Users can follow friends or food bloggers to see their recommendation feeds, turning restaurant discovery from a chore into entertainment.`,

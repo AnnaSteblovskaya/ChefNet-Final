@@ -1,0 +1,23 @@
+ИСПРАВЛЕНИЯ ДЛЯ РУССКОЙ СЕКЦИИ translations.ts
+
+Строки 880-891 (русский футер) - заменить английские значения на русские:
+
+БЫЛО:
+    footerTagline: "Your guide",
+    footerContacts: "Contacts",
+    footerNewsletter: "Newsletter",
+    footerNewsletterDesc: "Stay updated",
+    footerNewsletterButton: "Subscribe",
+    footerPrivacyPolicy: "Privacy",
+    footerCopyright: "© 2026 ChefNet LLC",
+
+ДОЛЖНО БЫТЬ:
+    footerTagline: "Будущее ресторанов начинается здесь.\\nПрисоединяйся к ChefNet\\nВаш проводник в мир ресторанных инноваций",
+    footerContacts: "Контакты",
+    footerNewsletter: "Новости",
+    footerNewsletterDesc: "Будьте в курсе последних новостей и предложений",
+    footerNewsletterButton: "Подписаться",
+    footerPrivacyPolicy: "Политика конфиденциальности",
+    footerCopyright: "© 2025 ChefNet LLC Все права защищены",
+
+ВАЖНО: В файле есть проблема - строки 1215-1226 (немецкая секция) ошибочно содержат русские тексты футера. Это нужно исправить.

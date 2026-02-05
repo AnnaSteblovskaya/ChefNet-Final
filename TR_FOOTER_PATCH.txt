@@ -1,0 +1,34 @@
+Turkish footer translation patch for /src/locales/translations.ts
+
+Lines to replace (approximate line numbers 1897-1908 in Turkish section):
+
+LINE 1897:
+OLD: footerTagline: "Your guide",
+NEW: footerTagline: "Restoran yeniliklerinin dünyasında rehberiniz",
+
+LINE 1898:
+OLD: footerContacts: "Contacts",
+NEW: footerContacts: "İletişim",
+
+LINE 1903:
+OLD: footerNewsletter: "Newsletter",
+NEW: footerNewsletter: "Haberler",
+
+LINE 1904:
+OLD: footerNewsletterDesc: "Stay updated",
+NEW: footerNewsletterDesc: "En son haberler ve fırsatlardan haberdar olmak için takipte kalın.",
+
+LINE 1906:
+OLD: footerNewsletterButton: "Subscribe",
+NEW: footerNewsletterButton: "Abone Ol",
+
+LINE 1907:
+OLD: footerPrivacyPolicy: "Privacy",
+NEW: footerPrivacyPolicy: "Gizlilik Politikası",
+
+LINE 1908:
+OLD: footerCopyright: "© 2026 ChefNet LLC",
+NEW: footerCopyright: "© 2026 ChefNet LLC. Tüm hakları saklıdır.",
+
+CRITICAL: These changes should ONLY be made in the Turkish (tr:) section,
+which starts around line 1647. Do NOT change the Spanish (es:) section.

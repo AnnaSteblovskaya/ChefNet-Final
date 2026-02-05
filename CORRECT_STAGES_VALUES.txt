@@ -1,0 +1,56 @@
+=== РУССКИЙ (RU) - строки 695-702 ===
+
+    seedBackTitle: 'Разработка MVP приложения',
+    seedBackDesc: '• Набор пользователей\\n• Переговоры с ресторанами\\n• Набор менеджеров по странам\\n• KPI: 10K пользователей',
+    privateBackTitle: 'Тестирование MVP',
+    privateBackDesc: '• Тестирование MVP в ключевых городах США и Европы\\n• Партнерство с ресторанными ассоциациями и локальными сетями\\n• Улучшение алгоритмов персонализации и AI рекомендаций\\n• KPI: 100K пользователей, 500 ресторанов',
+    marketingBackTitle: 'Интеграция с сервисами такси',
+    marketingBackDesc: '• Интеграция с сервисами такси (Uber, Lyft, Bolt)\\n• Запуск полнофункционального приложения ChefNet\\n• Развитие финтех-модуля (оплата, кэшбэк, ChefNet Token)\\n• Массовые коллаборации с блогерами и медиа в США и ЕС\\n• KPI: 1M пользователей, 5K ресторанов, $1M прибыли',
+    publicBackTitle: 'Выход на рынки Азии, Латинской Америки и Ближнего Востока',
+    publicBackDesc: '• Масштабирование до статуса глобального SuperApp\\n• Запуск DAO-комьюнити и NFT-программ для ресторанов\\n• Подготовка к IPO с капитализацией $3–5B\\n• KPI: 30M пользователей, 50K ресторанов, $100M+ прибыли',
+
+=== НЕМЕЦКИЙ (DE) - строки 942-949 ===
+
+    seedBackTitle: 'Entwicklung der App MVP',
+    seedBackDesc: '• Werben von Nutzern\\n• Verhandlungen mit Restaurants\\n• Einstellung von Ländermanagern\\n• KPI: 10K Nutzer',
+    privateBackTitle: 'Test des MVP',
+    privateBackDesc: '• Test des MVP in Schlüsselstädten in den USA und Europa\\n• Partnerschaften mit Gastronomieveränden und lokalen Restaurantketten\\n• Verbesserung der Personalisierungsalgorithmen und KI-basierten Empfehlungen\\n• KPI: 100.000 Nutzer, 500 Restaurants',
+    marketingBackTitle: 'Integration mit Ride-Sharing-Diensten',
+    marketingBackDesc: '• Integration mit Ride-Sharing-Diensten (Uber, Lyft, Bolt)\\n• Launch der voll ausgestatteten ChefNet-App\\n• Ausbau des Fintech-Moduls (Zahlungen, Cashback, ChefNet Token)\\n• Umfangreiche Kooperationen mit Kreatoren und Medienpartnern in den USA und der EU\\n• KPI: 1 Mio. Nutzer, 5.000 Restaurants, 1 Mio. USD Gewinn',
+    publicBackTitle: 'Expansion nach Asien, Lateinamerika und in den Nahen Osten',
+    publicBackDesc: '• Skalierung zu einer globalen SuperApp\\n• Gründung einer DAO-Community und Einführung von NFT-Programmen für Restaurants\\n• Vorbereitung auf einen Börsengang mit einer Bewertung von 3–5 Mrd. USD\\n• KPI: 30 Mio. Nutzer, 50.000 Restaurants, über 100 Mio. USD Gewinn',
+
+=== ИСПАНСКИЙ (ES) - строки 1189-1196 ===
+
+    seedBackTitle: 'Desarrollo del MVP de la aplicación',
+    seedBackDesc: '• Adquisición de usuarios\\n• Negociaciones con restaurantes\\n• Contratación de gerentes por país\\n• KPI: 10.000 usuarios',
+    privateBackTitle: 'Pruebas del MVP',
+    privateBackDesc: '• Pruebas del MVP en ciudades clave de EE. UU. y Europa\\n• Alianzas con asociaciones de restaurantes y cadenas locales\\n• Mejora de los algoritmos de personalización y recomendaciones basadas en IA\\n• KPI: 100.000 usuarios, 500 restaurantes',
+    marketingBackTitle: 'Integración con servicios de movilidad compartida',
+    marketingBackDesc: '• Integración con servicios de movilidad compartida (Uber, Lyft, Bolt)\\n• Lanzamiento de la aplicación ChefNet con todas sus funcionalidades\\n• Ampliación del módulo fintech (pagos, cashback, Token ChefNet)\\n• Colaboraciones a gran escala con creadores y medios en EE. UU. y la UE\\n• KPI: 1 millón de usuarios, 5.000 restaurantes, 1 millón de dólares de beneficio',
+    publicBackTitle: 'Expansión a Asia, América Latina y Oriente Medio',
+    publicBackDesc: '• Escalado a una SuperApp global\\n• Lanzamiento de una comunidad DAO y programas NFT para restaurantes\\n• Preparación para una OPV con una valoración de 3–5 mil millones de dólares\\n• KPI: 30 millones de usuarios, 50.000 restaurantes, más de 100 millones de dólares de beneficio',
+
+=== ТУРЕЦКИЙ (TR) - строки 1436-1443 ===
+
+    seedBackTitle: 'Uygulama MVP\\'sinin geliştirilmesi',
+    seedBackDesc: '• Kullanıcı edinimi\\n• Restoranlarla görüşmeler\\n• Ülke müdürlerinin işe alınması\\n• KPI: 10.000 kullanıcı',
+    privateBackTitle: 'MVP testleri',
+    privateBackDesc: '• ABD ve Avrupa\\'daki kilit şehirlerde MVP testleri\\n• Restoran dernekleri ve yerel zincirlerle ortaklıklar\\n• Kişiselleştirme algoritmalarını ve yapay zekâ önerilerinin iyileştirilmesi\\n• KPI: 100.000 kullanıcı, 500 restoran',
+    marketingBackTitle: 'Sürüş paylaşımı hizmetleriyle entegrasyon',
+    marketingBackDesc: '• Sürüş paylaşımı hizmetleriyle entegrasyon (Uber, Lyft, Bolt)\\n• Tüm özellikleriye ChefNet uygulamasının piyasaya sürülmesi\\n• Fintech modülünün genişletilmesi (ödemeler, nakit iade, ChefNet Token)\\n• ABD ve AB\\'de içerik üreticileri ve medya ile büyük çaplı iş birlikleri\\n• KPI: 1 milyon kullanıcı, 5.000 restoran, 1 milyon dolar kâr',
+    publicBackTitle: 'Asya, Latin Amerika ve Orta Doğu\\'ya açılma',
+    publicBackDesc: '• Küresel bir SuperApp\\'a dönüşme\\n• Restoran için DAO topluluğu ve NFT programlarının başlatılması\\n• 3–5 milyar dolar değerleme ile halka arza hazırlık\\n• KPI: 30 milyon kullanıcı, 50.000 restoran, 100 milyon dolardan fazla kâr',
+
+=== ИНСТРУКЦИЯ ПО ПРИМЕНЕНИЮ ===
+
+1. Откройте файл /src/locales/translations.ts
+2. Найдите соответствующий раздел для каждого языка
+3. Замените строки с seedBackTitle, seedBackDesc, privateBackTitle, privateBackDesc, 
+   marketingBackTitle, marketingBackDesc, publicBackTitle, publicBackDesc
+4. Сохраните файл
+
+ВАЖНО: 
+- Все bullet points используют символ • (не дефис -)
+- Все переносы строк используют \\n (с двумя обратными слэшами)
+- Заголовки теперь содержат описание вместо сумм (Seed: $150,000 → Разработка MVP приложения)

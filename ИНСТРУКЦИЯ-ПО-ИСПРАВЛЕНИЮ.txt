@@ -1,0 +1,52 @@
+═══════════════════════════════════════════════════════════════════
+ ПРОСТАЯ ИНСТРУКЦИЯ ПО ИСПРАВЛЕНИЮ СТРОКИ 1549
+═══════════════════════════════════════════════════════════════════
+
+ШАГ 1: Откройте файл в вашем редакторе кода
+---------------------------------------------------------------
+Файл: src/locales/translations.ts
+Строка: 1549
+
+
+ШАГ 2: Найдите строку 1549
+---------------------------------------------------------------
+Используйте Ctrl+G (или Cmd+G на Mac) и введите номер строки: 1549
+
+Или используйте поиск (Ctrl+F) и ищите текст:
+faq2Question: 'ChefNet\'in iş modeli nasıl işliyor?',
+
+
+ШАГ 3: Найдите строку 1549 которая начинается с faq2Answer
+---------------------------------------------------------------
+Сразу после faq2Question идёт строка faq2Answer.
+
+Текущая строка выглядит так:
+    faq2Answer: 'Hibrit bir Pazar Yeri + SaaS + Fintech modeliyle çalışıyoruz; gelir akışlarımızı dört farklı kanaldan çeşitlendiriyoruz:\\n\\nİşlem Ücretleri: Rezervasyonlar...
+
+
+ШАГ 4: ЗАМЕНИТЕ ВСЮ строку 1549 на эту:
+---------------------------------------------------------------
+    faq2Answer: 'Hibrit bir Pazar Yeri + SaaS + Fintech modeliyle çalışıyoruz; gelir akışlarımızı dört farklı kanaldan çeşitlendiriyoruz:\\n\\n• İşlem Ücretleri: Rezervasyonlar, yemek ön siparişleri ve etkinlik bilet satışlarından alınan yüzde payı.\\n\\n• Abonelikler (B2B SaaS): Restaurantların CRM sistemlerine, yapay zekâ destekli analizlere ve pazarlama araçlarına erişim karşılığında ödediği aylık ücretler.\\n\\n• Fintech (Ödemeler): Uygulama içi ödemelerden ve hesap bölme özelliklerinden elde edilen işlem ücretleri.\\n\\n• Reklam: Uygulama içindeki keşfetme ve arama sonuçlarında restaurantların ücretli tanıtımı.',
+
+
+ШАГ 5: Сохраните файл
+---------------------------------------------------------------
+Ctrl+S (или Cmd+S на Mac)
+
+
+═══════════════════════════════════════════════════════════════════
+ ЧТО ИЗМЕНИЛОСЬ?
+═══════════════════════════════════════════════════════════════════
+
+Добавлены буллеты (•) перед каждым из 4 пунктов:
+
+  БЫЛО:                          СТАЛО:
+  \\n\\nİşlem Ücretleri:      →   \\n\\n• İşlem Ücretleri:
+  \\n\\nAbonelikler:           →   \\n\\n• Abonelikler:
+  \\n\\nFintech:               →   \\n\\n• Fintech:
+  \\n\\nReklam:                →   \\n\\n• Reklam:
+
+
+═══════════════════════════════════════════════════════════════════
+ ГОТОВО!
+═══════════════════════════════════════════════════════════════════

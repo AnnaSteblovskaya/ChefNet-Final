@@ -1,0 +1,44 @@
+═══════════════════════════════════════════════════════════════════
+ ФИНАЛЬНОЕ ИСПРАВЛЕНИЕ СТРОКИ 1549
+═══════════════════════════════════════════════════════════════════
+
+ШАГ 1: Откройте файл в вашем редакторе кода
+---------------------------------------------------------------
+Файл: src/locales/translations.ts
+Строка: 1549
+
+
+ШАГ 2: Найдите строку 1549
+---------------------------------------------------------------
+Используйте Ctrl+G (или Cmd+G на Mac) и введите номер строки: 1549
+
+
+ШАГ 3: ПОЛНОСТЬЮ ЗАМЕНИТЕ строку 1549 на эту (скопируйте ниже между === знаками):
+
+═══════════════════════════════════════════════════════════════════
+    faq2Answer: 'Hibrit bir Pazar Yeri + SaaS + Fintech modeliyle çalışıyoruz; gelir akışlarımızı dört farklı kanaldan çeşitlendiriyoruz:\n\n• İşlem Ücretleri: Rezervasyonlar, yemek ön siparişleri ve etkinlik bilet satışlarından alınan yüzde payı.\n\n• Abonelikler (B2B SaaS): Restaurantların CRM sistemlerine, yapay zekâ destekli analizlere ve pazarlama araçlarına erişim karşılığında ödediği aylık ücretler.\n\n• Fintech (Ödemeler): Uygulama içi ödemelerden ve hesap bölme özelliklerinden elde edilen işlem ücretleri.\n\n• Reklam: Uygulama içindeki keşfetme ve arama sonuçlarında restaurantların ücretli tanıtımı.',
+═══════════════════════════════════════════════════════════════════
+
+
+ШАГ 4: Сохраните файл
+---------------------------------------------------------------
+Ctrl+S (или Cmd+S на Mac)
+
+
+═══════════════════════════════════════════════════════════════════
+ ВАЖНО!
+═══════════════════════════════════════════════════════════════════
+
+В строке используется ОДИНАРНЫЙ обратный слэш перед каждым \n
+Правильно: \n\n
+Неправильно: \\n\\n или \\\\n\\\\n
+
+После вставки строка должна выглядеть так:
+... çeşitlendiriyoruz:\n\n• İşlem ...
+
+А НЕ так:
+... çeşitlendiriyoruz:\\n\\n• İşlem ...
+... çeşitlendiriyoruz:\\\\n\\\\n• İşlem ...
+
+
+═══════════════════════════════════════════════════════════════════

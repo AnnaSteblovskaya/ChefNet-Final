@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Исправление турецких переводов - ChefNet</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        h1 {
+            color: #FB7F43;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .step {
+            background: #f9f9f9;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 4px solid #FB7F43;
+            border-radius: 5px;
+        }
+        .step h3 {
+            margin-top: 0;
+            color: #FB7F43;
+        }
+        code {
+            background: #FFE5D9;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            color: #d63031;
+        }
+        .highlight {
+            background: #FFF3CD;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border: 2px solid #FFE066;
+        }
+        .success {
+            background: #D4EDDA;
+            border-color: #C3E6CB;
+            color: #155724;
+        }
+        button {
+            background: #FB7F43;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 20px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #EF6852;
+        }
+        .command-box {
+            background: #2d3436;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+        .warning {
+            background: #FFF3CD;
+            border-left: 4px solid #FFD700;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Исправление турецких переводов FAQ2</h1>
+        <p class="subtitle">ChefNet Invest - автоматическое исправление</p>
+
+        <div class="warning">
+            <strong>⚠️ Внимание!</strong> Эта страница содержит инструкции для исправления проблемы с экранированием символов в турецкой версии FAQ2.
+        </div>
+
+        <div class="step">
+            <h3>📌 Проблема</h3>
+            <p>В файле <code>/src/locales/translations.ts</code> на строке <strong>1856</strong> используется неправильное экранирование:</p>
+            <p><strong>Текущее:</strong> <code>\\\\n\\\\n</code> (4 обратных слэша)</p>
+            <p><strong>Должно быть:</strong> <code>\\n\\n</code> (2 обратных слэша)</p>
+        </div>
+
+        <div class="step">
+            <h3>✅ Решение через VS Code (РЕКОМЕНДУЕТСЯ)</h3>
+            <p><strong>Шаг 1:</strong> Откройте файл <code>/src/locales/translations.ts</code></p>
+            <p><strong>Шаг 2:</strong> Нажмите <code>Ctrl+H</code> (или <code>Cmd+H</code> на Mac)</p>
+            <p><strong>Шаг 3:</strong> Включите режим регулярных выражений (кнопка <code>.*</code>)</p>
+            <p><strong>Шаг 4:</strong> В поле "Find" введите:</p>
+            <div class="command-box">\\\\\\\\n\\\\\\\\n</div>
+            <p><strong>Шаг 5:</strong> В поле "Replace" введите:</p>
+            <div class="command-box">\\\\n\\\\n</div>
+            <p><strong>Шаг 6:</strong> Нажмите "Replace All" (должно заменить 4 вхождения)</p>
+            <p><strong>Шаг 7:</strong> Сохраните файл (<code>Ctrl+S</code> или <code>Cmd+S</code>)</p>
+        </div>
+
+        <div class="step">
+            <h3>🖱️ Альтернатива: Ручное редактирование</h3>
+            <p><strong>1.</strong> Перейдите к строке 1856 (<code>Ctrl+G</code> → введите "1856")</p>
+            <p><strong>2.</strong> Найдите в этой строке все <code>\\n\\n</code></p>
+            <p><strong>3.</strong> У каждого <code>\\n\\n</code> удалите ОДИН обратный слэш перед <code>\n</code></p>
+            <p><strong>4.</strong> Повторите для всех 4 вхождений в строке</p>
+        </div>
+
+        <div class="highlight success">
+            <h3>✅ Проверка</h3>
+            <p>После исправления строка 1856 должна иметь такое же экранирование, как строка 1853 (faq1Answer):</p>
+            <p><code>"...текст...\\n\\n..."</code> (ДВА обратных слэша, не четыре)</p>
+        </div>
+
+        <div class="step">
+            <h3>🎯 Результат</h3>
+            <p>После сохранения файла перезагрузите страницу в браузере. В турецкой версии FAQ второй вопрос должен отображаться с буллетами на отдельных строках, как в русской, английской и немецкой версиях.</p>
+        </div>
+
+        <div class="warning">
+            <p><strong>💡 Примечание:</strong> Из-за технических ограничений инструментов редактирования автоматическое исправление не удалось выполнить. Приношу извинения за неудобства!</p>
+        </div>
+    </div>
+</body>
+</html>
