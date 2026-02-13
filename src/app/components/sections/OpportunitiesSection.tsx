@@ -11,6 +11,7 @@ export default function OpportunitiesSection() {
   const { language } = useLanguage();
   const t = translations[language];
   const [rotatingIcons, setRotatingIcons] = useState<{ [key: number]: boolean }>({});
+  const [activeCard, setActiveCard] = useState<number | null>(null);
 
   const opportunities = [
     {
@@ -112,7 +113,12 @@ export default function OpportunitiesSection() {
                   duration: 0.5,
                   ease: "easeOut"
                 }}
-                className={`bg-white border-2 border-transparent rounded-2xl p-4 shadow-sm hover:shadow-xl transition-all duration-300 hover:border-[#FF8C42] group ${index === 0 ? 'mt-8 lg:mt-0' : ''}`}
+                onTouchStart={() => {
+                  setActiveCard(activeCard === index ? null : index);
+                }}
+                className={`bg-white border-2 rounded-2xl p-4 shadow-sm hover:shadow-xl transition-all duration-300 group ${index === 0 ? 'mt-8 lg:mt-0' : ''} ${
+                  activeCard === index ? 'border-[#FF8C42] shadow-xl' : 'border-transparent hover:border-[#FF8C42]'
+                }`}
               >
                 <div className="flex gap-3">
                 {/* Icon */}

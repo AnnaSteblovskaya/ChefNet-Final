@@ -47,8 +47,9 @@ export default function Navigation() {
           >
             <motion.div
               whileHover={{ rotate: 360 }}
-              transition={{ duration: 0.5 }}
+              transition={{ duration: 0.5, ease: "easeInOut" }}
               className="w-10 h-10 bg-gradient-to-br from-[#9a3412] to-[#D93F29] rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg"
+              style={{ willChange: 'transform' }}
             >
               C
             </motion.div>

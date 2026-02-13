@@ -69,8 +69,9 @@ export default function StickyNavigation({ onGoToDashboard }: StickyNavigationPr
         }}
         transition={{ 
           duration: 0.4,
-          ease: [0.25, 0.1, 0.25, 1]
+          ease: "easeOut"
         }}
+        style={{ willChange: 'transform, opacity' }}
       >
         <div className={`px-8 py-4 ${isScrolled ? 'pointer-events-auto' : 'pointer-events-none'}`}>
           <div className={`flex items-center gap-2 transition-opacity duration-300 ${

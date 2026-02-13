@@ -284,12 +284,12 @@ export default function AdvantagesSection() {
           icon: <Users className="w-7 h-7 text-white" strokeWidth={2} />,
           title: 'Culinary social network',
           description:
-            'Content from users and chefs: photos, videos, reviews, recipes. Live streams and masterclasses from the top chefs.',
+            'Content from users and chefs: photos, videos, reviews, and recipes. Live streams and masterclasses from the world\'s top chefs.',
         },
         {
           icon: <ChefHat className="w-7 h-7 text-white" strokeWidth={2} />,
           title: 'ChefNet platform',
-          description: 'A platform where passion for cooking meets technology.',
+          description: 'A platform where passion for food meets technology.',
         },
         {
           icon: <Cpu className="w-7 h-7 text-white" strokeWidth={2} />,
@@ -464,16 +464,26 @@ export default function AdvantagesSection() {
             </IconBox>
           ) : (
             <motion.div
-              initial={{ scale: 0 }}
-              whileInView={{ scale: 1 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ type: "spring", duration: 0.8, delay: 0.2 }}
+              initial={{ opacity: 0, scale: 0 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true, margin: "-50px", amount: 0.3 }}
+              transition={{ 
+                duration: 0.5,
+                delay: 0.2,
+                ease: [0.34, 1.56, 0.64, 1]
+              }}
               className="flex justify-center"
+              style={{ willChange: 'opacity, transform' }}
             >
               <motion.div 
-                whileTap={{ scale: 1.1, rotate: 5 }}
-                transition={{ type: "spring", stiffness: 300 }}
-                className="w-24 h-24 bg-gradient-to-br from-[#FF6B35] to-[#FF8C42] rounded-3xl flex items-center justify-center shadow-xl shadow-[#FF6B35]/30 relative overflow-hidden group"
+                whileTap={{ scale: 0.9 }}
+                transition={{ 
+                  type: "spring",
+                  stiffness: 400,
+                  damping: 17
+                }}
+                className="w-24 h-24 bg-gradient-to-br from-[#FF6B35] to-[#FF8C42] rounded-3xl flex items-center justify-center shadow-xl shadow-[#FF6B35]/30 relative overflow-hidden group cursor-pointer select-none"
+                style={{ willChange: 'transform', touchAction: 'manipulation' }}
               >
                 {/* Background pattern */}
                 <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -681,21 +691,27 @@ export default function AdvantagesSection() {
               className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow"
             >
               <motion.div 
-                className="w-14 h-14 bg-gradient-to-br from-[#FF6B35] to-[#FF8C42] rounded-xl flex items-center justify-center mb-4 shadow-md cursor-pointer mx-auto"
+                className="w-14 h-14 bg-gradient-to-br from-[#FF6B35] to-[#FF8C42] rounded-xl flex items-center justify-center mb-4 shadow-md cursor-pointer mx-auto select-none"
                 animate={rotatingIcons[index] ? { rotate: 360 } : { rotate: 0 }}
-                transition={{ duration: 0.6 }}
+                transition={{ 
+                  duration: 0.5,
+                  ease: "easeInOut"
+                }}
                 onMouseEnter={isLaptop ? () => {
                   setRotatingIcons(prev => ({ ...prev, [index]: true }));
                   setTimeout(() => {
                     setRotatingIcons(prev => ({ ...prev, [index]: false }));
-                  }, 600);
+                  }, 500);
                 } : undefined}
-                onTouchStart={!isLaptop ? () => {
+                onClick={!isLaptop ? (e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
                   setRotatingIcons(prev => ({ ...prev, [index]: true }));
                   setTimeout(() => {
                     setRotatingIcons(prev => ({ ...prev, [index]: false }));
-                  }, 600);
+                  }, 500);
                 } : undefined}
+                style={{ willChange: 'transform', touchAction: 'manipulation' }}
               >
                 {item.icon}
               </motion.div>

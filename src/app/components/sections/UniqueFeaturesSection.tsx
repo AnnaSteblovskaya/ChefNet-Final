@@ -40,6 +40,7 @@ export default function UniqueFeaturesSection() {
   const [rotatingIcons, setRotatingIcons] = useState<{ [key: number]: boolean }>({});
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [activeCard, setActiveCard] = useState<number | null>(null);
 
   // Calculate visible cards based on screen size
   useEffect(() => {
@@ -204,7 +205,7 @@ export default function UniqueFeaturesSection() {
               animate={{
                 x: `calc(-${currentIndex * getCardWidthPercentage()}% - ${currentIndex * getGapSize()}rem)`,
               }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              transition={{ type: 'tween', duration: 0.4, ease: 'easeOut' }}
             >
               {features.map((feature, index) => {
                 const Icon = feature.icon;
@@ -225,25 +226,36 @@ export default function UniqueFeaturesSection() {
                         ? 'w-[calc(33.333%-1.33rem)]'
                         : 'w-[calc(25%-1.5rem)]'
                     }`}
+                    onTouchStart={() => {
+                      setActiveCard(activeCard === index ? null : index);
+                    }}
                   >
-                    <div className="bg-white border-2 border-transparent rounded-2xl p-4 sm:p-6 min-h-[360px] sm:h-[400px] hover:shadow-xl transition-all duration-300 hover:border-[#FF8C42] group flex flex-col items-center text-center">
+                    <div className={`bg-white border-2 rounded-2xl p-4 sm:p-6 min-h-[360px] sm:h-[400px] hover:shadow-xl transition-all duration-300 group flex flex-col items-center text-center ${
+                      activeCard === index ? 'border-[#FF8C42] shadow-xl' : 'border-transparent hover:border-[#FF8C42]'
+                    }`}>
                       {/* Icon */}
                       <motion.div
                         animate={rotatingIcons[index] ? { rotate: 360 } : { rotate: 0 }}
-                        transition={{ duration: 0.6 }}
+                        transition={{ 
+                          duration: 0.5,
+                          ease: "easeInOut"
+                        }}
                         onMouseEnter={isLaptop ? () => {
                           setRotatingIcons(prev => ({ ...prev, [index]: true }));
                           setTimeout(() => {
                             setRotatingIcons(prev => ({ ...prev, [index]: false }));
-                          }, 600);
+                          }, 500);
                         } : undefined}
-                        onTouchStart={!isLaptop ? () => {
+                        onClick={!isLaptop ? (e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
                           setRotatingIcons(prev => ({ ...prev, [index]: true }));
                           setTimeout(() => {
                             setRotatingIcons(prev => ({ ...prev, [index]: false }));
-                          }, 600);
+                          }, 500);
                         } : undefined}
-                        className="flex-shrink-0 bg-gradient-to-br from-[#FF8C42] to-[#D2691E] w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-[#FF6B35]/40 transition-shadow mb-3 sm:mb-4 cursor-pointer"
+                        className="flex-shrink-0 bg-gradient-to-br from-[#FF8C42] to-[#D2691E] w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-[#FF6B35]/40 transition-shadow mb-3 sm:mb-4 cursor-pointer select-none"
+                        style={{ willChange: 'transform', touchAction: 'manipulation' }}
                       >
                         {index === 8 ? (
                           <img 

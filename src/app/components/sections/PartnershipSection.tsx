@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import IconBox from '@/app/components/IconBox';
 import { 
@@ -26,6 +26,8 @@ export default function PartnershipSection() {
   const [rotatingIcons, setRotatingIcons] = useState<{ [key: number]: boolean }>({});
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const iconTouchStartRef = useRef<{ [key: number]: number }>({});
+  const [activeCard, setActiveCard] = useState<number | null>(null);
 
   // Calculate visible cards based on screen size
   useEffect(() => {
@@ -139,6 +141,10 @@ export default function PartnershipSection() {
     if (isRightSwipe && currentIndex > 0) {
       handlePrev();
     }
+    
+    // Сбрасываем значения после обработки свайпа
+    setTouchStart(null);
+    setTouchEnd(null);
   };
 
   return (
@@ -194,13 +200,19 @@ export default function PartnershipSection() {
           </button>
 
           {/* Cards Container */}
-          <div className="overflow-hidden px-12 sm:px-4 py-2" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+          <div 
+            className="overflow-hidden px-12 sm:px-4 py-2" 
+            onTouchStart={handleTouchStart} 
+            onTouchMove={handleTouchMove} 
+            onTouchEnd={handleTouchEnd}
+            style={{ touchAction: 'pan-y pinch-zoom' }}
+          >
             <motion.div
               className="flex gap-4 sm:gap-8"
               animate={{
                 x: `calc(-${currentIndex * getCardWidthPercentage()}% - ${currentIndex * getGapSize()}rem)`,
               }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              transition={{ type: 'tween', duration: 0.4, ease: 'easeOut' }}
             >
               {cards.map((card, index) => {
                 const Icon = card.icon;
@@ -221,25 +233,44 @@ export default function PartnershipSection() {
                         ? 'w-[calc(33.333%-1.33rem)]'
                         : 'w-[calc(25%-1.5rem)]'
                     }`}
+                    onTouchStart={() => {
+                      setActiveCard(activeCard === index ? null : index);
+                    }}
                   >
-                    <div className="bg-white border-2 border-transparent rounded-2xl p-6 h-full hover:shadow-xl transition-all duration-300 hover:border-[#FF8C42] group flex flex-col items-center text-center">
+                    <div className={`bg-white border-2 rounded-2xl p-6 h-full hover:shadow-xl transition-all duration-300 group flex flex-col items-center text-center ${
+                      activeCard === index ? 'border-[#FF8C42] shadow-xl' : 'border-transparent hover:border-[#FF8C42]'
+                    }`}>
                       {/* Icon */}
                       <motion.div
                         animate={rotatingIcons[index] ? { rotate: 360 } : { rotate: 0 }}
-                        transition={{ duration: 0.6 }}
+                        transition={{ duration: 0.6, ease: "easeInOut" }}
+                        onTouchStart={(e) => {
+                          e.stopPropagation();
+                          const touch = e.touches[0];
+                          iconTouchStartRef.current[index] = touch.clientX;
+                        }}
+                        onTouchEnd={(e) => {
+                          e.stopPropagation();
+                          const touchStartX = iconTouchStartRef.current[index] || 0;
+                          const touchEndX = e.changedTouches[0].clientX;
+                          const distance = Math.abs(touchEndX - touchStartX);
+                          
+                          // Если движение меньше 10px - это тап, не свайп
+                          if (distance < 10) {
+                            setRotatingIcons(prev => ({ ...prev, [index]: true }));
+                            setTimeout(() => {
+                              setRotatingIcons(prev => ({ ...prev, [index]: false }));
+                            }, 600);
+                          }
+                        }}
                         onMouseEnter={isLaptop ? () => {
                           setRotatingIcons(prev => ({ ...prev, [index]: true }));
                           setTimeout(() => {
                             setRotatingIcons(prev => ({ ...prev, [index]: false }));
                           }, 600);
                         } : undefined}
-                        onTouchStart={!isLaptop ? () => {
-                          setRotatingIcons(prev => ({ ...prev, [index]: true }));
-                          setTimeout(() => {
-                            setRotatingIcons(prev => ({ ...prev, [index]: false }));
-                          }, 600);
-                        } : undefined}
-                        className="flex-shrink-0 bg-gradient-to-br from-[#FF8C42] to-[#D2691E] w-16 h-16 rounded-xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-[#FF6B35]/40 transition-shadow mb-4 cursor-pointer"
+                        className="flex-shrink-0 bg-gradient-to-br from-[#FF8C42] to-[#D2691E] w-16 h-16 rounded-xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-[#FF6B35]/40 transition-shadow mb-4 cursor-pointer select-none"
+                        style={{ touchAction: 'manipulation' }}
                       >
                         <Icon className="w-8 h-8 text-white" strokeWidth={2} />
                       </motion.div>

@@ -1,9 +1,15 @@
 import { motion } from 'motion/react';
-import { FileText, Download, Upload } from 'lucide-react';
+import { FileText, Download, Bell } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { dashboardTranslations } from '@/utils/dashboardTranslations';
+import { ScrollIndicator } from '../ScrollIndicator';
+import LanguageSwitcher from '@/app/components/LanguageSwitcher';
 
-export default function DocumentsTab() {
+interface DocumentsTabProps {
+  setActiveTab: (tab: string) => void;
+}
+
+export default function DocumentsTab({ setActiveTab }: DocumentsTabProps) {
   const { language } = useLanguage();
   const t = dashboardTranslations[language];
 
@@ -17,58 +23,60 @@ export default function DocumentsTab() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">{t.documentsTitle}</h2>
-        <p className="text-gray-600">{t.documentsSubtitle}</p>
+      <div className="mb-6 lg:mb-8">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-2xl lg:text-3xl font-bold text-gray-900">{t.documentsTitle}</h2>
+          
+          {/* Desktop Icons */}
+          <div className="hidden lg:flex items-center gap-4">
+            <LanguageSwitcher variant="dark" />
+            <div className="relative cursor-pointer" onClick={() => setActiveTab('notifications')}>
+              <Bell className="w-6 h-6 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors" />
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-[var(--color-primary)] text-white text-xs rounded-full flex items-center justify-center font-medium">
+                2
+              </span>
+            </div>
+          </div>
+        </div>
+        <p className="text-sm lg:text-base text-gray-600">{t.documentsSubtitle}</p>
       </div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100"
+        className="bg-white rounded-2xl p-4 lg:p-6 shadow-sm border border-gray-100 overflow-visible"
       >
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-lg font-bold text-gray-900 mb-1">{t.confidentialDocs}</h3>
-            <p className="text-sm text-gray-600">{t.confidentialDesc}</p>
-          </div>
-          <button className="flex items-center gap-2 px-4 py-2.5 bg-[#FFF9F0] hover:bg-[#FFE8C5] text-gray-800 rounded-lg border border-[#FFE8C5] transition-all">
-            <Upload className="w-4 h-4" />
-            <span className="text-sm font-medium">{t.requestDocument}</span>
-          </button>
-        </div>
-
-        <div className="overflow-x-auto mt-6">
-          <table className="w-full">
+        <ScrollIndicator className="-mx-4 lg:mx-0 px-4 lg:px-0">
+          <table className="w-full min-w-[600px]">
             <thead>
               <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">{t.documentName}</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">{t.category}</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">{t.date}</th>
-                <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">{t.action}</th>
+                <th className="text-left py-3 px-2 lg:px-4 text-xs lg:text-sm font-medium text-gray-600">{t.documentName}</th>
+                <th className="text-left py-3 px-2 lg:px-4 text-xs lg:text-sm font-medium text-gray-600">{t.category}</th>
+                <th className="text-left py-3 px-2 lg:px-4 text-xs lg:text-sm font-medium text-gray-600">{t.date}</th>
+                <th className="text-left py-3 px-2 lg:px-4 text-xs lg:text-sm font-medium text-gray-600">{t.action}</th>
               </tr>
             </thead>
             <tbody>
               {documents.map((doc, idx) => (
                 <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50 group">
-                  <td className="py-4 px-4">
-                    <div className="flex items-center gap-3">
-                      <FileText className="w-5 h-5 text-gray-500" />
-                      <span className="text-sm text-gray-900 font-medium">{doc.name}</span>
+                  <td className="py-3 lg:py-4 px-2 lg:px-4">
+                    <div className="flex items-center gap-2 lg:gap-3">
+                      <FileText className="w-4 h-4 lg:w-5 lg:h-5 text-gray-500 flex-shrink-0" />
+                      <span className="text-xs lg:text-sm text-gray-900 font-medium">{doc.name}</span>
                     </div>
                   </td>
-                  <td className="py-4 px-4 text-sm text-gray-700">{doc.category}</td>
-                  <td className="py-4 px-4 text-sm text-gray-700">{doc.date}</td>
-                  <td className="py-4 px-4">
-                    <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors opacity-0 group-hover:opacity-100">
-                      <Download className="w-5 h-5 text-gray-600" />
+                  <td className="py-3 lg:py-4 px-2 lg:px-4 text-xs lg:text-sm text-gray-700">{doc.category}</td>
+                  <td className="py-3 lg:py-4 px-2 lg:px-4 text-xs lg:text-sm text-gray-700">{doc.date}</td>
+                  <td className="py-3 lg:py-4 px-2 lg:px-4">
+                    <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                      <Download className="w-4 h-4 lg:w-5 lg:h-5 text-gray-600" />
                     </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </ScrollIndicator>
       </motion.div>
     </div>
   );

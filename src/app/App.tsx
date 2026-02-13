@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ThemeProvider } from '@/app/components/ThemeProvider';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { usePreventSwipeBack } from '@/hooks/usePreventSwipeBack';
 import HeroSection from '@/app/components/sections/HeroSection';
 import AboutSection from '@/app/components/sections/AboutSection';
 import UniqueFeaturesSection from '@/app/components/sections/UniqueFeaturesSection';
@@ -19,9 +20,18 @@ import StickyNavigation from '@/app/components/StickyNavigation';
 import TeamSection from '@/app/components/sections/TeamSection';
 
 function AppContent() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, debugGetAllUsers } = useAuth();
   const { language } = useLanguage();
   const [showDashboard, setShowDashboard] = useState(false);
+
+  // Prevent swipe-back gesture on mobile
+  usePreventSwipeBack();
+
+  // Expose debug function to console
+  useEffect(() => {
+    (window as any).showAllUsers = debugGetAllUsers;
+    console.log('💡 Debug: To see all registered users, run: showAllUsers()');
+  }, [debugGetAllUsers]);
 
   // Show dashboard if authenticated and user wants to see it
   if (isAuthenticated && showDashboard) {
@@ -30,7 +40,7 @@ function AppContent() {
 
   // Show main landing page
   return (
-    <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)] transition-colors duration-300 overflow-x-hidden">
+    <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)] transition-colors duration-300 overflow-x-hidden w-full max-w-full">
       <StickyNavigation onGoToDashboard={() => setShowDashboard(true)} />
       <HeroSection key={language} onGoToDashboard={() => setShowDashboard(true)} />
       <UniqueFeaturesSection />

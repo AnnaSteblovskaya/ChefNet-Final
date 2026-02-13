@@ -59,9 +59,10 @@ export default function Footer() {
                 href="https://www.facebook.com/groups/chefnet.official/"
                 target="_blank"
                 rel="noopener noreferrer"
-                whileHover={{ scale: 1.15, y: -5 }}
+                whileHover={{ scale: 1.15 }}
                 whileTap={{ scale: 0.95 }}
                 className="w-12 h-12 rounded-2xl bg-white/80 backdrop-blur-sm border border-[#FFE5DE] flex items-center justify-center text-[#6B4423] hover:bg-gradient-to-br hover:from-[#FF6B35] hover:to-[#FF8C42] hover:text-white hover:border-transparent hover:shadow-lg hover:shadow-[#FF6B35]/30 transition-all duration-300"
+                style={{ cursor: 'pointer', touchAction: 'manipulation' }}
               >
                 <Facebook className="w-5 h-5" />
               </motion.a>
@@ -69,9 +70,10 @@ export default function Footer() {
                 href="https://t.me/chefnet_ai"
                 target="_blank"
                 rel="noopener noreferrer"
-                whileHover={{ scale: 1.15, y: -5 }}
+                whileHover={{ scale: 1.15 }}
                 whileTap={{ scale: 0.95 }}
                 className="w-12 h-12 rounded-2xl bg-white/80 backdrop-blur-sm border border-[#FFE5DE] flex items-center justify-center text-[#6B4423] hover:bg-gradient-to-br hover:from-[#FF6B35] hover:to-[#FF8C42] hover:text-white hover:border-transparent hover:shadow-lg hover:shadow-[#FF6B35]/30 transition-all duration-300"
+                style={{ cursor: 'pointer', touchAction: 'manipulation' }}
               >
                 <Send className="w-5 h-5" />
               </motion.a>
@@ -79,9 +81,10 @@ export default function Footer() {
                 href="https://www.tiktok.com/@chefnet.app?_r=1"
                 target="_blank"
                 rel="noopener noreferrer"
-                whileHover={{ scale: 1.15, y: -5 }}
+                whileHover={{ scale: 1.15 }}
                 whileTap={{ scale: 0.95 }}
                 className="w-12 h-12 rounded-2xl bg-white/80 backdrop-blur-sm border border-[#FFE5DE] flex items-center justify-center text-[#6B4423] hover:bg-gradient-to-br hover:from-[#FF6B35] hover:to-[#FF8C42] hover:text-white hover:border-transparent hover:shadow-lg hover:shadow-[#FF6B35]/30 transition-all duration-300"
+                style={{ cursor: 'pointer', touchAction: 'manipulation' }}
               >
                 <Music className="w-5 h-5" />
               </motion.a>
@@ -89,9 +92,55 @@ export default function Footer() {
                 href="https://www.instagram.com/chefnet.ai/"
                 target="_blank"
                 rel="noopener noreferrer"
-                whileHover={{ scale: 1.15, y: -5 }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  
+                  // Определяем тип устройства
+                  const userAgent = navigator.userAgent.toLowerCase();
+                  const isAndroid = userAgent.includes('android');
+                  const isIOS = /iphone|ipad|ipod/.test(userAgent);
+                  
+                  if (isAndroid) {
+                    // ✅ Android: используем intent:// URL для прямого открытия приложения
+                    const intentUrl = 'intent://instagram.com/_u/chefnet.ai/#Intent;scheme=https;package=com.instagram.android;end';
+                    
+                    try {
+                      // Попытка открыть через intent
+                      window.location.href = intentUrl;
+                      
+                      // Фоллбэк на веб-версию через 2 секунды, если приложение не открылось
+                      setTimeout(() => {
+                        window.open('https://www.instagram.com/chefnet.ai/', '_blank', 'noopener,noreferrer');
+                      }, 2000);
+                    } catch (error) {
+                      // Если не удалось, открываем веб-версию
+                      window.open('https://www.instagram.com/chefnet.ai/', '_blank', 'noopener,noreferrer');
+                    }
+                    
+                  } else if (isIOS) {
+                    // ✅ iOS: используем instagram:// URL схему
+                    const instagramAppUrl = 'instagram://user?username=chefnet.ai';
+                    const webUrl = 'https://www.instagram.com/chefnet.ai/';
+                    const startTime = Date.now();
+                    
+                    // Попытка открыть приложение
+                    window.location.href = instagramAppUrl;
+                    
+                    // Если приложение не открылось за 1.5 секунды, открываем веб-версию
+                    setTimeout(() => {
+                      if (Date.now() - startTime < 2000) {
+                        window.open(webUrl, '_blank', 'noopener,noreferrer');
+                      }
+                    }, 1500);
+                  } else {
+                    // Desktop и другие устройства - просто открываем веб-версию
+                    window.open('https://www.instagram.com/chefnet.ai/', '_blank', 'noopener,noreferrer');
+                  }
+                }}
+                whileHover={{ scale: 1.15 }}
                 whileTap={{ scale: 0.95 }}
                 className="w-12 h-12 rounded-2xl bg-white/80 backdrop-blur-sm border border-[#FFE5DE] flex items-center justify-center text-[#6B4423] hover:bg-gradient-to-br hover:from-[#FF6B35] hover:to-[#FF8C42] hover:text-white hover:border-transparent hover:shadow-lg hover:shadow-[#FF6B35]/30 transition-all duration-300"
+                style={{ cursor: 'pointer', touchAction: 'manipulation' }}
               >
                 <Instagram className="w-5 h-5" />
               </motion.a>

@@ -3,10 +3,12 @@ import { Check, Circle, MapPin } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/locales/translations';
 import IconBox from '@/app/components/IconBox';
+import { useState } from 'react';
 
 export default function RoadmapSection() {
   const { language } = useLanguage();
   const t = translations[language];
+  const [activeCard, setActiveCard] = useState<number | null>(null);
 
   const getRoadmapData = () => {
     const data: { [key: string]: any } = {
@@ -595,12 +597,17 @@ export default function RoadmapSection() {
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
                 className="relative pl-12 sm:pl-20"
+                onTouchStart={() => {
+                  setActiveCard(activeCard === index ? null : index);
+                }}
               >
                 {/* Dot */}
                 <div className={`absolute left-2 sm:left-6 top-2 w-5 h-5 rounded-full ${getStatusColor(milestone.status)} border-4 border-white shadow-lg`} />
 
                 {/* Content */}
-                <div className="bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border-2 border-transparent hover:border-[#FF8C42]">
+                <div className={`bg-white rounded-2xl p-6 shadow-md hover:shadow-xl transition-all duration-300 border-2 ${
+                  activeCard === index ? 'border-[#FF8C42] shadow-xl' : 'border-transparent hover:border-[#FF8C42]'
+                }`}>
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <div className="font-bold text-[#FF6B35] text-lg mb-1">{milestone.period}</div>

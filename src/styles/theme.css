@@ -42,14 +42,15 @@
   
   /* Custom variables for ChefNet theme */
   --color-text: #292524;
-  --color-text-secondary: #54403A;
+  --color-text-secondary: #5A5A5A;
   --color-text-light: #B49A8A;
   --color-background: #F5EAE1;
   --color-surface: #FFFFFF;
-  --color-surface-hover: #DFD5CD;
+  --color-surface-hover: #FFF5F0;
   --color-border: rgba(41, 37, 36, 0.15);
-  --color-primary: #D93F29;
-  --color-accent: #D93F29;
+  --color-primary: #FF6B35;
+  --color-primary-hover: #FF8C42;
+  --color-accent: #FF6B35;
   
   /* Typography scale with better line-height */
   --line-height-tight: 1.2;
@@ -162,14 +163,49 @@
     @apply border-border outline-ring/50;
   }
 
+  html {
+    box-sizing: border-box;
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
+    /* Предотвращаем pull-to-refresh и bounce на мобильных */
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
   body {
     @apply bg-background text-foreground;
     border-left: none !important;
     border-right: none !important;
-    overflow-x: hidden;
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    position: relative;
+    /* Полностью отключаем overscroll для предотвращения жеста "назад" */
+    overscroll-behavior: none !important;
+    /* Разрешаем только вертикальную прокрутку и зум */
+    touch-action: pan-y pinch-zoom !important;
+    /* Фиксируем позицию для мобильных браузеров */
+    -webkit-overflow-scrolling: touch;
   }
 
   #root {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    /* Отключаем overscroll для root элемента */
+    overscroll-behavior: none !important;
+    touch-action: pan-y pinch-zoom !important;
+  }
+  
+  /* Prevent all children from overflowing */
+  body > *,
+  #root > * {
+    max-width: 100vw;
     overflow-x: hidden;
   }
 
@@ -184,8 +220,112 @@
     scrollbar-width: none;  /* Firefox */
   }
 
-  /* Scroll margin for sections to account for fixed navigation */
-  section[id] {
-    scroll-margin-top: 60px;
+  /* Mobile scrollbar - visible on touch devices */
+  .mobile-scrollbar {
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto !important; /* Принудительно включаем прокрутку для таблиц */
+    overflow-y: hidden;
+    /* Предотвращаем жест "назад" */
+    overscroll-behavior-x: contain;
+    overscroll-behavior-y: none;
+    touch-action: pan-x pan-y pinch-zoom;
+    /* Гарантируем, что прокрутка работает */
+    display: block;
+    width: 100%;
+  }
+
+  /* Кастомный скроллбар ТОЛЬКО для десктопа */
+  @media (min-width: 1024px) {
+    .mobile-scrollbar {
+      scrollbar-width: thin;
+      scrollbar-color: #FF6B35 #f3f4f6;
+    }
+
+    .mobile-scrollbar::-webkit-scrollbar {
+      height: 10px;
+    }
+
+    .mobile-scrollbar::-webkit-scrollbar-track {
+      background: #f3f4f6;
+      border-radius: 8px;
+    }
+
+    .mobile-scrollbar::-webkit-scrollbar-thumb {
+      background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
+      border-radius: 8px;
+      border: 2px solid #f3f4f6;
+    }
+
+    .mobile-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(135deg, #FF8C42 0%, #FFA05A 100%);
+    }
+  }
+
+  /* На мобильных - нативная прокрутка с видимым индикатором */
+  @media (max-width: 1023px) {
+    .mobile-scrollbar {
+      /* Нативная прокрутка с минимальными стилями */
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255, 107, 53, 0.6) transparent;
+    }
+    
+    /* Показываем нативный скроллбар на мобильных */
+    .mobile-scrollbar::-webkit-scrollbar {
+      height: 6px;
+      -webkit-appearance: none;
+    }
+    
+    .mobile-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    .mobile-scrollbar::-webkit-scrollbar-thumb {
+      background: rgba(255, 107, 53, 0.6);
+      border-radius: 3px;
+    }
+  }
+
+  /* Performance optimizations for tables and scrollable content */
+  table {
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+  }
+
+  /* Smooth scrolling for all devices */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Optimize table rendering on mobile */
+  @media (max-width: 768px) {
+    table {
+      contain: layout style paint;
+      content-visibility: auto;
+    }
+    
+    /* Reduce motion for smoother scrolling */
+    .mobile-scrollbar {
+      scroll-behavior: auto;
+      /* Отключаем GPU композитинг для скроллбара - он может вызывать лаги */
+      transform: none;
+      will-change: auto;
+    }
+    
+    /* Упрощаем рендеринг ячеек таблицы */
+    table td,
+    table th {
+      contain: layout paint;
+    }
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
