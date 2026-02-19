@@ -109,7 +109,7 @@ export default function ChartVariantsDemo({ onClose }: ChartVariantsDemoProps) {
           <div className="mt-6 text-center">
             <button
               onClick={onClose}
-              className="px-8 py-3 bg-gradient-to-r from-[#FF6B35] to-[#FF8C42] text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+              className="px-8 py-3 bg-gradient-to-r from-[#FF7A59] to-[#EB5632] text-white font-semibold rounded-xl hover:shadow-lg transition-all"
             >
               Закрыть демонстрацию
             </button>

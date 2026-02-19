@@ -138,7 +138,7 @@ export default function Dashboard({ onBackToHome }: DashboardProps) {
               onClick={() => setActiveTab(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-all ${
                 activeTab === item.id
-                  ? 'bg-gradient-to-r from-[#FF6B35] to-[#FF8C42] text-white shadow-lg shadow-[#FF6B35]/30'
+                  ? 'bg-gradient-to-r from-[#FF7A59] to-[#EB5632] text-white shadow-lg shadow-[#FF6B35]/30'
                   : 'text-[var(--color-text)] hover:bg-[#FFF5F0] hover:text-[#FF6B35]'
               }`}
             >
@@ -159,7 +159,7 @@ export default function Dashboard({ onBackToHome }: DashboardProps) {
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[var(--color-text)] hover:bg-[#FFF5F0] transition-all cursor-pointer"
           >
             {/* Avatar with Initials */}
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#FF6B35] to-[#FF8C42] flex items-center justify-center flex-shrink-0 shadow-md">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#FF7A59] to-[#EB5632] flex items-center justify-center flex-shrink-0 shadow-md">
               <span className="text-white text-sm font-bold">
                 {user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : 'JD'}
               </span>
@@ -222,7 +222,7 @@ export default function Dashboard({ onBackToHome }: DashboardProps) {
                   }}
                   className="lg:hidden flex items-center gap-2 px-2 py-1"
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF6B35] to-[#FF8C42] flex items-center justify-center shadow-sm">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF7A59] to-[#EB5632] flex items-center justify-center shadow-sm">
                     <span className="text-white text-xs font-bold">
                       {user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : 'JD'}
                     </span>
@@ -268,7 +268,7 @@ export default function Dashboard({ onBackToHome }: DashboardProps) {
                   }}
                   className="flex items-center gap-2 px-2 py-1"
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF6B35] to-[#FF8C42] flex items-center justify-center shadow-sm">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF7A59] to-[#EB5632] flex items-center justify-center shadow-sm">
                     <span className="text-white text-xs font-bold">
                       {user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : 'JD'}
                     </span>
@@ -297,7 +297,7 @@ export default function Dashboard({ onBackToHome }: DashboardProps) {
                 className="w-full p-4 border-b border-[var(--color-border)] hover:bg-gray-50 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF6B35] to-[#FF8C42] flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF7A59] to-[#EB5632] flex items-center justify-center">
                     <span className="text-white text-sm font-bold">
                       {user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : 'JD'}
                     </span>

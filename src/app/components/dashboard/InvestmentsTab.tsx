@@ -288,7 +288,7 @@ export default function InvestmentsTab({ setActiveTab }: InvestmentsTabProps) {
     const roundMap: { [key: string]: string } = {
       'Раунд посева': 'Seed',
       'Серия A': 'Private',
-      'Серия B': 'Marketing',
+      '��рия B': 'Marketing',
       'Серия C / IPO': 'Public/IPO'
     };
     
@@ -499,7 +499,7 @@ export default function InvestmentsTab({ setActiveTab }: InvestmentsTabProps) {
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
-                    className="w-full py-3 bg-gradient-to-r from-[#FF6B35] to-[#FF8C42] text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:shadow-lg transition-all"
+                    className="w-full py-3 bg-gradient-to-r from-[#FF7A59] to-[#EB5632] text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:shadow-lg transition-all"
                     onClick={() => handleBuySharesFromCard(round.name)}
                   >
                     {t.buyShares}

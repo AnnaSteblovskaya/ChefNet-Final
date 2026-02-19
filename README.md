@@ -1,7 +1,7 @@
 
-  # ChefNetInvest
+  # ChefNetInvest2
 
-  This is a code bundle for ChefNetInvest. The original project is available at https://www.figma.com/design/GRcm2Ocm6nMIVk8sao0nEo/ChefNetInvest.
+  This is a code bundle for ChefNetInvest2. The original project is available at https://www.figma.com/design/GRcm2Ocm6nMIVk8sao0nEo/ChefNetInvest2.
 
   ## Running the code
 

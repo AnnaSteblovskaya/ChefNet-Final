@@ -23,7 +23,7 @@ export default function Footer() {
   };
 
   return (
-    <footer id="footer" className="bg-[#EAE7E3] border-t border-[#FFE5DE] relative overflow-hidden">
+    <footer id="footer" className="bg-[#e9ded6] border-t border-[#FFE5DE] relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pt-20 sm:pt-20">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12 mb-12">
           {/* Logo and Tagline */}
@@ -239,7 +239,7 @@ export default function Footer() {
                 type="submit"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-xl bg-gradient-to-br from-[#FF6B35] to-[#FF8C42] text-white flex items-center justify-center hover:shadow-lg hover:shadow-[#FF6B35]/40 transition-all duration-300"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-xl bg-gradient-to-br from-[#FF7A59] to-[#EB5632] text-white flex items-center justify-center hover:shadow-lg hover:shadow-[#FF6B35]/40 transition-all duration-300"
                 aria-label={t.footerNewsletterButton}
               >
                 <ArrowRight className="w-5 h-5" />

@@ -277,7 +277,7 @@ export default function DashboardTab() {
               {t.kycConfirmed}
             </span>
           ) : (
-            <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold bg-gradient-to-r from-[#FF6B35] to-[#FF8C42] text-white shadow-lg shadow-[#FF6B35]/30">
+            <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold bg-gradient-to-r from-[#FF7A59] to-[#EB5632] text-white shadow-lg shadow-[#FF6B35]/30">
               <XCircle className="w-3 h-3 mr-1" strokeWidth={2.5} />
               {t.notVerified}
             </span>
@@ -302,7 +302,7 @@ export default function DashboardTab() {
                 {t.kycConfirmed}
               </span>
             ) : (
-              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold bg-gradient-to-r from-[#FF6B35] to-[#FF8C42] text-white shadow-lg shadow-[#FF6B35]/30">
+              <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-semibold bg-gradient-to-r from-[#FF7A59] to-[#EB5632] text-white shadow-lg shadow-[#FF6B35]/30">
                 <XCircle className="w-4 h-4 mr-1.5" strokeWidth={2.5} />
                 {t.notVerified}
               </span>
@@ -338,7 +338,7 @@ export default function DashboardTab() {
           >
             <div className="flex items-start justify-between mb-1.5 lg:mb-2">
               <span className="text-[10px] lg:text-sm font-semibold text-[var(--color-text)] leading-tight">{t.totalInvestment}</span>
-              <div className="min-w-[24px] min-h-[24px] w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-gradient-to-br from-[#FF6B35] to-[#FF8C42] flex items-center justify-center shadow-md flex-shrink-0" style={{ borderRadius: '50%' }}>
+              <div className="min-w-[24px] min-h-[24px] w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-gradient-to-br from-[#FF7A59] to-[#EB5632] flex items-center justify-center shadow-md flex-shrink-0" style={{ borderRadius: '50%' }}>
                 <DollarSign className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
               </div>
             </div>
@@ -369,7 +369,7 @@ export default function DashboardTab() {
           >
             <div className="flex items-start justify-between mb-1.5 lg:mb-2">
               <span className="text-[10px] lg:text-sm font-semibold text-[var(--color-text)] leading-tight">{t.myTeam}</span>
-              <div className="min-w-[24px] min-h-[24px] w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-gradient-to-br from-[#FF6B35] to-[#FF8C42] flex items-center justify-center shadow-md flex-shrink-0" style={{ borderRadius: '50%' }}>
+              <div className="min-w-[24px] min-h-[24px] w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-gradient-to-br from-[#FF7A59] to-[#EB5632] flex items-center justify-center shadow-md flex-shrink-0" style={{ borderRadius: '50%' }}>
                 <Users className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
               </div>
             </div>
@@ -400,7 +400,7 @@ export default function DashboardTab() {
           >
             <div className="flex items-start justify-between mb-1.5 lg:mb-2">
               <span className="text-[10px] lg:text-sm font-semibold text-[var(--color-text)] leading-tight">{t.potentialGrowthIPO}</span>
-              <div className="min-w-[24px] min-h-[24px] w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-gradient-to-br from-[#FF6B35] to-[#FF8C42] flex items-center justify-center shadow-md flex-shrink-0" style={{ borderRadius: '50%' }}>
+              <div className="min-w-[24px] min-h-[24px] w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-gradient-to-br from-[#FF7A59] to-[#EB5632] flex items-center justify-center shadow-md flex-shrink-0" style={{ borderRadius: '50%' }}>
                 <Coins className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
               </div>
             </div>
@@ -422,7 +422,7 @@ export default function DashboardTab() {
           >
             <div className="flex items-start justify-between mb-1.5 lg:mb-2">
               <span className="text-[10px] lg:text-sm font-semibold text-[var(--color-text)] leading-tight">{t.portfolioGrowth}</span>
-              <div className="min-w-[24px] min-h-[24px] w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-gradient-to-br from-[#FF6B35] to-[#FF8C42] flex items-center justify-center shadow-md flex-shrink-0" style={{ borderRadius: '50%' }}>
+              <div className="min-w-[24px] min-h-[24px] w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-gradient-to-br from-[#FF7A59] to-[#EB5632] flex items-center justify-center shadow-md flex-shrink-0" style={{ borderRadius: '50%' }}>
                 <TrendingUp className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
               </div>
             </div>

@@ -60,8 +60,10 @@ export default function AdvantagesSection() {
   const [isLaptop, setIsLaptop] = useState(true);
   const [rotatingIcons, setRotatingIcons] = useState<{ [key: number]: boolean }>({});
   const [isAnimating, setIsAnimating] = useState(false);
-  const touchStartX = useRef(0);
-  const touchEndX = useRef(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
 
   // Desktop layout constants - MUST show exactly 5 phones per view
   const PHONE_WIDTH = 250; // Fixed width for each phone card (increased from 220)
@@ -114,74 +116,59 @@ export default function AdvantagesSection() {
     }
   }, [currentStep, phoneScreens.length]);
 
-  // Navigation handlers
+  // Navigation handlers - NO BOUNDARIES for infinite loop
   const goToNext = () => {
+    if (isAnimating) return; // Block if already animating
+    setIsAnimating(true);
     setCurrentStep((prev) => prev + 1);
+    setTimeout(() => setIsAnimating(false), 500); // Unlock after 500ms
   };
 
   const goToPrev = () => {
-    setCurrentStep((prev) => prev - 1);
-  };
-
-  // Drag handlers for mobile with animation lock
-  const handleDragEnd = (_: any, info: any) => {
-    // Prevent multiple swipes during animation
-    if (isAnimating) return;
-    
-    const threshold = 70; // Higher threshold for more deliberate swipes
-    const swipeOffset = info.offset.x;
-    const swipeVelocity = Math.abs(info.velocity.x);
-    
-    // Ignore very fast swipes to prevent accidental rapid scrolling
-    if (swipeVelocity > 800) return;
-    
-    // Only proceed if swipe is significant enough
-    if (Math.abs(swipeOffset) > threshold) {
-      setIsAnimating(true);
-      
-      if (swipeOffset < 0) {
-        // Swiped left - go to next (only one step)
-        goToNext();
-      } else {
-        // Swiped right - go to previous (only one step)
-        goToPrev();
-      }
-      
-      // Lock animation for longer to ensure only one swipe at a time
-      setTimeout(() => setIsAnimating(false), 600);
-    }
-  };
-
-  // Touch handlers for mobile - simple one swipe at a time
-  const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (isAnimating) return; // Block new touches during animation
-    touchStartX.current = event.touches[0].clientX;
-    touchEndX.current = touchStartX.current; // Initialize end position
-  };
-
-  const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
     if (isAnimating) return; // Block if already animating
-    
-    const swipeDistance = touchStartX.current - touchEndX.current;
-    const threshold = 50; // Minimum swipe distance in pixels
-    
-    // Only proceed if swipe is significant enough
-    if (Math.abs(swipeDistance) > threshold) {
-      setIsAnimating(true);
-      
-      if (swipeDistance > 0) {
-        // Swiped left - go to next
-        goToNext();
-      } else {
-        // Swiped right - go to previous
-        goToPrev();
-      }
-      
-      // Unlock after animation completes
-      setTimeout(() => {
-        setIsAnimating(false);
-      }, 700);
+    setIsAnimating(true);
+    setCurrentStep((prev) => prev - 1);
+    setTimeout(() => setIsAnimating(false), 500); // Unlock after 500ms
+  };
+
+  // Touch handlers - COPIED FROM UniqueFeaturesSection
+  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
+    setTouchStart(e.touches[0].clientX);
+    setTouchEnd(null);
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    if (!isDragging || touchStart === null) return;
+    const currentTouch = e.touches[0].clientX;
+    setTouchEnd(currentTouch);
+    const diff = currentTouch - touchStart;
+    setDragOffset(diff);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) {
+      setIsDragging(false);
+      setDragOffset(0);
+      return;
     }
+    
+    setIsDragging(false);
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+    
+    if (isLeftSwipe) {
+      goToNext();
+    }
+    if (isRightSwipe) {
+      goToPrev();
+    }
+    
+    // Reset
+    setDragOffset(0);
+    setTouchStart(null);
+    setTouchEnd(null);
   };
 
   // Calculate scale for each phone based on distance from center
@@ -265,7 +252,7 @@ export default function AdvantagesSection() {
           icon: <Bot className="w-7 h-7 text-white" strokeWidth={2} />,
           title: 'Персонализация через AI-компаньона',
           description:
-            'Рекомендации под ваши вкусы, настроение и обстоятельства. Мгновенное бронирование и готовый маршрут. Динамические меню, голосовые сценарии и адаптивные рекомендации — всё, чтобы выбор был действительно лёгким.',
+            'Рекомендации под ваши вкусы, настроение и обстоятельства. Мгновенное бронирование и готовый маршрут. Динамиеские меню, голосовые сценарии и адаптивные рекомендации — всё, чтобы выбор был действительно лёгким.',
         },
       ],
     },
@@ -379,7 +366,7 @@ export default function AdvantagesSection() {
           icon: <Cpu className="w-7 h-7 text-white" strokeWidth={2} />,
           title: 'Restoranlar için çalışan teknoloji',
           description:
-            'Akıllı arayüzler ortalama müşteri harcamasını artırır. Yapay zekâ maliyetleri düşürür ve tahminleri iyileştirir. ChefNet, restoranların kazanmasına – çabayla değil – yardımcı olur.',
+            'Akıllı arayüzler ortalama müşteri harcamasını artırır. Yapay zek maliyetleri düşürür ve tahminleri iyileştirir. ChefNet, restoranların kazanmasına – çabayla değil – yardımcı olur.',
         },
         {
           icon: <Lightbulb className="w-7 h-7 text-white" strokeWidth={2} />,
@@ -449,7 +436,7 @@ export default function AdvantagesSection() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="flex flex-col items-center"
+          className="flex flex-col items-center relative"
           style={{ gap: '12px' }}
         >
           {/* Chef Hat Icon - Using IconBox for desktop, custom for mobile */}
@@ -482,7 +469,7 @@ export default function AdvantagesSection() {
                   stiffness: 400,
                   damping: 17
                 }}
-                className="w-24 h-24 bg-gradient-to-br from-[#FF6B35] to-[#FF8C42] rounded-3xl flex items-center justify-center shadow-xl shadow-[#FF6B35]/30 relative overflow-hidden group cursor-pointer select-none"
+                className="w-24 h-24 bg-gradient-to-br from-[#FF7A59] to-[#EB5632] rounded-3xl flex items-center justify-center shadow-xl shadow-[#FF6B35]/30 relative overflow-hidden group cursor-pointer select-none"
                 style={{ willChange: 'transform', touchAction: 'manipulation' }}
               >
                 {/* Background pattern */}
@@ -502,9 +489,19 @@ export default function AdvantagesSection() {
           )}
 
           {/* Headline */}
-          <h2 className="text-[48px] font-bold text-[#292524] text-center">
+          <h2 className="text-[48px] font-bold text-[#292524] text-center mt-6 sm:mt-8">
             {currentContent.advantagesTitlePart1} <span className="text-[#FF6B35]">{currentContent.advantagesTitlePart2}</span>?
           </h2>
+          
+          {/* Gradient fade to hide icon shadow below - creates seamless transition */}
+          <div 
+            className="absolute left-0 right-0 h-32 pointer-events-none"
+            style={{
+              top: '100%',
+              background: 'linear-gradient(to bottom, rgb(245, 234, 225) 0%, rgba(245, 234, 225, 0.9) 20%, rgba(245, 234, 225, 0) 100%)',
+              zIndex: 5
+            }}
+          />
         </motion.div>
 
         {/* CarouselViewport */}
@@ -525,31 +522,27 @@ export default function AdvantagesSection() {
           >
             {/* Carousel Track - all phones in a row */}
             <motion.div
-              drag={false}
-              dragConstraints={{ left: 0, right: 0 }}
-              onTouchStart={isMobile ? handleTouchStart : undefined}
-              onTouchMove={isMobile ? (e) => { touchEndX.current = e.touches[0].clientX; } : undefined}
-              onTouchEnd={isMobile ? handleTouchEnd : undefined}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
               animate={{
-                x: getCarouselOffset(),
+                x: getCarouselOffset() + dragOffset,
+                y: '-50%',
               }}
-              transition={enableTransition ? { 
-                type: 'spring', 
-                stiffness: isMobile ? 200 : 300, 
-                damping: isMobile ? 25 : 30,
-                mass: isMobile ? 0.8 : 1
-              } : { duration: 0 }}
               style={{
                 display: 'flex',
                 gap: isMobile ? '6px' : `${PHONE_GAP}px`,
                 position: 'absolute',
                 left: 0,
-                top: isMobile ? '10%' : '10%',
-                transform: 'translateY(-50%)',
-                cursor: isMobile ? 'default' : 'default',
+                top: '50%',
+                cursor: isMobile && isDragging ? 'grabbing' : isMobile ? 'grab' : 'default',
                 willChange: 'transform',
-                touchAction: isMobile ? 'pan-y' : 'auto',
               }}
+              transition={isDragging ? { duration: 0 } : (enableTransition ? { 
+                type: 'tween',
+                duration: 0.4,
+                ease: 'easeOut'
+              } : { duration: 0 })}
             >
               {extendedScreens.map((screen, index) => {
                 const scale = getPhoneScale(index);
@@ -634,49 +627,47 @@ export default function AdvantagesSection() {
                 );
               })}
             </motion.div>
-
-            {/* Desktop Navigation Buttons */}
-            {!isMobile && (
-              <>
-                <button
-                  onClick={goToPrev}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-14 h-14 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-[#FF6B35] hover:text-white transition-all group"
-                  aria-label="Previous"
-                >
-                  <ChevronLeft className="w-7 h-7 text-[#FF6B35] group-hover:text-white transition-colors" />
-                </button>
-                <button
-                  onClick={goToNext}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-14 h-14 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-[#FF6B35] hover:text-white transition-all group"
-                  aria-label="Next"
-                >
-                  <ChevronRight className="w-7 h-7 text-[#FF6B35] group-hover:text-white transition-colors" />
-                </button>
-              </>
-            )}
-
-            {/* Mobile Swipe Indicator */}
-            {isMobile && (
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/20 backdrop-blur-md px-4 py-2 rounded-full">
-                {Array.from({ length: Math.min(5, phoneScreens.length) }).map((_, i) => {
-                  // Calculate which dot should be active based on currentStep
-                  const normalizedStep = ((currentStep - BUFFER_SIZE) % phoneScreens.length + phoneScreens.length) % phoneScreens.length;
-                  const isActive = i === (normalizedStep % 5);
-                  return (
-                    <motion.div
-                      key={i}
-                      animate={{
-                        width: isActive ? 32 : 8,
-                        backgroundColor: isActive ? '#FF6B35' : 'rgba(255, 255, 255, 0.5)',
-                      }}
-                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                      className="h-2 rounded-full"
-                    />
-                  );
-                })}
-              </div>
-            )}
           </motion.div>
+
+          {/* Navigation Buttons - visible on all devices */}
+          <>
+            <button
+              onClick={goToPrev}
+              className={`absolute ${isMobile ? 'left-2' : 'left-4'} top-1/2 -translate-y-1/2 z-20 ${isMobile ? 'w-10 h-10' : 'w-14 h-14'} bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-[#FF6B35] hover:text-white transition-all group`}
+              aria-label="Previous"
+            >
+              <ChevronLeft className={`${isMobile ? 'w-5 h-5' : 'w-7 h-7'} text-[#FF6B35] group-hover:text-white transition-colors`} />
+            </button>
+            <button
+              onClick={goToNext}
+              className={`absolute ${isMobile ? 'right-2' : 'right-4'} top-1/2 -translate-y-1/2 z-20 ${isMobile ? 'w-10 h-10' : 'w-14 h-14'} bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-[#FF6B35] hover:text-white transition-all group`}
+              aria-label="Next"
+            >
+              <ChevronRight className={`${isMobile ? 'w-5 h-5' : 'w-7 h-7'} text-[#FF6B35] group-hover:text-white transition-colors`} />
+            </button>
+          </>
+
+          {/* Mobile Swipe Indicator */}
+          {isMobile && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-black/20 backdrop-blur-md px-4 py-2 rounded-full">
+              {Array.from({ length: Math.min(5, phoneScreens.length) }).map((_, i) => {
+                // Calculate which dot should be active based on currentStep
+                const normalizedStep = ((currentStep - BUFFER_SIZE) % phoneScreens.length + phoneScreens.length) % phoneScreens.length;
+                const isActive = i === (normalizedStep % 5);
+                return (
+                  <motion.div
+                    key={i}
+                    animate={{
+                      width: isActive ? 32 : 8,
+                      backgroundColor: isActive ? '#FF6B35' : 'rgba(255, 255, 255, 0.5)',
+                    }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                    className="h-2 rounded-full"
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Benefits Grid */}
@@ -688,10 +679,10 @@ export default function AdvantagesSection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: index * 0.1 }}
-              className="bg-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-shadow"
+              className="bg-white rounded-2xl p-6 border-2 border-transparent hover:border-[#FF7A59] hover:shadow-[0_8px_30px_rgb(255,122,89,0.3)] hover:scale-[1.02] transition-all duration-300 group"
             >
               <motion.div 
-                className="w-14 h-14 bg-gradient-to-br from-[#FF6B35] to-[#FF8C42] rounded-xl flex items-center justify-center mb-4 shadow-md cursor-pointer mx-auto select-none"
+                className="w-14 h-14 bg-gradient-to-br from-[#FF7A59] to-[#EB5632] rounded-xl flex items-center justify-center mb-4 shadow-md group-hover:shadow-lg group-hover:shadow-[#FF6B35]/40 cursor-pointer mx-auto select-none transition-shadow"
                 animate={rotatingIcons[index] ? { rotate: 360 } : { rotate: 0 }}
                 transition={{ 
                   duration: 0.5,

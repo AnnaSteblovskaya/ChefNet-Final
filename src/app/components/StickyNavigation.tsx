@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ChefHat, Menu } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,17 +18,36 @@ export default function StickyNavigation({ onGoToDashboard }: StickyNavigationPr
   const t = translations[language];
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [isScrolled, setIsScrolled] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // Track scroll position
+  // Use Intersection Observer to detect when hero section is out of view
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 100);
-    };
+    const heroSection = document.getElementById('home');
+    if (!heroSection) {
+      console.log('❌ Hero section not found');
+      return;
+    }
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        // When hero section is NOT intersecting (out of view), show sticky nav
+        const shouldShow = !entry.isIntersecting;
+        console.log('👁️ Hero visible:', entry.isIntersecting, '| Sticky nav visible:', shouldShow);
+        setIsVisible(shouldShow);
+      },
+      {
+        threshold: 0.1, // Trigger when 10% of hero is visible
+        rootMargin: '-80px 0px 0px 0px' // Offset by nav height
+      }
+    );
+
+    observer.observe(heroSection);
+
+    return () => {
+      observer.disconnect();
+    };
   }, []);
 
   const handleLoginClick = () => {
@@ -59,24 +78,19 @@ export default function StickyNavigation({ onGoToDashboard }: StickyNavigationPr
   return (
     <>
       <motion.div
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-          isScrolled ? 'backdrop-blur-lg bg-[#EAE7E3]/95 shadow-lg' : 'bg-transparent pointer-events-none invisible'
-        }`}
-        initial={{ y: -200, opacity: 0 }}
+        initial={{ y: -100, opacity: 0 }}
         animate={{ 
-          y: isScrolled ? 0 : -200,
-          opacity: isScrolled ? 1 : 0
+          y: isVisible ? 0 : -100, 
+          opacity: isVisible ? 1 : 0 
         }}
-        transition={{ 
-          duration: 0.4,
-          ease: "easeOut"
+        transition={{ duration: 0.3, ease: 'easeOut' }}
+        className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-md shadow-lg ${isVisible ? 'pointer-events-auto' : 'pointer-events-none'}`}
+        style={{ 
+          backgroundColor: 'rgba(233, 222, 214, 0.85)' // Полупрозрачный #e9ded6
         }}
-        style={{ willChange: 'transform, opacity' }}
       >
-        <div className={`px-8 py-4 ${isScrolled ? 'pointer-events-auto' : 'pointer-events-none'}`}>
-          <div className={`flex items-center gap-2 transition-opacity duration-300 ${
-            isScrolled ? 'opacity-100' : 'opacity-0'
-          }`}>
+        <div className="px-8 py-4">
+          <div className="flex items-center justify-between gap-2">
             {/* Logo */}
             <button
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
@@ -93,60 +107,60 @@ export default function StickyNavigation({ onGoToDashboard }: StickyNavigationPr
               </div>
             </button>
 
-            {/* Navigation Links */}
-            <div className="hidden lg:block relative flex-1">
-              <nav className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-thin" style={{ scrollbarWidth: 'thin', scrollbarColor: '#FB7F43 transparent' }}>
+            {/* Navigation Links - Centered */}
+            <div className="hidden lg:block flex-1">
+              <nav className="flex items-center justify-center gap-6">
                 <button
                   onClick={() => document.getElementById('unique-features')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="text-[#3E3E3E] hover:text-[#FF6B35] text-[10px] xl:text-[10.5px] font-medium transition-all whitespace-nowrap px-0.5 flex-shrink-0"
+                  className="text-[#3E3E3E] hover:text-[#FF6B35] text-[12px] font-medium transition-all whitespace-nowrap"
                 >
                   {t.features}
                 </button>
                 <button
                   onClick={() => document.getElementById('opportunities')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="text-[#3E3E3E] hover:text-[#FF6B35] text-[10px] xl:text-[10.5px] font-medium transition-all whitespace-nowrap px-0.5 flex-shrink-0"
+                  className="text-[#3E3E3E] hover:text-[#FF6B35] text-[12px] font-medium transition-all whitespace-nowrap"
                 >
                   {t.aboutUs}
                 </button>
                 <button
                   onClick={() => document.getElementById('partnership')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="text-[#3E3E3E] hover:text-[#FF6B35] text-[10px] xl:text-[10.5px] font-medium transition-all whitespace-nowrap px-0.5 flex-shrink-0"
+                  className="text-[#3E3E3E] hover:text-[#FF6B35] text-[12px] font-medium transition-all whitespace-nowrap"
                 >
-                  {t.referralProgramme}
+                  {t.forPartners}
                 </button>
                 <button
                   onClick={() => document.getElementById('investments')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="text-[#3E3E3E] hover:text-[#FF6B35] text-[10px] xl:text-[10.5px] font-medium transition-all whitespace-nowrap px-0.5 flex-shrink-0"
+                  className="text-[#3E3E3E] hover:text-[#FF6B35] text-[12px] font-medium transition-all whitespace-nowrap"
                 >
                   {t.stagesOfDevelopment}
                 </button>
                 <button
                   onClick={() => document.getElementById('advantages')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="text-[#3E3E3E] hover:text-[#FF6B35] text-[10px] xl:text-[10.5px] font-medium transition-all whitespace-nowrap px-0.5 flex-shrink-0"
+                  className="text-[#3E3E3E] hover:text-[#FF6B35] text-[12px] font-medium transition-all whitespace-nowrap"
                 >
                   {t.whyChefNet}
                 </button>
                 <button
                   onClick={() => document.getElementById('roadmap')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="text-[#3E3E3E] hover:text-[#FF6B35] text-[10px] xl:text-[10.5px] font-medium transition-all whitespace-nowrap px-0.5 flex-shrink-0"
+                  className="text-[#3E3E3E] hover:text-[#FF6B35] text-[12px] font-medium transition-all whitespace-nowrap"
                 >
                   {t.roadmap}
                 </button>
                 <button
                   onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="text-[#3E3E3E] hover:text-[#FF6B35] text-[10px] xl:text-[10.5px] font-medium transition-all whitespace-nowrap px-0.5 flex-shrink-0"
+                  className="text-[#3E3E3E] hover:text-[#FF6B35] text-[12px] font-medium transition-all whitespace-nowrap"
                 >
                   {t.faq}
                 </button>
                 <button
                   onClick={() => document.getElementById('team')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="text-[#3E3E3E] hover:text-[#FF6B35] text-[10px] xl:text-[10.5px] font-medium transition-all whitespace-nowrap px-0.5 flex-shrink-0"
+                  className="text-[#3E3E3E] hover:text-[#FF6B35] text-[12px] font-medium transition-all whitespace-nowrap"
                 >
                   {t.team}
                 </button>
                 <button
                   onClick={() => document.getElementById('footer')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="text-[#3E3E3E] hover:text-[#FF6B35] text-[10px] xl:text-[10.5px] font-medium transition-all whitespace-nowrap px-0.5 flex-shrink-0"
+                  className="text-[#3E3E3E] hover:text-[#FF6B35] text-[12px] font-medium transition-all whitespace-nowrap"
                 >
                   {t.contacts}
                 </button>
@@ -155,7 +169,9 @@ export default function StickyNavigation({ onGoToDashboard }: StickyNavigationPr
 
             {/* Right Actions */}
             <div className="flex items-center gap-1.5 flex-shrink-0">
-              <LanguageSwitcher variant="dark" />
+              <div className="mr-4">
+                <LanguageSwitcher variant="dark" />
+              </div>
               
               {/* Hamburger Menu Button - Mobile Only */}
               <button
@@ -169,8 +185,8 @@ export default function StickyNavigation({ onGoToDashboard }: StickyNavigationPr
               <motion.button
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
-                className="hidden sm:block px-3 py-1.5 bg-white text-[#D93F29] rounded-full text-[11px] font-medium transition-all whitespace-nowrap shadow-md hover:shadow-lg border"
-                style={{ borderColor: '#D93F29' }}
+                className="hidden sm:block px-3 py-1.5 text-[#D93F29] rounded-full text-[12px] font-medium hover:bg-[#D93F29]/10 transition-all whitespace-nowrap"
+                style={{ borderColor: '#D93F29', borderWidth: '1px', borderStyle: 'solid' }}
                 onClick={handleLoginClick}
               >
                 {t.logIn}
@@ -178,7 +194,7 @@ export default function StickyNavigation({ onGoToDashboard }: StickyNavigationPr
               <motion.button
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
-                className="hidden sm:block px-3 py-1.5 text-[#D93F29] rounded-full text-[11px] font-medium hover:bg-[#D93F29]/10 transition-all whitespace-nowrap bg-white/80 backdrop-blur-sm"
+                className="hidden sm:block px-3 py-1.5 text-[#D93F29] rounded-full text-[12px] font-medium hover:bg-[#D93F29]/10 transition-all whitespace-nowrap"
                 style={{ borderColor: '#D93F29', borderWidth: '1px', borderStyle: 'solid' }}
                 onClick={handleSignInClick}
               >

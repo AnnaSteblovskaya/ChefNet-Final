@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/locales/translations';
@@ -41,6 +41,9 @@ export default function UniqueFeaturesSection() {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [activeCard, setActiveCard] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
+  const carouselRef = useRef<HTMLDivElement>(null);
 
   // Calculate visible cards based on screen size
   useEffect(() => {
@@ -102,15 +105,25 @@ export default function UniqueFeaturesSection() {
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     setTouchStart(e.touches[0].clientX);
     setTouchEnd(null);
+    setIsDragging(true);
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    setTouchEnd(e.touches[0].clientX);
+    if (!isDragging || touchStart === null) return;
+    const currentTouch = e.touches[0].clientX;
+    setTouchEnd(currentTouch);
+    const diff = currentTouch - touchStart;
+    setDragOffset(diff);
   };
 
   const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
+    if (!touchStart || !touchEnd) {
+      setIsDragging(false);
+      setDragOffset(0);
+      return;
+    }
     
+    setIsDragging(false);
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > 50;
     const isRightSwipe = distance < -50;
@@ -121,6 +134,11 @@ export default function UniqueFeaturesSection() {
     if (isRightSwipe && currentIndex > 0) {
       handlePrev();
     }
+    
+    // Reset
+    setDragOffset(0);
+    setTouchStart(null);
+    setTouchEnd(null);
   };
 
   return (
@@ -137,7 +155,7 @@ export default function UniqueFeaturesSection() {
           <IconBox delay={0.2}>
             <img src={fireIcon} alt="Fire icon" className="w-16 h-16 relative z-10 drop-shadow-lg" />
           </IconBox>
-          <h2 className="text-4xl md:text-5xl font-bold mb-4">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 mt-6 sm:mt-8">
             {language === 'tr' ? (
               <>
                 <span className="text-[#FF6B35]">ChefNet</span>
@@ -199,12 +217,29 @@ export default function UniqueFeaturesSection() {
           </button>
 
           {/* Cards Container */}
-          <div className="overflow-hidden px-12 sm:px-4 py-2" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
+          <div className="overflow-hidden px-12 sm:px-4 py-2">
             <motion.div
+              drag={visibleCards === 1 ? "x" : false}
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.1}
+              onDragEnd={(_, info) => {
+                if (visibleCards === 1) {
+                  const threshold = 50;
+                  if (info.offset.x > threshold && currentIndex > 0) {
+                    handlePrev();
+                  } else if (info.offset.x < -threshold && currentIndex < maxIndex) {
+                    handleNext();
+                  }
+                }
+              }}
               className="flex gap-4 sm:gap-8"
               animate={{
                 x: `calc(-${currentIndex * getCardWidthPercentage()}% - ${currentIndex * getGapSize()}rem)`,
               }}
+              style={{
+                cursor: visibleCards === 1 ? 'grab' : 'default',
+              }}
+              whileTap={visibleCards === 1 ? { cursor: 'grabbing' } : {}}
               transition={{ type: 'tween', duration: 0.4, ease: 'easeOut' }}
             >
               {features.map((feature, index) => {
@@ -230,9 +265,25 @@ export default function UniqueFeaturesSection() {
                       setActiveCard(activeCard === index ? null : index);
                     }}
                   >
-                    <div className={`bg-white border-2 rounded-2xl p-4 sm:p-6 min-h-[360px] sm:h-[400px] hover:shadow-xl transition-all duration-300 group flex flex-col items-center text-center ${
-                      activeCard === index ? 'border-[#FF8C42] shadow-xl' : 'border-transparent hover:border-[#FF8C42]'
-                    }`}>
+                    <div className={`bg-white border-2 rounded-2xl p-4 sm:p-6 min-h-[360px] sm:h-[400px] transition-all duration-300 group flex flex-col items-center text-center ${
+                      activeCard === index ? 'border-[#FF7A59]' : 'border-transparent hover:border-[#FF7A59]'
+                    }`}
+                    style={{
+                      boxShadow: activeCard === index 
+                        ? '0 25px 80px -20px rgba(255, 140, 66, 0.18), 0 15px 50px -15px rgba(255, 107, 53, 0.12), 0 8px 30px -10px rgba(255, 107, 53, 0.08)' 
+                        : '0 12px 50px -12px rgba(0, 0, 0, 0.06), 0 6px 30px -8px rgba(0, 0, 0, 0.04), 0 3px 15px -4px rgba(0, 0, 0, 0.03)'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (activeCard !== index) {
+                        e.currentTarget.style.boxShadow = '0 20px 70px -18px rgba(255, 140, 66, 0.14), 0 10px 40px -12px rgba(255, 107, 53, 0.09), 0 5px 20px -6px rgba(255, 107, 53, 0.06)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (activeCard !== index) {
+                        e.currentTarget.style.boxShadow = '0 12px 50px -12px rgba(0, 0, 0, 0.06), 0 6px 30px -8px rgba(0, 0, 0, 0.04), 0 3px 15px -4px rgba(0, 0, 0, 0.03)';
+                      }
+                    }}
+                    >
                       {/* Icon */}
                       <motion.div
                         animate={rotatingIcons[index] ? { rotate: 360 } : { rotate: 0 }}
@@ -254,7 +305,7 @@ export default function UniqueFeaturesSection() {
                             setRotatingIcons(prev => ({ ...prev, [index]: false }));
                           }, 500);
                         } : undefined}
-                        className="flex-shrink-0 bg-gradient-to-br from-[#FF8C42] to-[#D2691E] w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-[#FF6B35]/40 transition-shadow mb-3 sm:mb-4 cursor-pointer select-none"
+                        className="flex-shrink-0 bg-gradient-to-br from-[#FF7A59] to-[#EB5632] w-12 h-12 sm:w-16 sm:h-16 rounded-xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-[#FF6B35]/40 transition-shadow mb-3 sm:mb-4 cursor-pointer select-none"
                         style={{ willChange: 'transform', touchAction: 'manipulation' }}
                       >
                         {index === 8 ? (
@@ -290,7 +341,7 @@ export default function UniqueFeaturesSection() {
                                 let content = sentence.trim();
                                 const elements: React.ReactNode[] = [];
                                 
-                                if (content.includes('Основано на Супер-интеллекте:')) {
+                                if (content.includes('Основан на Супер-интеллекте:')) {
                                   const parts = content.split('Основано на Супер-интеллекте:');
                                   elements.push(parts[0].trim() ? parts[0].trim() + ' ' : '');
                                   elements.push(<span key="bold" className="font-bold">Основано на Супер-интеллекте:</span>);

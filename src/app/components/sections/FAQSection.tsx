@@ -54,7 +54,7 @@ export default function FAQSection() {
                   // Spanish
                   part === 'Enfoque actual:' || part === 'Desglose de Captación de Fondos' || part === '🟢 1. Ronda:' || part === '🟡 2. Ronda:' || part === '🔵 3. Ronda:' || part === '🟣 4. Ronda:' || part === 'Monto:' || part === 'Objetivo:' || part === 'Uso de fondos:' || part === 'Resultado:' || part === 'Actualización de Estado:' ||
                   // Russian
-                  part === 'Текущий фокус:' || part === 'Детализация раундов:' || part === '🟢 Раунд 1:' || part === '🟡 Раунд 2:' || part === '🔵 Раунд 3:' || part === '🟣 Раунд 4:' || part === 'Сумм��:' || part === 'Цель:' || part === 'На что пойдут средства:' || part === 'Результат:' || part === 'Status Update:' ||
+                  part === 'Текущий фокус:' || part === 'Детализация раундов:' || part === '🟢 Раунд 1:' || part === '🟡 Раунд 2:' || part === '🔵 Раунд 3:' || part === '🟣 Раунд 4:' || part === 'Сумм:' || part === 'Цель:' || part === 'На что пойдут средства:' || part === 'Результат:' || part === 'Status Update:' ||
                   // English
                   part === 'Current focus:' || part === 'Fundraising Breakdown:' || part === '🟢 Round 1:' || part === '🟡 Round 2:' || part === '🔵 Round 3:' || part === '🟣 Round 4:' || part === 'Amount:' || part === 'Objective:' || part === 'Use of funds:' || part === 'Outcome:' || part === 'Status Update:' ||
                   // German
@@ -596,7 +596,7 @@ export default function FAQSection() {
         
         // For Russian FAQ7, make text before colon bold
         if (isFaq7Russian) {
-          const parts = content.split(/(M&A \(Покупка корпорацией\):|Вторичный рынок:)/g);
+          const parts = content.split(/(M&A \(Покупка корпораций\):|Вторичный рынок:)/g);
           const formatted = parts.map((part, index) => {
             if (part === 'M&A (Покупка корпорацией):' || part === 'Вторичный рынок:') {
               return <strong key={index}>{part}</strong>;
@@ -873,7 +873,7 @@ export default function FAQSection() {
           <IconBox delay={0.2}>
             <MessageCircleQuestion className="w-12 h-12 text-[#FF6B35] mx-auto relative z-10 drop-shadow-lg" />
           </IconBox>
-          <h2 className="text-4xl sm:text-5xl font-bold mb-4 bg-gradient-to-r from-[#2C1810] to-[#6B4423] bg-clip-text text-transparent leading-tight pb-2">{t.faqTitle}</h2>
+          <h2 className="text-4xl sm:text-5xl font-bold mb-4 mt-6 sm:mt-8 bg-gradient-to-r from-[#2C1810] to-[#6B4423] bg-clip-text text-transparent leading-tight pb-2">{t.faqTitle}</h2>
         </motion.div>
 
         {/* FAQ Accordion */}
@@ -896,7 +896,7 @@ export default function FAQSection() {
                 <motion.div
                   animate={{ rotate: openIndex === index ? 180 : 0 }}
                   transition={{ duration: 0.3, ease: "easeInOut" }}
-                  className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-[#FF6B35]/10 to-[#FF8C42]/10 flex items-center justify-center"
+                  className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-[#FF7A59]/10 to-[#EB5632]/10 flex items-center justify-center"
                 >
                   <ChevronDown className="w-5 h-5 text-[#FF6B35]" />
                 </motion.div>

@@ -50,7 +50,7 @@ export default function IconBox({ children, className = '', delay = 0.2 }: IconB
           stiffness: 400,
           damping: 17
         }}
-        className={`w-24 h-24 bg-gradient-to-br from-[#FF6B35] to-[#FF8C42] rounded-3xl flex items-center justify-center shadow-xl shadow-[#FF6B35]/30 relative overflow-hidden group cursor-pointer select-none ${className}`}
+        className={`w-24 h-24 bg-gradient-to-br from-[#FF7A59] to-[#EB5632] rounded-3xl flex items-center justify-center shadow-xl shadow-[#FF6B35]/30 relative overflow-hidden group cursor-pointer select-none ${className}`}
         style={{ willChange: 'transform', touchAction: 'manipulation' }}
       >
         {/* Background pattern */}

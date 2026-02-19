@@ -28,6 +28,8 @@ export default function PartnershipSection() {
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const iconTouchStartRef = useRef<{ [key: number]: number }>({});
   const [activeCard, setActiveCard] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState(0);
 
   // Calculate visible cards based on screen size
   useEffect(() => {
@@ -122,15 +124,25 @@ export default function PartnershipSection() {
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
     setTouchStart(e.touches[0].clientX);
     setTouchEnd(null);
+    setIsDragging(true);
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    setTouchEnd(e.touches[0].clientX);
+    if (!isDragging || touchStart === null) return;
+    const currentTouch = e.touches[0].clientX;
+    setTouchEnd(currentTouch);
+    const diff = currentTouch - touchStart;
+    setDragOffset(diff);
   };
 
   const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
+    if (!touchStart || !touchEnd) {
+      setIsDragging(false);
+      setDragOffset(0);
+      return;
+    }
     
+    setIsDragging(false);
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > 50;
     const isRightSwipe = distance < -50;
@@ -142,7 +154,8 @@ export default function PartnershipSection() {
       handlePrev();
     }
     
-    // Сбрасываем значения после обработки свайпа
+    // Reset
+    setDragOffset(0);
     setTouchStart(null);
     setTouchEnd(null);
   };
@@ -161,7 +174,7 @@ export default function PartnershipSection() {
           <IconBox delay={0.2}>
             <img src={partnerIcon} alt="Partner Icon" className="w-16 h-16 relative z-10 drop-shadow-lg -mt-2" />
           </IconBox>
-          <h2 className="text-4xl md:text-5xl font-bold text-[#3E3E3E]">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#3E3E3E] mt-6 sm:mt-8">
             {t.partnersTitle}
           </h2>
         </motion.div>
@@ -201,17 +214,30 @@ export default function PartnershipSection() {
 
           {/* Cards Container */}
           <div 
-            className="overflow-hidden px-12 sm:px-4 py-2" 
-            onTouchStart={handleTouchStart} 
-            onTouchMove={handleTouchMove} 
-            onTouchEnd={handleTouchEnd}
-            style={{ touchAction: 'pan-y pinch-zoom' }}
+            className="overflow-hidden px-12 sm:px-4 py-2"
           >
             <motion.div
+              drag={visibleCards === 1 ? "x" : false}
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.1}
+              onDragEnd={(_, info) => {
+                if (visibleCards === 1) {
+                  const threshold = 50;
+                  if (info.offset.x > threshold && currentIndex > 0) {
+                    handlePrev();
+                  } else if (info.offset.x < -threshold && currentIndex < maxIndex) {
+                    handleNext();
+                  }
+                }
+              }}
               className="flex gap-4 sm:gap-8"
               animate={{
                 x: `calc(-${currentIndex * getCardWidthPercentage()}% - ${currentIndex * getGapSize()}rem)`,
               }}
+              style={{
+                cursor: visibleCards === 1 ? 'grab' : 'default',
+              }}
+              whileTap={visibleCards === 1 ? { cursor: 'grabbing' } : {}}
               transition={{ type: 'tween', duration: 0.4, ease: 'easeOut' }}
             >
               {cards.map((card, index) => {
@@ -238,7 +264,7 @@ export default function PartnershipSection() {
                     }}
                   >
                     <div className={`bg-white border-2 rounded-2xl p-6 h-full hover:shadow-xl transition-all duration-300 group flex flex-col items-center text-center ${
-                      activeCard === index ? 'border-[#FF8C42] shadow-xl' : 'border-transparent hover:border-[#FF8C42]'
+                      activeCard === index ? 'border-[#FF7A59] shadow-xl' : 'border-transparent hover:border-[#FF7A59]'
                     }`}>
                       {/* Icon */}
                       <motion.div
@@ -269,7 +295,7 @@ export default function PartnershipSection() {
                             setRotatingIcons(prev => ({ ...prev, [index]: false }));
                           }, 600);
                         } : undefined}
-                        className="flex-shrink-0 bg-gradient-to-br from-[#FF8C42] to-[#D2691E] w-16 h-16 rounded-xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-[#FF6B35]/40 transition-shadow mb-4 cursor-pointer select-none"
+                        className="flex-shrink-0 bg-gradient-to-br from-[#FF7A59] to-[#EB5632] w-16 h-16 rounded-xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-[#FF6B35]/40 transition-shadow mb-4 cursor-pointer select-none"
                         style={{ touchAction: 'manipulation' }}
                       >
                         <Icon className="w-8 h-8 text-white" strokeWidth={2} />

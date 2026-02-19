@@ -18,9 +18,8 @@ export default function RoadmapSection() {
           mainTitle: 'Foundation & MVP',
           title: 'Development & Alpha testing', 
           categories: [
-            { label: 'Tech:', text: 'MVP development (User App + basic admin panel for restaurants).' },
-            { label: 'Biz:', text: 'Selection of a single city/region for launch. Customer development (CustDev) with 20 restaurants.' },
-            { label: 'Marketing:', text: 'Landing page launch and waitlist acquisition.' }
+            { label: 'Action:', text: 'MVP development (User App + Basic AI Panel + Scanner), AI Companion that you can tell: "Book me a quiet place for a date on Friday, Italian cuisine, budget $200", — and it will find, book, and add it to your calendar by itself.' },
+            { label: 'Business:', text: 'Selection of a single city/region for launch. Customer development (CustDev) with 20 restaurants.' }
           ],
           kpi: '', 
           status: 'active' 
@@ -109,8 +108,8 @@ export default function RoadmapSection() {
           mainTitle: 'AI & FinTech 2.0 ecosystem',
           title: 'AI Companion & Intelligent payments', 
           categories: [
-            { label: 'Product:', text: 'An AI Companion you can simply tell: "Book a quiet place for a date on Friday, Italian cuisine, $200 budget" — and it autonomously finds the venue, makes the reservation, and adds it to your calendar. Restaurant menus dynamically adapt to each user.' },
-            { label: 'Business Model:', text: 'Intelligent bill payments: each guest pays for their own dishes in one click — no waiter required.' }
+            { label: 'Action:', text: 'AI Companion as your personal secretary and partner who will plan your day, book tables for meetings in restaurants, and plan travel routes so you don\'t have to wait in queues to eat. Interactive restaurant menus adapt to each user.' },
+            { label: 'Business:', text: 'Intelligent bill payments where each person pays for their own dishes in one click (no waiter needed).' }
           ],
           kpi: 'KPI: 1.5M–2M active users. Revenue: $8M–$10M (driven by commissions from reservations, ticketing, and fintech transactions).', 
           status: 'upcoming' 
@@ -122,9 +121,8 @@ export default function RoadmapSection() {
           mainTitle: 'Фундамент и MVP',
           title: 'Разработка и Alpha-тест', 
           categories: [
-            { label: 'Действие:', text: 'Разработка MVP (User App + Basic Admin Panel для ресторанов).' },
-            { label: 'Бизнес:', text: 'Выбор одного города/региона для запуска. Кастдев (CustDev) с 20 ресторанами.' },
-            { label: 'Маркетинг:', text: 'Запуск лендинга, сбор Waitlist.' }
+            { label: 'Действие:', text: 'Разработка MVP (User App + Basic AI Panel + Skaner), AI Companion, которому ты говоришь: «Забронируй мне тихое место для свидания в пятницу, итальянская кухня, бюджет $200», — и он сам находит, бронирует и добавляет в календарь.' },
+            { label: 'Бизнес:', text: 'Выбор одного города/региона для запуска. Кастдев (CustDev) с 20 ресторанами.' }
           ],
           kpi: '', 
           status: 'active' 
@@ -210,10 +208,10 @@ export default function RoadmapSection() {
         },
         { 
           period: 'Q1 2028', 
-          mainTitle: 'Экосистема AI и Финтех 2.0',
-          title: 'AI Компаньон & Интеллектуальные оплаты', 
+          mainTitle: 'Экосистема AI и финтех 2.0',
+          title: 'AI Компаньон & интеллектуальные оплаты', 
           categories: [
-            { label: 'Действие:', text: 'AI Companion, которому ты говоришь: «Забронируй мне тихое место для свидания в пятницу, итальянская кухня, бюджет $200», — и он сам находит, бронирует и добавляет в календарь. Интерактивное меню ресторанов адаптируется под юзера.' },
+            { label: 'Действие:', text: 'AI Companion, как твой личный секретарь и партнер, который спланирует твой день, забронирует столики для встреч в ресторанах, продумает маршрут поездки так, чтобы не пришлось стоять в очередях с целью поесть. Интерактивное меню ресторанов адаптируется под юзера.' },
             { label: 'Бизнес:', text: 'Интеллектуальная оплата счета, где каждый платит за свои блюда в один клик (без официанта).' }
           ],
           kpi: 'KPI: 1.5M - 2M активных пользователей. Выручка: $8M - $10M (за счет комиссий с брони, билетов и финтех-транзакций).', 
@@ -226,9 +224,8 @@ export default function RoadmapSection() {
           mainTitle: 'Gründung & MVP',
           title: 'Entwicklung & Alpha-Testing', 
           categories: [
-            { label: 'Tech:', text: 'MVP-Entwicklung (Nutzer-App + grundlegende Verwaltungsoberfläche für Restaurants).' },
-            { label: 'Biz:', text: 'Auswahl einer Pilotstadt/-region für den Launch. Kundenvalidierung (CustDev) mit 20 Restaurants vor Ort.' },
-            { label: 'Marketing:', text: 'Launch der Landingpage und Aufbau einer Warteliste.' }
+            { label: 'Aktion:', text: 'MVP-Entwicklung (Nutzer-App + Basic AI Panel + Scanner), AI Companion, dem Sie einfach sagen: „Reserviere einen ruhigen Ort für ein Date am Freitag, italienische Küche, Budget 200 $" – und er findet selbstständig, reserviert und fügt es Ihrem Kalender hinzu.' },
+            { label: 'Geschäft:', text: 'Auswahl einer Stadt/Region für den Launch. Kundenvalidierung (CustDev) mit 20 Restaurants.' }
           ],
           kpi: '', 
           status: 'active' 
@@ -317,7 +314,7 @@ export default function RoadmapSection() {
           mainTitle: 'KI & FinTech 2.0-Ökosystem',
           title: 'KI-Begleiter & Intelligente Zahlungsabwicklung', 
           categories: [
-            { label: 'Produkt:', text: 'Ein KI-Begleiter, dem Sie einfach sagen: „Reserviere einen ruhigen Ort für ein Date am Freitag, italienische Küche, Budget 200 $" – und er sucht eigenständig das Restaurant aus, nimmt die Reservierung vor und trägt sie in Ihren Kalender ein. Restaurantmenüs passen sich dynamisch an jeden Nutzer an.' },
+            { label: 'Produkt:', text: 'Ein KI-Begleiter als Ihr persönlicher Sekretär und Partner, der Ihren Tag plant, Tische für Treffen in Restaurants bucht und Reiserouten so gestaltet, dass Sie nicht in Warteschlangen für Essen stehen müssen. Restaurantmenüs passen sich dynamisch an jeden Nutzer an.' },
             { label: 'Geschäftsmodell:', text: 'Intelligente Rechnungsabwicklung, bei der jeder Gast mit einem Klick nur für seine eigenen Gerichte bezahlt – ohne Bedienungspersonal.' }
           ],
           kpi: 'KPI: 1,5–2 Mio. aktive Nutzer. Umsatz: 8–10 Mio. $ (generiert durch Provisionen aus Reservierungen, Ticketing und Fintech-Transaktionen).', 
@@ -330,9 +327,8 @@ export default function RoadmapSection() {
           mainTitle: 'Creación y MVP',
           title: 'Desarrollo y pruebas alfa', 
           categories: [
-            { label: 'Tecnología:', text: 'Desarrollo de MVP (App para usuarios + panel de administración básico para restaurantes).' },
-            { label: 'Negocio:', text: 'Selección de una ciudad/región pionera para el lanzamiento. Validación con clientes (CustDev) en 20 restaurantes.' },
-            { label: 'Marketing:', text: 'Lanzamiento de landing page y captación de lista de espera.' }
+            { label: 'Acción:', text: 'Desarrollo de MVP (App para usuarios + Basic AI Panel + Scanner), Asistente de IA al que simplemente le dices: «Reserva un lugar tranquilo para una cita el viernes, cocina italiana, presupuesto de 200 $» – y automáticamente encuentra, reserva y añade a tu calendario.' },
+            { label: 'Negocio:', text: 'Selección de una ciudad/región para el lanzamiento. Validación con clientes (CustDev) en 20 restaurantes.' }
           ],
           kpi: '', 
           status: 'active' 
@@ -434,9 +430,8 @@ export default function RoadmapSection() {
           mainTitle: 'Kuruluş ve MVP',
           title: 'Gelişim & Alfa testleri', 
           categories: [
-            { label: 'Teknoloji:', text: 'MVP geliştirme (Kullanıcı Uygulaması + restoranlar için temel yönetim paneli).' },
-            { label: 'İş Modeli:', text: 'Başlangıç için tek bir şehir/bölge seçimi. 20 restoran ile müşteri ihtiyaç analizi (CustDev).' },
-            { label: 'Pazarlama:', text: 'Landing page yayını ve bekleme listesi oluşturma.' }
+            { label: 'Eylem:', text: 'MVP geliştirme (Kullanıcı Uygulaması + Basic AI Panel + Scanner), Size „Cuma günü bir buluşma için sessiz bir yer ayırt, İtalyan mutfağı, bütçe 200 $\" diyerek talimat verebileceğiniz bir Yapay Zekâlı Rehber – mekanı otomatik olarak bulur, rezervasyonu yapar ve takviminize ekler.' },
+            { label: 'İş:', text: 'Başlangıç için tek bir şehir/bölge seçimi. 20 restoran ile müşteri ihtiyaç analizi (CustDev).' }
           ],
           kpi: '', 
           status: 'active' 
@@ -525,7 +520,7 @@ export default function RoadmapSection() {
           mainTitle: 'Yapay zeka & FinTech 2.0 ekosistemi',
           title: 'Yapay Zekâlı Rehber & Akıllı Ödeme Çözümleri', 
           categories: [
-            { label: 'Ürün:', text: 'Size „Cuma günü bir buluşma için sessiz bir yer ayırt, İtalyan mutfağı, bütçe 200 $" diyerek talimat verebileceğiniz bir Yapay Zekâlı Rehber – mekanı otomatik olarak bulur, rezervasyonu yapar ve takviminize ekler. Restoran menüleri her kullanıcıya dinamik olarak uyarlanır.' },
+            { label: 'Ürün:', text: 'Kişisel sekreteriniz ve partneriniz olarak görev yapacak, gününüzü planlayacak, restoranlarda görüşme için masa rezervasyonları yapacak ve yemek yemek için sıra beklemenize gerek kalmayacak şekilde seyahat rotaları tasarlayacak Yapay Zekâlı Rehber. Restoran menüleri her kullanıcıya dinamik olarak uyarlanır.' },
             { label: 'İş Modeli:', text: 'Akıllı hesap ödemeleri; her misafir tek tıkla yalnızca kendi yemeklerini ödeyebilir — garson desteği gerekmez.' }
           ],
           kpi: 'Temel Performans Göstergesi (KPI): 1,5–2 milyon aktif kullanıcı. Gelir: 8–10 milyon $ (rezervasyon, bilet satışları ve fintech işlemlerinden alınan komisyonlarla destekleniyor).', 
@@ -574,7 +569,7 @@ export default function RoadmapSection() {
           <IconBox delay={0.2}>
             <MapPin className="w-12 h-12 text-[#FF6B35] mx-auto relative z-10 drop-shadow-lg" />
           </IconBox>
-          <h2 className="text-4xl sm:text-5xl font-bold mb-6">
+          <h2 className="text-4xl sm:text-5xl font-bold mb-6 mt-6 sm:mt-8">
             {language === 'ru' ? 'Дорожная карта' : t.roadmapTitle}
           </h2>
           <p className="text-lg sm:text-xl text-[var(--color-text-secondary)]">
@@ -585,7 +580,7 @@ export default function RoadmapSection() {
         {/* Timeline */}
         <div className="relative">
           {/* Vertical line */}
-          <div className="absolute left-4 sm:left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-green-500 via-[#FF6B35] to-gray-300" />
+          <div className="absolute left-4 sm:left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#FF6B35] via-[#FF8C42] to-gray-300" />
 
           {/* Milestones */}
           <div className="space-y-12">

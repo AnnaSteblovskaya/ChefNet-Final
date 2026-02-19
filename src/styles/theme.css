@@ -297,6 +297,22 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* Add scroll offset for sections to account for sticky navigation */
+  section {
+    scroll-margin-top: 60px;
+  }
+
+  /* Extra offset for sections after opportunities to account for orange block */
+  section#partnership,
+  section#investments,
+  section#team,
+  section#roadmap,
+  section#advantages,
+  section#faq,
+  section#about {
+    scroll-margin-top: 90px;
+  }
+
   /* Optimize table rendering on mobile */
   @media (max-width: 768px) {
     table {

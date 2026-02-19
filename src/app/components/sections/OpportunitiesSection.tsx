@@ -5,13 +5,23 @@ import { translations } from '@/locales/translations';
 import IconBox from '@/app/components/IconBox';
 import phonesImage from 'figma:asset/ad45e5be0abc212cf72a9e6020318ae8020f76b3.png';
 import chefIconImage from 'figma:asset/c29a2d0856811702b56beb1ca88355bbc47e8ae0.png';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function OpportunitiesSection() {
   const { language } = useLanguage();
   const t = translations[language];
   const [rotatingIcons, setRotatingIcons] = useState<{ [key: number]: boolean }>({});
   const [activeCard, setActiveCard] = useState<number | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const opportunities = [
     {
@@ -56,7 +66,7 @@ export default function OpportunitiesSection() {
             />
           </IconBox>
           
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[var(--color-text)]">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[var(--color-text)] mt-6 sm:mt-8">
             {t.chefnetAppTitle1}
             <span className="text-[#FB7F43]">{t.chefnetAppTitle2}</span>
             {t.chefnetAppTitle3}
@@ -73,7 +83,7 @@ export default function OpportunitiesSection() {
             transition={{ duration: 0.6 }}
             className="hidden lg:block absolute left-0 right-0 bg-gradient-to-r from-[#D2691E] via-[#FF6B35] to-[#FF9A76] rounded-[40px] z-0"
             style={{
-              height: '450px',
+              height: '400px',
               top: '380px',
               bottom: 'auto'
             }}
@@ -81,21 +91,23 @@ export default function OpportunitiesSection() {
 
           {/* Left Side - Phones Image */}
           <motion.div
-            initial={{ opacity: 0, x: -50 }}
+            initial={{ opacity: 0, x: isMobile ? 0 : -50 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: isMobile ? 0.4 : 0.6, ease: "easeOut" }}
             className="relative z-20"
           >
             <img
               src={phonesImage}
               alt="ChefNet App"
-              className="w-full h-auto drop-shadow-2xl"
+              className="w-full h-auto"
               style={{ 
                 imageRendering: '-webkit-optimize-contrast',
                 backfaceVisibility: 'hidden',
                 transform: 'translateZ(0)',
-                filter: 'drop-shadow(0 20px 40px rgba(0, 0, 0, 0.25))'
+                filter: isMobile 
+                  ? 'drop-shadow(0 10px 30px rgba(0, 0, 0, 0.1))' 
+                  : 'drop-shadow(0 40px 180px rgba(0, 0, 0, 0.05)) drop-shadow(0 20px 100px rgba(0, 0, 0, 0.04)) drop-shadow(0 10px 50px rgba(0, 0, 0, 0.03)) drop-shadow(0 5px 25px rgba(0, 0, 0, 0.02))'
               }}
             />
           </motion.div>
@@ -105,20 +117,37 @@ export default function OpportunitiesSection() {
             {opportunities.map((item, index) => (
               <motion.div
                 key={item.title + item.subtitle}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: isMobile ? 10 : 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true, amount: 0.1 }}
                 transition={{ 
-                  delay: index * 0.1, 
-                  duration: 0.5,
+                  delay: isMobile ? index * 0.05 : index * 0.1, 
+                  duration: isMobile ? 0.3 : 0.5,
                   ease: "easeOut"
                 }}
                 onTouchStart={() => {
                   setActiveCard(activeCard === index ? null : index);
                 }}
-                className={`bg-white border-2 rounded-2xl p-4 shadow-sm hover:shadow-xl transition-all duration-300 group ${index === 0 ? 'mt-8 lg:mt-0' : ''} ${
-                  activeCard === index ? 'border-[#FF8C42] shadow-xl' : 'border-transparent hover:border-[#FF8C42]'
+                className={`bg-white border-2 rounded-2xl p-4 transition-all duration-300 group ${index === 0 ? 'mt-8 lg:mt-0' : ''} ${
+                  activeCard === index ? 'border-[#FF7A59]' : 'border-transparent hover:border-[#FF7A59]'
                 }`}
+                style={{
+                  boxShadow: isMobile 
+                    ? '0 10px 30px -10px rgba(0, 0, 0, 0.1)'
+                    : activeCard === index 
+                      ? '0 25px 80px -20px rgba(255, 140, 66, 0.18), 0 15px 50px -15px rgba(255, 107, 53, 0.12), 0 8px 30px -10px rgba(255, 107, 53, 0.08)' 
+                      : '0 12px 50px -12px rgba(0, 0, 0, 0.06), 0 6px 30px -8px rgba(0, 0, 0, 0.04), 0 3px 15px -4px rgba(0, 0, 0, 0.03)'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isMobile && activeCard !== index) {
+                    e.currentTarget.style.boxShadow = '0 20px 70px -18px rgba(255, 140, 66, 0.14), 0 10px 40px -12px rgba(255, 107, 53, 0.09), 0 5px 20px -6px rgba(255, 107, 53, 0.06)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isMobile && activeCard !== index) {
+                    e.currentTarget.style.boxShadow = '0 12px 50px -12px rgba(0, 0, 0, 0.06), 0 6px 30px -8px rgba(0, 0, 0, 0.04), 0 3px 15px -4px rgba(0, 0, 0, 0.03)';
+                  }
+                }}
               >
                 <div className="flex gap-3">
                 {/* Icon */}
@@ -139,7 +168,7 @@ export default function OpportunitiesSection() {
                       setRotatingIcons(prev => ({ ...prev, [index]: false }));
                     }, 600);
                   }}
-                  className="relative z-20 flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#FF6B35] to-[#FF8C42] rounded-xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-[#FF6B35]/40 transition-shadow cursor-pointer"
+                  className="relative z-20 flex-shrink-0 w-12 h-12 bg-gradient-to-br from-[#FF7A59] to-[#EB5632] rounded-xl flex items-center justify-center group-hover:shadow-lg group-hover:shadow-[#FF6B35]/40 transition-shadow cursor-pointer"
                 >
                   <item.icon className="w-6 h-6 text-white pointer-events-none" strokeWidth={2} />
                 </motion.button>

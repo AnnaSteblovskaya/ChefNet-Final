@@ -39,7 +39,7 @@ export default function TeamSection() {
       ] : [
         'Выпускник Международного института управления бизнеса и права (МИУБП).',
         'Обладает более чем 15-летним опытом в создании и управлении крупными распределёнными командами численностью свыше 10 000 человек.',
-        'Имеет практический опыт построения и масштабирования международных бизнес-систем в более чем 20 странах, включая формирование управленческих структур, запуск операционных процессов и выстраивание партнёрских экосистем.'
+        'Имеет практический опыт построения и масштабирования международных бизнес-систем в более чем 20 странах, включая формирование управленческих структр, запуск операционных процессов и выстраивание партнёрских экосистем.'
       ],
       summary: language === 'en' ? 'At ChefNet, Alexey is responsible for corporate strategy, long-term product vision, business architecture, and the expansion of global partnerships.' : language === 'de' ? 'Bei ChefNet verantwortet Alexey die Unternehmensstrategie, die langfristige Produktvision, die Geschäftsarchitektur sowie den Ausbau weltweit agierender Partnerschaften.' : language === 'tr' ? 'ChefNet\'te kurumsal strateji, uzun vadeli ürün vizyonu, iş mimarisi ve küresel ortaklıkların genişletilmesinden sorumlu.' : language === 'es' ? 'En ChefNet, Alexey lidera la estrategia corporativa, la visión de producto a largo plazo, la arquitectura empresarial y la expansión de alianzas globales.' : 'В ChefNet отвечает за стратегию, долгосрочное видение продукта, архитектуру бизнеса и развитие международных партнёрств.'
     },
@@ -113,12 +113,12 @@ export default function TeamSection() {
         'Шеф-директор по дизайну с более чем 20-летним опытом в области UI/UX и комплексных визуальных систем. Эксперт в широком спектре дизайнерских дисциплин: продуктовый дизайн, пользовательские интерфейсы, бренд-айдентика, дизайн-системы и визуальная стратегия.',
         'Вывел сотни цифровых и коммерческих проектов в лидеры отрасли на рынках Европы, стран СНГ и Азии. Обладает глубокой экспертизой в создании масштабируемых дизайн-решений для международных продуктов и высоконагруженных платформ.'
       ],
-      summary: language === 'en' ? 'At ChefNet, responsible for design strategy, the integrity of the product\'s visual identity, user experience, and the development of the ChefNet ecosystem\'s design system on a global scale.' : language === 'de' ? 'Bei ChefNet verantwortet Yuri die Gesamt-Designstrategie, visuelle Stringenz des Produkts, die durchgängige Nutzererfahrung sowie die Weiterentwicklung des ökosystemübergreifenden Gestaltungssystems im globalen Maßstab.' : language === 'tr' ? 'ChefNet\'te Yuri, genel tasarım stratejisi, ürünün görsel tutarlılığı, uçtan uca kullanıcı deneyimi ve ChefNet ekosisteminin küresel ölçekte tasarım sisteminin evriminden sorumludur.' : language === 'es' ? 'En ChefNet, Yuri lidera la estrатегia de diseño integral, coherencia visual del producto, experiencia completa del usuario y la evolución del sistema de diseño unificado en todo el ecosistema a nivel mundial.' : 'В ChefNet отвечает за дизайн-стратегию, целостность визуального образа продукта, пользовательский опыт и развитие дизайн-системы экосистемы ChefNet на глобальном уровне.'
+      summary: language === 'en' ? 'At ChefNet, responsible for design strategy, the integrity of the product\'s visual identity, user experience, and the development of the ChefNet ecosystem\'s design system on a global scale.' : language === 'de' ? 'Bei ChefNet verantwortet Yuri die Gesamt-Designstrategie, visuelle Stringenz des Produkts, die durchgängige Nutzererfahrung sowie die Weiterentwicklung des ökosystemübergreifenden Gestaltungssystems im globalen Maßstab.' : language === 'tr' ? 'ChefNet\'te Yuri, genel tasarım stratejisi, ürünün görsel tutarlılığı, uçtan uca kullanıcı deneyimi ve ChefNet ekosisteminin küresel ölçekte tasarım sisteminin evriminden sorumludur.' : language === 'es' ? 'En ChefNet, Yuri lidera la estrategia de diseño integral, coherencia visual del producto, experiencia completa del usuario y la evolución del sistema de diseño unificado en todo el ecosistema a nivel mundial.' : 'В ChefNet отвечает за дизайн-стратегию, целостность визуального образа продукта, пользовательский опыт и развитие дизайн-системы экосистемы ChefNet на глобальном уровне.'
     }
   ];
 
   return (
-    <section id="team" className="pt-6 pb-12 bg-[#F5EAE1] relative overflow-hidden">
+    <section id="team" className="py-12 bg-[#F5EAE1] relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}
         <motion.div
@@ -140,7 +140,7 @@ export default function TeamSection() {
             />
           </IconBox>
 
-          <h2 className="text-4xl md:text-5xl font-bold text-[#3E3E3E] mb-4">
+          <h2 className="text-4xl md:text-5xl font-bold text-[#3E3E3E] mb-4 mt-6 sm:mt-8">
             {t.team}
           </h2>
         </motion.div>
@@ -156,34 +156,32 @@ export default function TeamSection() {
               transition={{ duration: 0.6, delay: index * 0.1 }}
               className={`flex flex-col ${ 
                 member.imagePosition === 'right' ? 'md:flex-row' : 'md:flex-row-reverse'
-              } gap-0 bg-white rounded-[32px] shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-500 group border-2 border-transparent hover:border-[#FB7F43]`}
+              } gap-0 bg-white rounded-[32px] shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-500 group hover:border-[#FB7F43] md:h-[500px]`}
             >
               {/* Image with Gradient Overlay */}
-              <div className="md:w-1/2 flex-shrink-0 relative overflow-hidden h-[500px] md:h-[550px]">
+              <div className="md:w-[40%] flex-shrink-0 relative overflow-hidden h-[400px] md:h-auto bg-white">
                 <ImageWithFallback
                   src={member.image}
                   alt={member.name}
-                  className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ${
-                    member.id === 1 ? 'object-[center_20%]' : member.id === 2 ? 'object-[center_20%]' : 'object-center'
-                  }`}
+                  className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
                 />
               </div>
 
               {/* Content with Modern Design */}
-              <div className="md:w-1/2 p-8 md:p-8 flex flex-col justify-center bg-gradient-to-br from-white to-[#F5EAE1]/30">
+              <div className="md:w-[60%] p-6 md:p-6 flex flex-col justify-center bg-gradient-to-br from-white to-[#F5EAE1]/30">
                 
                 {/* Name and Position */}
-                <div className="mb-5">
-                  <h3 className="text-3xl md:text-4xl font-bold text-[#3E3E3E] mb-2 tracking-tight">
+                <div className="mb-4">
+                  <h3 className="text-2xl md:text-3xl font-bold text-[#3E3E3E] mb-2 tracking-tight">
                     {member.name}
                   </h3>
-                  <p className="text-[#FB7F43] text-base md:text-lg font-medium">
+                  <p className="text-[#FB7F43] text-sm md:text-base font-medium">
                     {member.position}
                   </p>
                 </div>
 
                 {/* Points */}
-                <div className="space-y-3 mb-5">
+                <div className="space-y-2.5 mb-4">
                   {member.points.map((point, idx) => (
                     <motion.div 
                       key={idx} 

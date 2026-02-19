@@ -7,7 +7,7 @@ export default function ChefNetAppSection() {
   const t = translations[language];
 
   return (
-    <section className="pt-0 pb-0 bg-background">
+    <section className="py-12 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Placeholder for future ChefNet App content */}
         <motion.div

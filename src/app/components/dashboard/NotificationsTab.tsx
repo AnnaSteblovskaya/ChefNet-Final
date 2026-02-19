@@ -165,7 +165,7 @@ export default function NotificationsTab({ setActiveTab }: NotificationsTabProps
               transition={{ delay: idx * 0.05 }}
               className="flex items-start gap-4 p-5 rounded-xl bg-[#FFF9F0] border border-[#FFE8C5] hover:bg-[#FFE8C5] transition-colors group"
             >
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-[#FF6B35] to-[#FF8C42] flex items-center justify-center">
+              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-[#FF7A59] to-[#EB5632] flex items-center justify-center">
                 <notif.icon className="w-5 h-5 text-white" />
               </div>
 

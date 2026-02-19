@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { ChefHat, Menu } from 'lucide-react';
 import heroBg from 'figma:asset/ea3684a8e6ad5b9f30bbc761f606c383abcbe400.png';
 import mobileBg from 'figma:asset/f6e6a7c1827ce38e56117c96836c20e4665523fd.png';
@@ -20,17 +20,7 @@ export default function HeroSection({ onGoToDashboard }: HeroSectionProps) {
   const t = useMemo(() => translations[language], [language]);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
 
   const handleLoginClick = () => {
     if (isAuthenticated) {
@@ -59,131 +49,6 @@ export default function HeroSection({ onGoToDashboard }: HeroSectionProps) {
 
   return (
     <section id="home" className="relative bg-background px-4 pb-8 pt-6 sm:px-6 md:px-8">
-      {/* Fixed Navigation Bar on Scroll */}
-      <motion.div
-        initial={{ y: -100 }}
-        animate={{ y: isScrolled ? 0 : -100 }}
-        transition={{ duration: 0.3 }}
-        className="fixed top-0 left-0 right-0 z-50 px-4 sm:px-6 md:px-8"
-        style={{
-          backgroundColor: 'rgba(234, 231, 227, 0.95)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
-        }}
-      >
-        <div className="max-w-[1440px] mx-auto py-3 md:py-4">
-          <div className="flex items-center justify-between gap-2 sm:gap-3">
-            {/* Logo */}
-            <button
-              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0"
-            >
-              <ChefHat className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF6B35]" />
-              <div className="whitespace-nowrap">
-                <span className="font-semibold text-[13px] sm:text-[15px] text-[#2C1810] tracking-tight">
-                  ChefNet{' '}
-                </span>
-                <span className="font-semibold text-[13px] sm:text-[15px] tracking-tight" style={{ color: '#FF6B35' }}>
-                  Invest
-                </span>
-              </div>
-            </button>
-
-            {/* Navigation Links */}
-            <nav className="hidden lg:flex items-center gap-3 flex-shrink">
-              <button
-                onClick={() => document.getElementById('unique-features')?.scrollIntoView({ behavior: 'smooth' })}
-                className="text-[#3E3E3E] hover:text-[#FF6B35] text-[12px] font-medium transition-all whitespace-nowrap"
-              >
-                {t.features}
-              </button>
-              <button
-                onClick={() => document.getElementById('opportunities')?.scrollIntoView({ behavior: 'smooth' })}
-                className="text-[#3E3E3E] hover:text-[#FF6B35] text-[12px] font-medium transition-all whitespace-nowrap"
-              >
-                {t.aboutUs}
-              </button>
-              <button
-                onClick={() => document.getElementById('partnership')?.scrollIntoView({ behavior: 'smooth' })}
-                className="text-[#3E3E3E] hover:text-[#FF6B35] text-[12px] font-medium transition-all whitespace-nowrap"
-              >
-                {t.forPartners}
-              </button>
-              <button
-                onClick={() => document.getElementById('investments')?.scrollIntoView({ behavior: 'smooth' })}
-                className="text-[#3E3E3E] hover:text-[#FF6B35] text-[12px] font-medium transition-all whitespace-nowrap"
-              >
-                {t.stagesOfDevelopment}
-              </button>
-              <button
-                onClick={() => document.getElementById('advantages')?.scrollIntoView({ behavior: 'smooth' })}
-                className="text-[#3E3E3E] hover:text-[#FF6B35] text-[12px] font-medium transition-all whitespace-nowrap"
-              >
-                {t.whyChefNet}
-              </button>
-              <button
-                onClick={() => document.getElementById('roadmap')?.scrollIntoView({ behavior: 'smooth' })}
-                className="text-[#3E3E3E] hover:text-[#FF6B35] text-[12px] font-medium transition-all whitespace-nowrap"
-              >
-                {t.roadmap}
-              </button>
-              <button
-                onClick={() => document.getElementById('faq')?.scrollIntoView({ behavior: 'smooth' })}
-                className="text-[#3E3E3E] hover:text-[#FF6B35] text-[12px] font-medium transition-all whitespace-nowrap"
-              >
-                {t.faq}
-              </button>
-              <button
-                onClick={() => document.getElementById('team')?.scrollIntoView({ behavior: 'smooth' })}
-                className="text-[#3E3E3E] hover:text-[#FF6B35] text-[12px] font-medium transition-all whitespace-nowrap"
-              >
-                {t.team}
-              </button>
-              <button
-                onClick={() => document.getElementById('footer')?.scrollIntoView({ behavior: 'smooth' })}
-                className="text-[#3E3E3E] hover:text-[#FF6B35] text-[12px] font-medium transition-all whitespace-nowrap"
-              >
-                {t.contacts}
-              </button>
-            </nav>
-
-            {/* Right Actions */}
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <LanguageSwitcher variant="dark" />
-              
-              {/* Hamburger Menu Button - Mobile Only */}
-              <button
-                onClick={() => setMobileMenuOpen(true)}
-                className="lg:hidden p-2 text-[#6B4423] hover:bg-[#6B4423]/10 rounded-lg transition-colors"
-              >
-                <Menu className="w-5 h-5" />
-              </button>
-
-              {/* Desktop Action Buttons */}
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                className="hidden sm:block px-2.5 py-1.5 sm:px-3.5 bg-white text-[#FF6B35] rounded-full text-[11px] sm:text-[12px] font-medium transition-all whitespace-nowrap shadow-md hover:shadow-lg border"
-                style={{ borderColor: '#FF6B35' }}
-                onClick={handleLoginClick}
-              >
-                {t.logIn}
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                className="hidden sm:block px-2.5 py-1.5 sm:px-3.5 text-[#FF6B35] rounded-full text-[11px] sm:text-[12px] font-medium hover:bg-[#FF6B35]/10 transition-all whitespace-nowrap bg-white/80 backdrop-blur-sm"
-                style={{ borderColor: '#FF6B35', borderWidth: '1px', borderStyle: 'solid' }}
-                onClick={handleSignInClick}
-              >
-                {t.signIn}
-              </motion.button>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-
       {/* Desktop Version */}
       <div 
         className="hidden md:block relative overflow-hidden"
@@ -214,7 +79,7 @@ export default function HeroSection({ onGoToDashboard }: HeroSectionProps) {
             </button>
 
             {/* Navigation Links */}
-            <nav className="flex items-center gap-3 flex-shrink">
+            <nav className="hidden lg:flex items-center gap-4 flex-1 justify-center">
               <button
                 onClick={() => document.getElementById('unique-features')?.scrollIntoView({ behavior: 'smooth' })}
                 className="text-white hover:text-white text-[12px] font-medium transition-all whitespace-nowrap drop-shadow-[0_2px_6px_rgba(255,255,255,0.4)] hover:drop-shadow-[0_2px_10px_rgba(255,255,255,0.6)]"
@@ -273,13 +138,15 @@ export default function HeroSection({ onGoToDashboard }: HeroSectionProps) {
 
             {/* Right Actions */}
             <div className="flex items-center gap-2 flex-shrink-0">
-              <LanguageSwitcher />
+              <div className="mr-4">
+                <LanguageSwitcher />
+              </div>
 
               <motion.button
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
-                className="px-3.5 border border-white/30 text-white rounded-full text-[12px] font-medium transition-all whitespace-nowrap drop-shadow-[0_2px_6px_rgba(255,255,255,0.4)]"
-                style={{ backgroundColor: '#FF6B35' }}
+                className="px-3.5 bg-white/10 text-white rounded-full text-[12px] font-medium hover:bg-white/15 transition-all whitespace-nowrap drop-shadow-[0_2px_6px_rgba(255,255,255,0.4)]"
+                style={{ borderColor: 'rgba(255, 107, 53, 0.5)', borderWidth: '1px', borderStyle: 'solid' }}
                 onClick={handleLoginClick}
               >
                 {t.logIn}
@@ -288,7 +155,7 @@ export default function HeroSection({ onGoToDashboard }: HeroSectionProps) {
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 className="px-3.5 bg-white/10 text-white rounded-full text-[12px] font-medium hover:bg-white/15 transition-all whitespace-nowrap drop-shadow-[0_2px_6px_rgba(255,255,255,0.4)]"
-                style={{ borderColor: '#FF6B35', borderWidth: '1px', borderStyle: 'solid' }}
+                style={{ borderColor: 'rgba(255, 107, 53, 0.5)', borderWidth: '1px', borderStyle: 'solid' }}
                 onClick={handleSignInClick}
               >
                 {t.signIn}
@@ -328,12 +195,26 @@ export default function HeroSection({ onGoToDashboard }: HeroSectionProps) {
                     filter: 'blur(2px)'
                   }}
                 />
-                <span style={{ position: 'relative', zIndex: 1 }}>{t.heroTitle1.split(' ')[0]}</span>
+                <span style={{ position: 'relative', zIndex: 1 }}>
+                  {language === 'ru' ? 'Интеллект,' : 
+                   language === 'en' ? 'Intelligence' :
+                   language === 'de' ? 'Intelligenz,' :
+                   language === 'es' ? 'Inteligencia' :
+                   'Seçimi'}
+                </span>
               </span>
               <br />
-              {t.heroTitle1.split(' ').slice(1).join(' ')}
-              {' '}
-              {t.heroTitle2}
+              {language === 'ru' ? 'превращающий' :
+               language === 'en' ? 'that turns' :
+               language === 'de' ? 'die Auswahl' :
+               language === 'es' ? 'que convierte' :
+               'değere çeviren'}
+              <br />
+              {language === 'ru' ? 'выбор в ценность.' :
+               language === 'en' ? 'choice into value.' :
+               language === 'de' ? 'in Wert verwandelt.' :
+               language === 'es' ? 'la elección en valor.' :
+               'zekâ.'}
             </motion.h1>
 
             <motion.div
@@ -342,18 +223,22 @@ export default function HeroSection({ onGoToDashboard }: HeroSectionProps) {
               transition={{ delay: 0.4 }}
               className="text-white text-[14px] leading-relaxed mb-6"
             >
-              <div className="mb-3">
-                <p className="font-bold mb-1" style={{ fontFamily: 'Nunito, sans-serif' }}>{t.heroSubtitle}</p>
-                <p className="font-normal opacity-90">
-                  {t.heroDescription}
-                </p>
-              </div>
+              <p className="font-bold mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>{t.heroSubtitle}</p>
               
-              <div className="mb-3 font-normal opacity-90">
-                <p className="mb-0">{t.heroBenefit1}</p>
-                <p className="mb-0">{t.heroBenefit2}</p>
-                <p className="mb-0">{t.heroBenefit3}</p>
-              </div>
+              <p className="font-normal opacity-90 mb-4">
+                {language === 'ru' ? (
+                  <>
+                    которая изучает ваш ритм, запоминает ваш вкус и сохраняет вам<br />
+                    время и деньги каждый день.
+                  </>
+                ) : (
+                  t.heroDescription
+                )}
+              </p>
+              
+              <p className="font-normal opacity-90 mb-1">{t.heroBenefit1}</p>
+              <p className="font-normal opacity-90 mb-1">{t.heroBenefit2}</p>
+              <p className="font-normal opacity-90 mb-4">{t.heroBenefit3}</p>
 
               <p className="font-normal opacity-90">
                 {t.heroCta}
@@ -464,7 +349,7 @@ export default function HeroSection({ onGoToDashboard }: HeroSectionProps) {
                 />
                 <span style={{ position: 'relative', zIndex: 1 }}>{t.heroTitle3}</span>
               </span>
-              <br />
+              {' '}
               {t.heroTitle4}
             </motion.h1>
 

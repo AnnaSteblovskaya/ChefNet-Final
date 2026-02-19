@@ -176,6 +176,7 @@ type TranslationKeys = {
 
   // Investments Section
   investmentsTitle: string;
+  learnMore: string;
   seedRound: string;
   seriesA: string;
   seriesB: string;
@@ -319,7 +320,7 @@ export const translations: Record<Language, TranslationKeys> = {
     // Hero Section
     heroTitle1: "Intelligence that turns choice",
     heroTitle2: "into value.",
-    heroTitle3: "Intelligence",
+    heroTitle3: "Intelligence,",
     heroTitle4: "that turns choice into value.",
     heroSubtitle: "ChefNet is an AI-powered technology",
     heroDescription:
@@ -654,7 +655,7 @@ export const translations: Record<Language, TranslationKeys> = {
     // Hero Section
     heroTitle1: "Интеллект, превращающий выбор",
     heroTitle2: "в ценность.",
-    heroTitle3: "Интеллект",
+    heroTitle3: "Интеллект,",
     heroTitle4: "превращающий выбор в ценность.",
     heroSubtitle: "ChefNet - это технология основанная на AI,",
     heroDescription:
@@ -1324,7 +1325,7 @@ export const translations: Record<Language, TranslationKeys> = {
     // Hero Section
     heroTitle1: "Inteligencia que convierte la elección",
     heroTitle2: "en valor.",
-    heroTitle3: "Inteligencia",
+    heroTitle3: "Inteligencia,",
     heroTitle4: "que convierte la elección en valor.",
     heroSubtitle:
       "ChefNet es una tecnología basada en inteligencia artificial",
