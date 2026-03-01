@@ -3,8 +3,8 @@ import { TrendingUp, Smile, FileCheck } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/locales/translations';
 import IconBox from '@/app/components/IconBox';
-import phonesImage from 'figma:asset/ad45e5be0abc212cf72a9e6020318ae8020f76b3.png';
-import chefIconImage from 'figma:asset/c29a2d0856811702b56beb1ca88355bbc47e8ae0.png';
+const phonesImage = '';
+const chefIconImage = '';
 import { useState, useEffect } from 'react';
 
 export default function OpportunitiesSection() {

@@ -4,11 +4,11 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { translations } from "@/locales/translations";
 import IconBox from '@/app/components/IconBox';
 import { ChevronRight } from "lucide-react";
-import seedImage from "figma:asset/40643aa7ed76fac14e3c79e765216b03f0ac9e11.png";
-import privateImage from "figma:asset/0d61a1ce10ee260331b43c1c7e53364896b63a8a.png";
-import marketingImage from "figma:asset/5004eff8c0c4fedc4bd897279e5f3ba5c24a4b69.png";
-import publicImage from "figma:asset/fc449afb9e571a6d4f5f63672924ad802fcd1693.png";
-import growthIcon from "figma:asset/083753dd7f4e6a69680ef415c0f1e7edf472f77b.png";
+const seedImage = "";
+const privateImage = "";
+const marketingImage = "";
+const publicImage = "";
+const growthIcon = "";
 
 export default function InvestmentsSection() {
   const { language } = useLanguage();

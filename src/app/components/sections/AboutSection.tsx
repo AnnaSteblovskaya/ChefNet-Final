@@ -2,7 +2,7 @@ import { motion } from 'motion/react';
 import { Lightbulb, TrendingUp, Users, DollarSign, Flame, ShoppingCart, ChefHat, Smile, FileCheck } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/locales/translations';
-import opportunitiesImage from 'figma:asset/051a5a01917030682fe777f22a9c20055c4b08a8.png';
+const opportunitiesImage = '';
 
 export default function AdvantagesSection() {
   const { language } = useLanguage();

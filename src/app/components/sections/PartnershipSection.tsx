@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/locales/translations';
-import partnerIcon from 'figma:asset/85a04790adadc69f1d0380e9066216a493e83d6b.png';
+const partnerIcon = '';
 
 export default function PartnershipSection() {
   const { language } = useLanguage();
