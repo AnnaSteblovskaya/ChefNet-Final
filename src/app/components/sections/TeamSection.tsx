@@ -3,11 +3,11 @@ import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import IconBox from '@/app/components/IconBox';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/locales/translations';
-const alexeyPhoto = '';
-const dmitryPhoto = '';
-const vladimirPhoto = '';
-const yuriyPhoto = '';
-const teamIcon = '';
+const alexeyPhoto = '/assets/5161dcbea8f660508ae7dab63631acefabe12971.png';
+const dmitryPhoto = '/assets/4a68720d7087b9ff89ce0e0efb17d5c8e247bd8e.png';
+const vladimirPhoto = '/assets/da745cecc8434d3bd83de9d68ada3703476ca78e.png';
+const yuriyPhoto = '/assets/799ef95bc799834f2fdd3d37bd119941ff5b38c9.png';
+const teamIcon = '/assets/a598161e6a3a78bc81c07fa776406dfb88d60efe.png';
 
 export default function TeamSection() {
   const { language } = useLanguage();

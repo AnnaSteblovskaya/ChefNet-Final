@@ -15,8 +15,8 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-const fireIcon = '';
-const growthIcon = '';
+const fireIcon = '/assets/175bf7179bacb5a758ec98d1cb083eac03719212.png';
+const growthIcon = '/assets/64c4e07a3691678d999f938c1479fa2c5b605192.png';
 
 const iconComponents = [
   ChefHat,           // 1. Personal AI Companion

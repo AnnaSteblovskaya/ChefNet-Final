@@ -1,8 +1,8 @@
 import { motion } from 'motion/react';
 import { useState, useMemo } from 'react';
 import { ChefHat, Menu } from 'lucide-react';
-const heroBg = '';
-const mobileBg = '';
+const heroBg = '/assets/ea3684a8e6ad5b9f30bbc761f606c383abcbe400.png';
+const mobileBg = '/assets/f6e6a7c1827ce38e56117c96836c20e4665523fd.png';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { translations } from '@/locales/translations';
