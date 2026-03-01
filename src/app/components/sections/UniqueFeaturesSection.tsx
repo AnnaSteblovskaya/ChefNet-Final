@@ -219,17 +219,15 @@ export default function UniqueFeaturesSection() {
           {/* Cards Container */}
           <div className="overflow-hidden px-12 sm:px-4 py-2">
             <motion.div
-              drag={visibleCards === 1 ? "x" : false}
+              drag="x"
               dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.1}
+              dragElastic={0.2}
               onDragEnd={(_, info) => {
-                if (visibleCards === 1) {
-                  const threshold = 50;
-                  if (info.offset.x > threshold && currentIndex > 0) {
-                    handlePrev();
-                  } else if (info.offset.x < -threshold && currentIndex < maxIndex) {
-                    handleNext();
-                  }
+                const threshold = 50;
+                if (info.offset.x > threshold && currentIndex > 0) {
+                  handlePrev();
+                } else if (info.offset.x < -threshold && currentIndex < maxIndex) {
+                  handleNext();
                 }
               }}
               className="flex gap-4 sm:gap-8"
@@ -237,9 +235,10 @@ export default function UniqueFeaturesSection() {
                 x: `calc(-${currentIndex * getCardWidthPercentage()}% - ${currentIndex * getGapSize()}rem)`,
               }}
               style={{
-                cursor: visibleCards === 1 ? 'grab' : 'default',
+                cursor: 'grab',
+                touchAction: 'pan-y',
               }}
-              whileTap={visibleCards === 1 ? { cursor: 'grabbing' } : {}}
+              whileTap={{ cursor: 'grabbing' }}
               transition={{ type: 'tween', duration: 0.4, ease: 'easeOut' }}
             >
               {features.map((feature, index) => {

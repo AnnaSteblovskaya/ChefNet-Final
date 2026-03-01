@@ -522,11 +522,19 @@ export default function AdvantagesSection() {
           >
             {/* Carousel Track - all phones in a row */}
             <motion.div
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(_, info) => {
+                const threshold = 50;
+                if (info.offset.x < -threshold) {
+                  goToNext();
+                } else if (info.offset.x > threshold) {
+                  goToPrev();
+                }
+              }}
               animate={{
-                x: getCarouselOffset() + dragOffset,
+                x: getCarouselOffset(),
                 y: '-50%',
               }}
               style={{
@@ -535,14 +543,16 @@ export default function AdvantagesSection() {
                 position: 'absolute',
                 left: 0,
                 top: '50%',
-                cursor: isMobile && isDragging ? 'grabbing' : isMobile ? 'grab' : 'default',
+                cursor: 'grab',
+                touchAction: 'pan-y',
                 willChange: 'transform',
               }}
-              transition={isDragging ? { duration: 0 } : (enableTransition ? { 
+              whileTap={{ cursor: 'grabbing' }}
+              transition={enableTransition ? { 
                 type: 'tween',
                 duration: 0.4,
                 ease: 'easeOut'
-              } : { duration: 0 })}
+              } : { duration: 0 }}
             >
               {extendedScreens.map((screen, index) => {
                 const scale = getPhoneScale(index);
