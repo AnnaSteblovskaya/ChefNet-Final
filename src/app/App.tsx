@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { ThemeProvider } from '@/app/components/ThemeProvider';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { usePreventSwipeBack } from '@/hooks/usePreventSwipeBack';
 import HeroSection from '@/app/components/sections/HeroSection';
 import AboutSection from '@/app/components/sections/AboutSection';
 import UniqueFeaturesSection from '@/app/components/sections/UniqueFeaturesSection';
@@ -23,9 +22,6 @@ function AppContent() {
   const { isAuthenticated, debugGetAllUsers } = useAuth();
   const { language } = useLanguage();
   const [showDashboard, setShowDashboard] = useState(false);
-
-  // Prevent swipe-back gesture on mobile
-  usePreventSwipeBack();
 
   // Expose debug function to console
   useEffect(() => {
