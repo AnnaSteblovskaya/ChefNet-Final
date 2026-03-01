@@ -1,5 +1,4 @@
 import { motion } from 'motion/react';
-import { ImageWithFallback } from '@/app/components/figma/ImageWithFallback';
 import IconBox from '@/app/components/IconBox';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/locales/translations';
@@ -160,7 +159,7 @@ export default function TeamSection() {
             >
               {/* Image with Gradient Overlay */}
               <div className="md:w-[40%] flex-shrink-0 relative overflow-hidden h-[400px] md:h-auto bg-white">
-                <ImageWithFallback
+                <img
                   src={member.image}
                   alt={member.name}
                   className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
