@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/locales/translations';
@@ -44,10 +44,11 @@ export default function UniqueFeaturesSection() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
 
-  // Calculate visible cards based on screen size
-  useEffect(() => {
-    const updateVisibleCards = () => {
+  // Calculate visible cards and container width
+  useLayoutEffect(() => {
+    const updateLayout = () => {
       const width = window.innerWidth;
       setIsLaptop(width >= 1024);
       
@@ -58,11 +59,17 @@ export default function UniqueFeaturesSection() {
       } else {
         setVisibleCards(3);
       }
+
+      if (carouselRef.current) {
+        const style = getComputedStyle(carouselRef.current);
+        const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+        setContainerWidth(carouselRef.current.offsetWidth - paddingX);
+      }
     };
 
-    updateVisibleCards();
-    window.addEventListener('resize', updateVisibleCards);
-    return () => window.removeEventListener('resize', updateVisibleCards);
+    updateLayout();
+    window.addEventListener('resize', updateLayout);
+    return () => window.removeEventListener('resize', updateLayout);
   }, []);
 
   const features = [
@@ -89,17 +96,18 @@ export default function UniqueFeaturesSection() {
     setLastClicked('next');
   };
 
-  // Calculate the width percentage for one card
-  const getCardWidthPercentage = () => {
-    return 100 / visibleCards;
+  const getGapPx = () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 640) {
+      return 16;
+    }
+    return 32;
   };
 
-  // Calculate gap size based on screen width
-  const getGapSize = () => {
-    if (typeof window !== 'undefined' && window.innerWidth < 640) {
-      return 1; // gap-4 = 1rem on mobile
-    }
-    return 2; // gap-8 = 2rem on desktop
+  const getSlideOffset = () => {
+    if (!containerWidth) return 0;
+    const gap = getGapPx();
+    const cardWidth = (containerWidth - (visibleCards - 1) * gap) / visibleCards;
+    return -(currentIndex * (cardWidth + gap));
   };
 
   const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -189,7 +197,7 @@ export default function UniqueFeaturesSection() {
           <button
             onClick={handlePrev}
             disabled={currentIndex === 0}
-            className={`absolute -left-1 sm:left-0 top-1/2 -translate-y-1/2 sm:-translate-x-4 z-20 w-9 h-9 sm:w-12 sm:h-12 rounded-full backdrop-blur-sm shadow-lg flex items-center justify-center transition-all ${
+            className={`absolute left-0 sm:left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 sm:-translate-x-4 z-20 w-8 h-8 sm:w-12 sm:h-12 rounded-full backdrop-blur-sm shadow-lg flex items-center justify-center transition-all ${
               currentIndex === 0
                 ? 'opacity-30 cursor-not-allowed bg-white/90'
                 : lastClicked === 'prev'
@@ -204,7 +212,7 @@ export default function UniqueFeaturesSection() {
           <button
             onClick={handleNext}
             disabled={currentIndex >= maxIndex}
-            className={`absolute -right-1 sm:right-0 top-1/2 -translate-y-1/2 sm:translate-x-4 z-20 w-9 h-9 sm:w-12 sm:h-12 rounded-full backdrop-blur-sm shadow-lg flex items-center justify-center transition-all ${
+            className={`absolute right-0 sm:right-0 top-1/2 -translate-y-1/2 translate-x-1/2 sm:translate-x-4 z-20 w-8 h-8 sm:w-12 sm:h-12 rounded-full backdrop-blur-sm shadow-lg flex items-center justify-center transition-all ${
               currentIndex >= maxIndex
                 ? 'opacity-30 cursor-not-allowed bg-white/90'
                 : lastClicked === 'next'
@@ -217,11 +225,10 @@ export default function UniqueFeaturesSection() {
           </button>
 
           {/* Cards Container */}
-          <div className="overflow-hidden px-12 sm:px-4 py-2">
+          <div ref={carouselRef} className="overflow-hidden px-4 py-2">
             <motion.div
               drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.2}
+              dragElastic={0.15}
               onDragEnd={(_, info) => {
                 const threshold = 50;
                 if (info.offset.x > threshold && currentIndex > 0) {
@@ -232,7 +239,7 @@ export default function UniqueFeaturesSection() {
               }}
               className="flex gap-4 sm:gap-8"
               animate={{
-                x: `calc(-${currentIndex * getCardWidthPercentage()}% - ${currentIndex * getGapSize()}rem)`,
+                x: getSlideOffset(),
               }}
               style={{
                 cursor: 'grab',
@@ -244,6 +251,8 @@ export default function UniqueFeaturesSection() {
               {features.map((feature, index) => {
                 const Icon = feature.icon;
                 const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+                const gap = getGapPx();
+                const cardWidthPx = containerWidth ? (containerWidth - (visibleCards - 1) * gap) / visibleCards : 0;
                 return (
                   <motion.div
                     key={index}
@@ -251,15 +260,8 @@ export default function UniqueFeaturesSection() {
                     whileInView={isMobile ? {} : { opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={isMobile ? {} : { duration: 0.5, delay: index * 0.1 }}
-                    className={`flex-shrink-0 ${
-                      visibleCards === 1
-                        ? 'w-full'
-                        : visibleCards === 2
-                        ? 'w-[calc(50%-1rem)]'
-                        : visibleCards === 3
-                        ? 'w-[calc(33.333%-1.33rem)]'
-                        : 'w-[calc(25%-1.5rem)]'
-                    }`}
+                    style={{ width: cardWidthPx || undefined }}
+                    className="flex-shrink-0"
                     onTouchStart={() => {
                       setActiveCard(activeCard === index ? null : index);
                     }}

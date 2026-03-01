@@ -46,6 +46,9 @@ npm run dev    # Starts on http://0.0.0.0:5000
 
 ## Notes
 
-- This project was exported from Figma Make. Image assets originally referenced via `figma:asset/...` imports have been replaced with empty strings (images not included in the export).
+- This project was exported from Figma Make. Image assets are in `public/assets/` (downloaded from Figma CDN).
 - No backend server — all state is client-side.
 - Deployment is configured as a static site (builds to `dist/`).
+- Carousel sections (UniqueFeaturesSection, PartnershipSection) use pixel-based slide offsets calculated from container width measurement via `useLayoutEffect`. Card widths are set via inline styles, not Tailwind classes.
+- AdvantagesSection phone carousel uses Framer Motion `drag="x"` with `onDragEnd` for swipe navigation.
+- `usePreventSwipeBack` hook file exists but is not imported anywhere — can be safely deleted.
