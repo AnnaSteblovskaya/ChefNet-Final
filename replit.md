@@ -9,7 +9,8 @@ A multilingual investor landing page for ChefNet, an AI-powered restaurant/food 
 - **Styling**: Tailwind CSS v4 + Emotion
 - **UI Components**: Radix UI, MUI, Lucide React
 - **Routing**: React Router DOM
-- **Auth**: Local storage-based authentication (no external backend)
+- **Auth**: Supabase Auth (signUp, signInWithPassword, signOut, onAuthStateChange)
+- **Backend**: Supabase (Auth + Postgres) — no custom server needed
 - **Animations**: Motion (Framer Motion)
 
 ## Project Structure
@@ -33,7 +34,7 @@ src/
 
 - Multi-language support (RU, EN, TR, ES, and others)
 - Light/dark theme switching
-- Local storage authentication
+- Supabase authentication (email/password, session persistence)
 - Investor-focused landing sections
 - Mobile-responsive design
 
@@ -47,7 +48,8 @@ npm run dev    # Starts on http://0.0.0.0:5000
 ## Notes
 
 - This project was exported from Figma Make. Image assets are in `public/assets/` (downloaded from Figma CDN).
-- No backend server — all state is client-side.
+- Supabase handles auth and will handle data storage. User profile metadata (firstName, lastName) stored in Supabase `user_metadata`.
+- Dashboard tabs still use localStorage for demo data (investments, referrals, KYC, documents) — migration to Supabase Postgres tables is the next step.
 - Deployment is configured as a static site (builds to `dist/`).
 - Carousel sections (UniqueFeaturesSection, PartnershipSection) use pixel-based slide offsets calculated from container width measurement via `useLayoutEffect`. Card widths are set via inline styles, not Tailwind classes.
 - AdvantagesSection phone carousel uses Framer Motion `drag="x"` with `onDragEnd` for swipe navigation.

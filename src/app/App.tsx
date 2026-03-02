@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { ThemeProvider } from '@/app/components/ThemeProvider';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -19,15 +19,17 @@ import StickyNavigation from '@/app/components/StickyNavigation';
 import TeamSection from '@/app/components/sections/TeamSection';
 
 function AppContent() {
-  const { isAuthenticated, debugGetAllUsers } = useAuth();
+  const { isAuthenticated, loading } = useAuth();
   const { language } = useLanguage();
   const [showDashboard, setShowDashboard] = useState(false);
 
-  // Expose debug function to console
-  useEffect(() => {
-    (window as any).showAllUsers = debugGetAllUsers;
-    console.log('💡 Debug: To see all registered users, run: showAllUsers()');
-  }, [debugGetAllUsers]);
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--color-background)]">
+        <div className="w-8 h-8 border-4 border-[#D4522A] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   // Show dashboard if authenticated and user wants to see it
   if (isAuthenticated && showDashboard) {

@@ -18,7 +18,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister, onSwitchToRes
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [acceptedOffer, setAcceptedOffer] = useState(false);
-  const { login, loginWithGoogle } = useAuth();
+  const { login, authError } = useAuth();
   const { language } = useLanguage();
 
   const texts = {
@@ -131,7 +131,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister, onSwitchToRes
     if (success) {
       onSuccess();
     } else {
-      setError(t.errorInvalid);
+      setError(authError || t.errorInvalid);
     }
   };
 

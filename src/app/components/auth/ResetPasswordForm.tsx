@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Mail, Lock, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { Mail, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -11,81 +11,57 @@ interface ResetPasswordFormProps {
 
 export default function ResetPasswordForm({ onSuccess, onBack }: ResetPasswordFormProps) {
   const [email, setEmail] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const { resetPassword } = useAuth();
+  const { resetPassword, authError } = useAuth();
   const { language } = useLanguage();
 
   const texts = {
     en: {
       title: 'Reset Password',
       email: 'Email',
-      newPassword: 'New Password',
-      confirmPassword: 'Confirm Password',
-      resetButton: 'Reset Password',
+      resetButton: 'Send Reset Link',
       backToLogin: 'Back to Login',
-      errorFill: 'Please fill in all fields',
-      errorPassword: 'Passwords do not match',
-      errorPasswordLength: 'Password must be at least 6 characters',
-      errorNotFound: 'Email not found',
-      successMessage: 'Password reset successfully! You can now log in.',
+      errorFill: 'Please enter your email',
+      errorNotFound: 'Could not send reset email',
+      successMessage: 'A password reset link has been sent to your email. Please check your inbox.',
     },
     ru: {
       title: 'Сброс пароля',
       email: 'Email',
-      newPassword: 'Новый пароль',
-      confirmPassword: 'Подтвердите пароль',
-      resetButton: 'Сбросить пароль',
+      resetButton: 'Отправить ссылку для сброса',
       backToLogin: 'Назад к входу',
-      errorFill: 'Заполните все поля',
-      errorPassword: 'Пароли не совпадают',
-      errorPasswordLength: 'Пароль должен содержать минимум 6 символов',
-      errorNotFound: 'Email не найден',
-      successMessage: 'Пароль успешно сброшен! Теперь вы можете войти.',
+      errorFill: 'Введите ваш email',
+      errorNotFound: 'Не удалось отправить письмо для сброса',
+      successMessage: 'Ссылка для сброса пароля отправлена на вашу почту. Проверьте входящие.',
     },
     de: {
       title: 'Passwort zurücksetzen',
       email: 'E-Mail',
-      newPassword: 'Neues Passwort',
-      confirmPassword: 'Passwort bestätigen',
-      resetButton: 'Passwort zurücksetzen',
+      resetButton: 'Link zum Zurücksetzen senden',
       backToLogin: 'Zurück zur Anmeldung',
-      errorFill: 'Bitte füllen Sie alle Felder aus',
-      errorPassword: 'Passwörter stimmen nicht überein',
-      errorPasswordLength: 'Passwort muss mindestens 6 Zeichen lang sein',
-      errorNotFound: 'E-Mail nicht gefunden',
-      successMessage: 'Passwort erfolgreich zurückgesetzt! Sie können sich jetzt anmelden.',
+      errorFill: 'Bitte geben Sie Ihre E-Mail ein',
+      errorNotFound: 'Reset-E-Mail konnte nicht gesendet werden',
+      successMessage: 'Ein Link zum Zurücksetzen des Passworts wurde an Ihre E-Mail gesendet.',
     },
     es: {
       title: 'Restablecer contraseña',
       email: 'Email',
-      newPassword: 'Nueva contraseña',
-      confirmPassword: 'Confirmar contraseña',
-      resetButton: 'Restablecer contraseña',
+      resetButton: 'Enviar enlace de restablecimiento',
       backToLogin: 'Volver al inicio de sesión',
-      errorFill: 'Por favor complete todos los campos',
-      errorPassword: 'Las contraseñas no coinciden',
-      errorPasswordLength: 'La contraseña debe tener al menos 6 caracteres',
-      errorNotFound: 'Email no encontrado',
-      successMessage: '¡Contraseña restablecida correctamente! Ya puedes iniciar sesión.',
+      errorFill: 'Por favor ingrese su email',
+      errorNotFound: 'No se pudo enviar el correo de restablecimiento',
+      successMessage: 'Se ha enviado un enlace para restablecer su contraseña a su correo electrónico.',
     },
     tr: {
       title: 'Şifre sıfırlama',
       email: 'E-mail',
-      newPassword: 'Yeni şifre',
-      confirmPassword: 'Şifreyi doğrulayın',
-      resetButton: 'Şifreyi sıfırla',
+      resetButton: 'Sıfırlama bağlantısı gönder',
       backToLogin: 'Girişe geri dön',
-      errorFill: 'Lütfen tüm alanları doldurun',
-      errorPassword: 'Şifreler eşleşmiyor',
-      errorPasswordLength: 'Şifre en az 6 karakter olmalıdır',
-      errorNotFound: 'E-posta bulunamadı',
-      successMessage: 'Şifre başarıyla sıfırlandı! Artık giriş yapabilirsiniz.',
+      errorFill: 'Lütfen e-postanızı girin',
+      errorNotFound: 'Sıfırlama e-postası gönderilemedi',
+      successMessage: 'Şifre sıfırlama bağlantısı e-postanıza gönderildi.',
     },
   };
 
@@ -96,39 +72,28 @@ export default function ResetPasswordForm({ onSuccess, onBack }: ResetPasswordFo
     setError('');
     setSuccess('');
 
-    if (!email || !newPassword || !confirmPassword) {
+    if (!email) {
       setError(t.errorFill);
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError(t.errorPasswordLength);
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setError(t.errorPassword);
-      return;
-    }
-
     setLoading(true);
-    const result = await resetPassword(email, newPassword);
+    const result = await resetPassword(email, '');
     setLoading(false);
 
     if (result) {
       setSuccess(t.successMessage);
       setTimeout(() => {
         onSuccess();
-      }, 2000);
+      }, 4000);
     } else {
-      setError(t.errorNotFound);
+      setError(authError || t.errorNotFound);
     }
   };
 
   return (
     <div className="space-y-4">
       <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Error message */}
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -140,7 +105,6 @@ export default function ResetPasswordForm({ onSuccess, onBack }: ResetPasswordFo
           </motion.div>
         )}
 
-        {/* Success message */}
         {success && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -152,7 +116,6 @@ export default function ResetPasswordForm({ onSuccess, onBack }: ResetPasswordFo
           </motion.div>
         )}
 
-        {/* Email */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             {t.email}
@@ -169,55 +132,6 @@ export default function ResetPasswordForm({ onSuccess, onBack }: ResetPasswordFo
           </div>
         </div>
 
-        {/* New Password */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t.newPassword}
-          </label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type={showPassword ? 'text' : 'password'}
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4522A] focus:border-transparent transition-all text-sm"
-              placeholder="••••••••"
-            />
-            <button
-              type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? <EyeOff /> : <Eye />}
-            </button>
-          </div>
-        </div>
-
-        {/* Confirm Password */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            {t.confirmPassword}
-          </label>
-          <div className="relative">
-            <CheckCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type={showConfirmPassword ? 'text' : 'password'}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4522A] focus:border-transparent transition-all text-sm"
-              placeholder="••••••••"
-            />
-            <button
-              type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-            >
-              {showConfirmPassword ? <EyeOff /> : <Eye />}
-            </button>
-          </div>
-        </div>
-
-        {/* Submit button */}
         <motion.button
           type="submit"
           disabled={loading}
@@ -228,7 +142,6 @@ export default function ResetPasswordForm({ onSuccess, onBack }: ResetPasswordFo
           {loading ? '...' : t.resetButton}
         </motion.button>
 
-        {/* Back to login */}
         <div className="text-center pt-2">
           <button
             type="button"

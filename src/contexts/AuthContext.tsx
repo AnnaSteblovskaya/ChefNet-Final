@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { getSupabaseClient } from '@/utils/supabase/client';
+import type { User as SupabaseUser, AuthError } from '@supabase/supabase-js';
 
 export interface User {
   id: string;
@@ -11,201 +13,170 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  loading: boolean;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>;
   register: (email: string, password: string, firstName: string, lastName: string) => Promise<boolean>;
   logout: () => void;
   loginWithGoogle: () => Promise<void>;
   resetPassword: (email: string, newPassword: string) => Promise<boolean>;
-  debugGetAllUsers: () => void;
+  authError: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Simple local storage based authentication
-interface StoredUser {
-  id: string;
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  createdAt: string;
+function mapSupabaseUser(supabaseUser: SupabaseUser): User {
+  return {
+    id: supabaseUser.id,
+    email: supabaseUser.email || '',
+    firstName: supabaseUser.user_metadata?.firstName || '',
+    lastName: supabaseUser.user_metadata?.lastName || '',
+    createdAt: supabaseUser.created_at || new Date().toISOString(),
+  };
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-
-  const getAllUsers = (): StoredUser[] => {
-    const usersJson = localStorage.getItem('chefnet_users');
-    return usersJson ? JSON.parse(usersJson) : [];
-  };
-
-  const saveUsers = (users: StoredUser[]) => {
-    localStorage.setItem('chefnet_users', JSON.stringify(users));
-  };
+  const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const supabase = getSupabaseClient();
 
   useEffect(() => {
-    // Check for existing session in localStorage
-    const currentUserId = localStorage.getItem('currentUserId');
-    if (currentUserId) {
-      const users = getAllUsers();
-      const foundUser = users.find(u => u.id === currentUserId);
-      if (foundUser) {
-        setUser({
-          id: foundUser.id,
-          email: foundUser.email,
-          firstName: foundUser.firstName,
-          lastName: foundUser.lastName,
-          createdAt: foundUser.createdAt,
-        });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser(mapSupabaseUser(session.user));
       }
-    }
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser(mapSupabaseUser(session.user));
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const register = async (email: string, password: string, firstName: string, lastName: string): Promise<boolean> => {
     try {
-      console.log('=== LOCAL REGISTRATION START ===');
-      console.log('Email:', email);
-      
-      const users = getAllUsers();
-      
-      // Check if user already exists
-      const existingUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-      if (existingUser) {
-        console.log('User already exists');
+      setAuthError(null);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            firstName,
+            lastName,
+          },
+        },
+      });
+
+      if (error) {
+        console.error('Registration error:', error.message);
+        setAuthError(error.message);
         return false;
       }
 
-      // Create new user
-      const newUser: StoredUser = {
-        id: `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        email: email.toLowerCase(),
-        password, // In production, this should be hashed!
-        firstName,
-        lastName,
-        createdAt: new Date().toISOString(),
-      };
+      if (data.user) {
+        setUser(mapSupabaseUser(data.user));
+        return true;
+      }
 
-      users.push(newUser);
-      saveUsers(users);
-
-      // Set current user
-      localStorage.setItem('currentUserId', newUser.id);
-      setUser({
-        id: newUser.id,
-        email: newUser.email,
-        firstName: newUser.firstName,
-        lastName: newUser.lastName,
-        createdAt: newUser.createdAt,
-      });
-
-      console.log('=== REGISTRATION SUCCESS ===');
-      console.log('User ID:', newUser.id);
-      return true;
+      return false;
     } catch (error) {
-      console.error('=== REGISTRATION ERROR ===');
-      console.error('Error:', error);
+      console.error('Registration exception:', error);
+      setAuthError('An unexpected error occurred');
       return false;
     }
   };
 
-  const login = async (email: string, password: string, rememberMe?: boolean): Promise<boolean> => {
+  const login = async (email: string, password: string, _rememberMe?: boolean): Promise<boolean> => {
     try {
-      console.log('=== LOCAL LOGIN START ===');
-      console.log('Email:', email);
-      
-      const users = getAllUsers();
-      
-      // Find user by email and password
-      const foundUser = users.find(
-        u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-      );
+      setAuthError(null);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      if (!foundUser) {
-        console.log('User not found or password incorrect');
+      if (error) {
+        console.error('Login error:', error.message);
+        setAuthError(error.message);
         return false;
       }
 
-      // Set current user
-      localStorage.setItem('currentUserId', foundUser.id);
-      setUser({
-        id: foundUser.id,
-        email: foundUser.email,
-        firstName: foundUser.firstName,
-        lastName: foundUser.lastName,
-        createdAt: foundUser.createdAt,
-      });
+      if (data.user) {
+        setUser(mapSupabaseUser(data.user));
+        return true;
+      }
 
-      console.log('=== LOGIN SUCCESS ===');
-      console.log('User ID:', foundUser.id);
-      return true;
+      return false;
     } catch (error) {
-      console.error('=== LOGIN ERROR ===');
-      console.error('Error:', error);
+      console.error('Login exception:', error);
+      setAuthError('An unexpected error occurred');
       return false;
     }
   };
 
-  const logout = () => {
-    console.log('=== LOGOUT ===');
-    localStorage.removeItem('currentUserId');
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
   };
 
-  const resetPassword = async (email: string, newPassword: string): Promise<boolean> => {
+  const resetPassword = async (email: string, _newPassword: string): Promise<boolean> => {
     try {
-      console.log('=== PASSWORD RESET START ===');
-      console.log('Email:', email);
-      
-      const users = getAllUsers();
-      console.log('Total users:', users.length);
-      
-      // Find user by email
-      const userIndex = users.findIndex(
-        u => u.email.toLowerCase() === email.toLowerCase()
-      );
+      setAuthError(null);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
 
-      if (userIndex === -1) {
-        console.log('User not found with email:', email);
-        console.log('Available emails:', users.map(u => u.email));
+      if (error) {
+        console.error('Password reset error:', error.message);
+        setAuthError(error.message);
         return false;
       }
 
-      // Update password
-      users[userIndex].password = newPassword;
-      saveUsers(users);
-
-      console.log('=== PASSWORD RESET SUCCESS ===');
-      console.log('User ID:', users[userIndex].id);
       return true;
     } catch (error) {
-      console.error('=== PASSWORD RESET ERROR ===');
-      console.error('Error:', error);
+      console.error('Password reset exception:', error);
+      setAuthError('An unexpected error occurred');
       return false;
     }
   };
 
-  const debugGetAllUsers = () => {
-    const users = getAllUsers();
-    console.log('=== ALL REGISTERED USERS ===');
-    console.log('Total:', users.length);
-    users.forEach((user, index) => {
-      console.log(`\nUser ${index + 1}:`);
-      console.log('  Email:', user.email);
-      console.log('  Password:', user.password);
-      console.log('  Name:', user.firstName, user.lastName);
-      console.log('  ID:', user.id);
-      console.log('  Created:', user.createdAt);
-    });
-    return users;
-  };
-
   const loginWithGoogle = async () => {
-    console.log('Google login not implemented in local mode');
-    // This would need to be implemented with actual OAuth
+    try {
+      setAuthError(null);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+      if (error) {
+        console.error('Google login error:', error.message);
+        setAuthError(error.message);
+      }
+    } catch (error) {
+      console.error('Google login exception:', error);
+      setAuthError('An unexpected error occurred');
+    }
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, register, logout, loginWithGoogle, resetPassword, debugGetAllUsers }}>
+    <AuthContext.Provider value={{
+      user,
+      isAuthenticated: !!user,
+      loading,
+      login,
+      register,
+      logout,
+      loginWithGoogle,
+      resetPassword,
+      authError,
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -20,7 +20,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register, loginWithGoogle } = useAuth();
+  const { register, authError } = useAuth();
   const { language } = useLanguage();
 
   const texts = {
@@ -159,8 +159,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
     if (success) {
       onSuccess();
     } else {
-      // Check if email already exists by trying to sign in
-      setError(t.errorExists);
+      setError(authError || t.errorExists);
     }
   };
 
