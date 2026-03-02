@@ -2,6 +2,7 @@ import { createContext, useContext, useState, ReactNode, useEffect, useRef } fro
 import { getSupabaseClient } from '@/utils/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { loadDataFromServer, saveDataToServer, seedDemoData, clearLocalDashboardData } from '@/utils/dataSync';
+import { getSiteUrl } from '@/utils/siteUrl';
 
 export interface User {
   id: string;
@@ -90,7 +91,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             firstName,
             lastName,
           },
-          emailRedirectTo: `${window.location.origin}`,
+          emailRedirectTo: getSiteUrl(),
         },
       });
 
@@ -126,7 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         type: 'signup',
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}`,
+          emailRedirectTo: getSiteUrl(),
         },
       });
       if (error) {
@@ -179,7 +180,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setAuthError(null);
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${getSiteUrl()}/reset-password`,
       });
 
       if (error) {
@@ -202,7 +203,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: window.location.origin,
+          redirectTo: getSiteUrl(),
         },
       });
       if (error) {

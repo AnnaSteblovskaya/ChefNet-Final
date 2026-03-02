@@ -47,3 +47,4 @@ publicDir = "dist"
 [userenv.shared]
 VITE_SUPABASE_URL = "https://sdwlngwkeipgwelzxfai.supabase.co"
 VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkd2xuZ3drZWlwZ3dlbHp4ZmFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNjgwNDksImV4cCI6MjA4Nzk0NDA0OX0.4nDN_CwoJCg-G1t2PPuX-6A2OmRhVXviBOI6kVOUwdo"
+VITE_SITE_URL = "https://42494885-bbef-45f9-b43e-8e821de7357f-00-rqlrkj293o1v.worf.replit.dev"
