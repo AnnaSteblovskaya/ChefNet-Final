@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Mail, Lock, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, AlertCircle, Eye, EyeOff, MailWarning } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -18,6 +18,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister, onSwitchToRes
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [acceptedOffer, setAcceptedOffer] = useState(false);
+  const [emailNotConfirmed, setEmailNotConfirmed] = useState(false);
   const { login, authError } = useAuth();
   const { language } = useLanguage();
 
@@ -30,6 +31,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister, onSwitchToRes
       signUp: 'Sign up',
       errorInvalid: 'Invalid email or password',
       errorFill: 'Please fill in all fields',
+      emailNotConfirmed: 'Please confirm your email first. Check your inbox for the confirmation link.',
       rememberMe: 'Remember me',
       forgotPassword: 'Forgot password?',
       offerPrefix: 'I have reviewed the',
@@ -44,6 +46,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister, onSwitchToRes
       signUp: 'Регистрация',
       errorInvalid: 'Неверный email или пароль',
       errorFill: 'Заполните все поля',
+      emailNotConfirmed: 'Сначала подтвердите ваш email. Проверьте входящие письма для перехода по ссылке подтверждения.',
       rememberMe: 'Запомнить меня',
       forgotPassword: 'Забыли пароль?',
       offerPrefix: 'С',
@@ -59,6 +62,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister, onSwitchToRes
       signUp: 'Registrieren',
       errorInvalid: 'Ungültige E-Mail oder Passwort',
       errorFill: 'Bitte füllen Sie alle Felder aus',
+      emailNotConfirmed: 'Bitte bestätigen Sie zuerst Ihre E-Mail. Überprüfen Sie Ihren Posteingang.',
       rememberMe: 'Merken Sie sich mich',
       forgotPassword: 'Passwort vergessen?',
       offerPrefix: 'Ich habe das',
@@ -74,6 +78,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister, onSwitchToRes
       signUp: 'Registrarse',
       errorInvalid: 'Email o contraseña inválidos',
       errorFill: 'Por favor complete todos los campos',
+      emailNotConfirmed: 'Primero confirma tu email. Revisa tu bandeja de entrada.',
       rememberMe: 'Recuérdame',
       forgotPassword: '¿Olvidaste tu contraseña?',
       offerPrefix: 'He revisado la',
@@ -89,6 +94,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister, onSwitchToRes
       signUp: 'Kayıt ol',
       errorInvalid: 'Geçersiz e-posta veya şifre',
       errorFill: 'Lütfen tüm alanları doldurun',
+      emailNotConfirmed: 'Lütfen önce e-postanızı onaylayın. Gelen kutunuzu kontrol edin.',
       rememberMe: 'Beni hatırlayın',
       forgotPassword: 'Şifrenizi mi unuttunuz?',
       offerPrefix: '',
@@ -129,9 +135,17 @@ export default function LoginForm({ onSuccess, onSwitchToRegister, onSwitchToRes
     setLoading(false);
 
     if (success) {
+      setEmailNotConfirmed(false);
       onSuccess();
     } else {
-      setError(authError || t.errorInvalid);
+      const errorMsg = authError || '';
+      if (errorMsg.toLowerCase().includes('email not confirmed') || errorMsg.toLowerCase().includes('not confirmed')) {
+        setEmailNotConfirmed(true);
+        setError(t.emailNotConfirmed);
+      } else {
+        setEmailNotConfirmed(false);
+        setError(authError || t.errorInvalid);
+      }
     }
   };
 
@@ -142,9 +156,17 @@ export default function LoginForm({ onSuccess, onSwitchToRegister, onSwitchToRes
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2"
+          className={`px-4 py-3 rounded-xl flex items-start gap-2 ${
+            emailNotConfirmed
+              ? 'bg-amber-50 border border-amber-200 text-amber-800'
+              : 'bg-red-50 border border-red-200 text-red-700'
+          }`}
         >
-          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          {emailNotConfirmed ? (
+            <MailWarning className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          ) : (
+            <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+          )}
           <span className="text-sm">{error}</span>
         </motion.div>
       )}

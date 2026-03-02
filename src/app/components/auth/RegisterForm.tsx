@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
-import { Mail, Lock, User, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, User, AlertCircle, CheckCircle, Eye, EyeOff, MailCheck, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -20,7 +20,10 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { register, authError } = useAuth();
+  const [confirmationSent, setConfirmationSent] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
+  const { register, resendConfirmationEmail, authError } = useAuth();
   const { language } = useLanguage();
 
   const texts = {
@@ -43,6 +46,13 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
       and: ' / ',
       privacyPolicy: 'Privacy Policy',
       googleSignIn: 'Sign in with Google',
+      confirmTitle: 'Check your email',
+      confirmMessage: 'We sent a confirmation link to',
+      confirmHint: 'Click the link in the email to activate your account. After confirmation, you can log in.',
+      resendButton: 'Resend email',
+      resendSuccess: 'Email sent!',
+      backToLogin: 'Go to login',
+      checkSpam: 'Check your spam folder if you don\'t see the email.',
     },
     ru: {
       firstName: 'Имя',
@@ -63,6 +73,13 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
       and: 'и',
       privacyPolicy: 'Политикой конфиденциальности',
       googleSignIn: 'Войти через Google',
+      confirmTitle: 'Проверьте вашу почту',
+      confirmMessage: 'Мы отправили ссылку для подтверждения на',
+      confirmHint: 'Перейдите по ссылке в письме, чтобы активировать аккаунт. После подтверждения вы сможете войти.',
+      resendButton: 'Отправить повторно',
+      resendSuccess: 'Письмо отправлено!',
+      backToLogin: 'Перейти к входу',
+      checkSpam: 'Проверьте папку «Спам», если не видите письмо.',
     },
     de: {
       firstName: 'Name',
@@ -83,6 +100,13 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
       and: ' / ',
       privacyPolicy: 'Datenschutzbestimmungen zu',
       googleSignIn: 'Mit Google anmelden',
+      confirmTitle: 'Prüfen Sie Ihre E-Mail',
+      confirmMessage: 'Wir haben einen Bestätigungslink gesendet an',
+      confirmHint: 'Klicken Sie auf den Link in der E-Mail, um Ihr Konto zu aktivieren. Nach der Bestätigung können Sie sich anmelden.',
+      resendButton: 'E-Mail erneut senden',
+      resendSuccess: 'E-Mail gesendet!',
+      backToLogin: 'Zur Anmeldung',
+      checkSpam: 'Überprüfen Sie Ihren Spam-Ordner, falls Sie die E-Mail nicht sehen.',
     },
     es: {
       firstName: 'Nombre',
@@ -103,6 +127,13 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
       and: 'y la',
       privacyPolicy: 'Política de Privacidad',
       googleSignIn: 'Iniciar sesión con Google',
+      confirmTitle: 'Revisa tu correo',
+      confirmMessage: 'Enviamos un enlace de confirmación a',
+      confirmHint: 'Haz clic en el enlace del correo para activar tu cuenta. Después de la confirmación, podrás iniciar sesión.',
+      resendButton: 'Reenviar correo',
+      resendSuccess: 'Correo enviado!',
+      backToLogin: 'Ir al inicio de sesión',
+      checkSpam: 'Revisa tu carpeta de spam si no ves el correo.',
     },
     tr: {
       firstName: 'Ad',
@@ -123,10 +154,28 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
       and: 've',
       privacyPolicy: 'Gizlilik Politikası\'nı kabul ediyorum',
       googleSignIn: 'Google ile giriş yap',
+      confirmTitle: 'E-postanızı kontrol edin',
+      confirmMessage: 'Onay bağlantısı gönderildi:',
+      confirmHint: 'Hesabınızı etkinleştirmek için e-postadaki bağlantıya tıklayın. Onaydan sonra giriş yapabilirsiniz.',
+      resendButton: 'Tekrar gönder',
+      resendSuccess: 'E-posta gönderildi!',
+      backToLogin: 'Girişe git',
+      checkSpam: 'E-postayı görmüyorsanız spam klasörünüzü kontrol edin.',
     },
   };
 
   const t = texts[language];
+
+  const handleResend = async () => {
+    setResendLoading(true);
+    setResendSuccess(false);
+    const success = await resendConfirmationEmail(email);
+    setResendLoading(false);
+    if (success) {
+      setResendSuccess(true);
+      setTimeout(() => setResendSuccess(false), 5000);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,15 +202,56 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
     }
 
     setLoading(true);
-    const success = await register(email, password, firstName, lastName);
+    const result = await register(email, password, firstName, lastName);
     setLoading(false);
 
-    if (success) {
+    if (result === 'success') {
       onSuccess();
+    } else if (result === 'confirmation_needed') {
+      setConfirmationSent(true);
     } else {
       setError(authError || t.errorExists);
     }
   };
+
+  if (confirmationSent) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="text-center py-4"
+      >
+        <div className="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
+          <MailCheck className="w-8 h-8 text-green-600" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900 mb-2">{t.confirmTitle}</h3>
+        <p className="text-sm text-gray-600 mb-1">{t.confirmMessage}</p>
+        <p className="text-sm font-semibold text-[#D4522A] mb-4">{email}</p>
+        <p className="text-sm text-gray-500 mb-6">{t.confirmHint}</p>
+        <p className="text-xs text-gray-400 mb-6">{t.checkSpam}</p>
+
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={resendLoading}
+            className="w-full py-3 border-2 border-[#D4522A] text-[#D4522A] rounded-xl font-medium hover:bg-orange-50 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${resendLoading ? 'animate-spin' : ''}`} />
+            {resendSuccess ? t.resendSuccess : t.resendButton}
+          </button>
+
+          <button
+            type="button"
+            onClick={onSwitchToLogin}
+            className="w-full py-3 bg-gradient-to-r from-[#D4522A] to-[#E8744F] text-white rounded-xl font-medium shadow-lg shadow-orange-500/30 hover:shadow-xl transition-all"
+          >
+            {t.backToLogin}
+          </button>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">

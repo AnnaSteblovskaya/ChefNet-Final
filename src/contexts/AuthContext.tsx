@@ -11,15 +11,18 @@ export interface User {
   createdAt: string;
 }
 
+type RegisterResult = 'success' | 'confirmation_needed' | 'error';
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   loading: boolean;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>;
-  register: (email: string, password: string, firstName: string, lastName: string) => Promise<boolean>;
+  register: (email: string, password: string, firstName: string, lastName: string) => Promise<RegisterResult>;
   logout: () => void;
   loginWithGoogle: () => Promise<void>;
   resetPassword: (email: string, newPassword: string) => Promise<boolean>;
+  resendConfirmationEmail: (email: string) => Promise<boolean>;
   authError: string | null;
 }
 
@@ -76,7 +79,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const register = async (email: string, password: string, firstName: string, lastName: string): Promise<boolean> => {
+  const register = async (email: string, password: string, firstName: string, lastName: string): Promise<RegisterResult> => {
     try {
       setAuthError(null);
       const { data, error } = await supabase.auth.signUp({
@@ -87,23 +90,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             firstName,
             lastName,
           },
+          emailRedirectTo: `${window.location.origin}`,
         },
       });
 
       if (error) {
         console.error('Registration error:', error.message);
         setAuthError(error.message);
-        return false;
+        return 'error';
       }
 
       if (data.user) {
+        if (!data.user.email_confirmed_at) {
+          if (data.session) {
+            await supabase.auth.signOut();
+          }
+          return 'confirmation_needed';
+        }
         setUser(mapSupabaseUser(data.user));
-        return true;
+        return 'success';
       }
 
-      return false;
+      return 'error';
     } catch (error) {
       console.error('Registration exception:', error);
+      setAuthError('An unexpected error occurred');
+      return 'error';
+    }
+  };
+
+  const resendConfirmationEmail = async (email: string): Promise<boolean> => {
+    try {
+      setAuthError(null);
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}`,
+        },
+      });
+      if (error) {
+        setAuthError(error.message);
+        return false;
+      }
+      return true;
+    } catch {
       setAuthError('An unexpected error occurred');
       return false;
     }
@@ -194,6 +225,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       logout,
       loginWithGoogle,
       resetPassword,
+      resendConfirmationEmail,
       authError,
     }}>
       {children}
