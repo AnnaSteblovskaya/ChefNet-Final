@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
 import { getSupabaseClient } from '@/utils/supabase/client';
-import type { User as SupabaseUser, AuthError } from '@supabase/supabase-js';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { loadDataFromServer, saveDataToServer, seedDemoData, clearLocalDashboardData } from '@/utils/dataSync';
 
 export interface User {
   id: string;
@@ -40,18 +41,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [authError, setAuthError] = useState<string | null>(null);
   const supabase = getSupabaseClient();
 
+  const dataSynced = useRef(false);
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user) {
-        setUser(mapSupabaseUser(session.user));
+        const mappedUser = mapSupabaseUser(session.user);
+        setUser(mappedUser);
+        if (!dataSynced.current) {
+          dataSynced.current = true;
+          await seedDemoData();
+          await loadDataFromServer();
+        }
       }
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        setUser(mapSupabaseUser(session.user));
+        const mappedUser = mapSupabaseUser(session.user);
+        setUser(mappedUser);
+        if (!dataSynced.current) {
+          dataSynced.current = true;
+          await seedDemoData();
+          await loadDataFromServer();
+        }
       } else {
+        dataSynced.current = false;
         setUser(null);
       }
       setLoading(false);
@@ -121,6 +137,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
+    await saveDataToServer();
+    clearLocalDashboardData();
+    dataSynced.current = false;
     await supabase.auth.signOut();
     setUser(null);
   };

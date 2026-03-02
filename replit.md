@@ -10,31 +10,67 @@ A multilingual investor landing page for ChefNet, an AI-powered restaurant/food 
 - **UI Components**: Radix UI, MUI, Lucide React
 - **Routing**: React Router DOM
 - **Auth**: Supabase Auth (signUp, signInWithPassword, signOut, onAuthStateChange)
-- **Backend**: Supabase (Auth + Postgres) — no custom server needed
+- **Backend**: Express API server (port 3001) + Replit PostgreSQL
+- **Database**: Replit PostgreSQL (profiles, investments, rounds, referrals, kyc_submissions, user_rounds)
 - **Animations**: Motion (Framer Motion)
+
+## Architecture
+
+### Data Flow
+1. Supabase handles authentication (JWT tokens)
+2. Express API server validates Supabase JWT tokens and serves data from PostgreSQL
+3. On login, data syncs from DB → localStorage (via `dataSync.ts`)
+4. Dashboard components read/write localStorage as before (no component rewrites needed)
+5. On logout, profile/KYC data saves from localStorage → DB, then localStorage is cleared
+
+### Server
+- `server/index.ts` — Express API endpoints (port 3001)
+- `server/db.ts` — PostgreSQL connection pool
+- Vite proxies `/api` requests to the Express server
+
+### Frontend Data Layer
+- `src/utils/api.ts` — Authenticated fetch helpers (apiGet, apiPost, apiPut)
+- `src/utils/dataSync.ts` — Sync layer: loadDataFromServer, saveDataToServer, seedDemoData, clearLocalDashboardData
+- `src/contexts/AuthContext.tsx` — Integrates data sync on login/logout
 
 ## Project Structure
 
 ```
+server/
+  index.ts              # Express API server
+  db.ts                 # PostgreSQL pool
 src/
   app/
     components/
-      sections/       # Landing page sections (Hero, About, FAQ, etc.)
-      auth/           # Login/Register modal
-      dashboard/      # User dashboard
-    App.tsx           # Root component
-  contexts/           # React contexts (Auth, Language)
-  hooks/              # Custom hooks
-  locales/            # i18n translations
-  styles/             # Global CSS files
-  utils/              # Utility functions
+      sections/         # Landing page sections (Hero, About, FAQ, etc.)
+      auth/             # Login/Register modal
+      dashboard/        # User dashboard
+    App.tsx             # Root component
+  contexts/             # React contexts (Auth, Language)
+  hooks/                # Custom hooks
+  locales/              # i18n translations
+  styles/               # Global CSS files
+  utils/
+    api.ts              # Authenticated API helpers
+    dataSync.ts         # DB ↔ localStorage sync
+    supabase/client.ts  # Supabase client
 ```
+
+## Database Tables
+
+- `rounds` — Investment rounds (seed, seriesA, marketing, ipo) with prices, share counts
+- `investments` — User investment records
+- `user_rounds` — Per-user share counts per round
+- `referrals` — Referral partner data per user
+- `profiles` — User profile data
+- `kyc_submissions` — KYC verification data
 
 ## Key Features
 
 - Multi-language support (RU, EN, TR, ES, and others)
 - Light/dark theme switching
 - Supabase authentication (email/password, session persistence)
+- PostgreSQL-backed dashboard data with localStorage caching
 - Investor-focused landing sections
 - Mobile-responsive design
 
@@ -42,15 +78,15 @@ src/
 
 ```bash
 npm install
-npm run dev    # Starts on http://0.0.0.0:5000
+npm run dev    # Starts Express (3001) + Vite (5000)
 ```
 
 ## Notes
 
-- This project was exported from Figma Make. Image assets are in `public/assets/` (downloaded from Figma CDN).
-- Supabase handles auth and will handle data storage. User profile metadata (firstName, lastName) stored in Supabase `user_metadata`.
-- Dashboard tabs still use localStorage for demo data (investments, referrals, KYC, documents) — migration to Supabase Postgres tables is the next step.
+- This project was exported from Figma Make. Image assets are in `public/assets/`.
+- Supabase handles auth; Replit PostgreSQL handles data storage.
+- User profile metadata (firstName, lastName) stored in Supabase `user_metadata`.
+- Dashboard components use localStorage as runtime cache; data syncs to/from PostgreSQL on login/logout.
 - Deployment is configured as a static site (builds to `dist/`).
-- Carousel sections (UniqueFeaturesSection, PartnershipSection) use pixel-based slide offsets calculated from container width measurement via `useLayoutEffect`. Card widths are set via inline styles, not Tailwind classes.
+- Carousel sections use pixel-based slide offsets calculated from container width measurement via `useLayoutEffect`.
 - AdvantagesSection phone carousel uses Framer Motion `drag="x"` with `onDragEnd` for swipe navigation.
-- `usePreventSwipeBack` hook file exists but is not imported anywhere — can be safely deleted.
