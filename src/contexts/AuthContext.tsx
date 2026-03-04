@@ -134,59 +134,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setAuthError(null);
       isRegistering.current = true;
 
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            firstName,
-            lastName,
-          },
-          emailRedirectTo: getSiteUrl(),
-        },
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, firstName, lastName, lang: lang || 'ru' }),
       });
 
-      if (error) {
-        console.error('Registration error:', error.message);
-        setAuthError(error.message);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({ error: 'Registration failed' }));
+        const msg = errData.error || 'Registration failed';
+        console.error('Registration error:', msg);
+        setAuthError(msg);
         isRegistering.current = false;
         return 'error';
       }
 
-      if (data.user) {
-        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-        if (data.session?.access_token) {
-          headers['Authorization'] = `Bearer ${data.session.access_token}`;
-        }
-
-        try {
-          const verifyRes = await fetch('/api/send-verification', {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              email,
-              firstName,
-              lang: lang || 'ru',
-              userId: data.user.id,
-            }),
-          });
-          if (!verifyRes.ok) {
-            console.error('Verification email API error:', verifyRes.status);
-          }
-        } catch (emailErr) {
-          console.error('Failed to send custom verification email:', emailErr);
-        }
-
-        if (data.session) {
-          await supabase.auth.signOut();
-        }
-        setUser(null);
-        isRegistering.current = false;
-        return 'confirmation_needed';
-      }
-
+      setUser(null);
       isRegistering.current = false;
-      return 'error';
+      return 'confirmation_needed';
     } catch (error) {
       console.error('Registration exception:', error);
       setAuthError('An unexpected error occurred');

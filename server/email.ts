@@ -1,33 +1,111 @@
-const SENDPULSE_API_ID = process.env.SENDPULSE_API_ID!;
-const SENDPULSE_API_KEY = process.env.SENDPULSE_API_KEY!;
+import nodemailer from 'nodemailer';
 
-let cachedToken: { token: string; expiresAt: number } | null = null;
+const SMTP_HOST = 'smtp-pulse.com';
+const SMTP_PORT = 465;
+const SMTP_USER = process.env.SENDPULSE_SMTP_USERNAME!;
+const SMTP_PASS = process.env.SENDPULSE_SMTP_PASSWORD!;
 
-async function getAccessToken(): Promise<string> {
-  if (cachedToken && cachedToken.expiresAt > Date.now()) {
-    return cachedToken.token;
+const SENDPULSE_API_ID = process.env.SENDPULSE_API_ID;
+const SENDPULSE_API_KEY = process.env.SENDPULSE_API_KEY;
+
+let transporter: nodemailer.Transporter | null = null;
+
+function getTransporter(): nodemailer.Transporter {
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: true,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+      },
+    });
+  }
+  return transporter;
+}
+
+let cachedApiToken: { token: string; expiresAt: number } | null = null;
+
+async function getApiAccessToken(): Promise<string | null> {
+  if (!SENDPULSE_API_ID || !SENDPULSE_API_KEY) return null;
+
+  if (cachedApiToken && cachedApiToken.expiresAt > Date.now()) {
+    return cachedApiToken.token;
   }
 
-  const res = await fetch('https://api.sendpulse.com/oauth/access_token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      grant_type: 'client_credentials',
-      client_id: SENDPULSE_API_ID,
-      client_secret: SENDPULSE_API_KEY,
-    }),
-  });
+  try {
+    const res = await fetch('https://api.sendpulse.com/oauth/access_token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        grant_type: 'client_credentials',
+        client_id: SENDPULSE_API_ID,
+        client_secret: SENDPULSE_API_KEY,
+      }),
+    });
 
-  if (!res.ok) {
-    throw new Error(`SendPulse auth failed: ${res.status} ${await res.text()}`);
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    cachedApiToken = {
+      token: data.access_token,
+      expiresAt: Date.now() + (data.expires_in - 60) * 1000,
+    };
+    return cachedApiToken.token;
+  } catch {
+    return null;
   }
+}
 
-  const data = await res.json();
-  cachedToken = {
-    token: data.access_token,
-    expiresAt: Date.now() + (data.expires_in - 60) * 1000,
-  };
-  return cachedToken.token;
+async function sendViaApi(to: string, subject: string, html: string, fromEmail: string, fromName: string): Promise<boolean> {
+  const token = await getApiAccessToken();
+  if (!token) return false;
+
+  try {
+    const res = await fetch('https://api.sendpulse.com/smtp/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: {
+          subject,
+          html,
+          from: { name: fromName, email: fromEmail },
+          to: [{ email: to }],
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`SendPulse REST API error: ${res.status} ${errorText}`);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error('SendPulse REST API failed:', err);
+    return false;
+  }
+}
+
+async function sendViaSmtp(to: string, subject: string, html: string, fromEmail: string, fromName: string): Promise<boolean> {
+  try {
+    const transport = getTransporter();
+    await transport.sendMail({
+      from: `"${fromName}" <${fromEmail}>`,
+      to,
+      subject,
+      html,
+    });
+    return true;
+  } catch (err) {
+    console.error('SMTP send failed:', err);
+    return false;
+  }
 }
 
 interface EmailTemplates {
@@ -128,51 +206,46 @@ export async function sendVerificationEmail(
   lang: string = 'ru'
 ): Promise<boolean> {
   const t = verificationTemplates[lang] || verificationTemplates.ru;
-  
-  try {
-    const token = await getAccessToken();
-    
-    const res = await fetch('https://api.sendpulse.com/smtp/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: {
-          subject: t.subject,
-          html: buildVerificationHtml(verifyUrl, firstName, lang),
-          from: {
-            name: 'ChefNet Invest',
-            email: 'no-reply@chefnet.ai',
-          },
-          to: [{ email: to }],
-        },
-      }),
-    });
+  const html = buildVerificationHtml(verifyUrl, firstName, lang);
+  const fromEmail = SMTP_USER || 'no-reply@chefnet.ai';
+  const fromName = 'ChefNet Invest';
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error(`SendPulse API error: ${res.status} ${errorText}`);
-      return false;
-    }
-
-    const result = await res.json();
-    console.log(`Verification email sent to ${to}:`, result);
+  const apiSent = await sendViaApi(to, t.subject, html, fromEmail, fromName);
+  if (apiSent) {
+    console.log(`Verification email sent to ${to} via REST API`);
     return true;
-  } catch (error) {
-    console.error('Failed to send verification email:', error);
-    return false;
   }
+
+  console.log('REST API failed, falling back to SMTP...');
+  const smtpSent = await sendViaSmtp(to, t.subject, html, fromEmail, fromName);
+  if (smtpSent) {
+    console.log(`Verification email sent to ${to} via SMTP`);
+    return true;
+  }
+
+  console.error(`Failed to send verification email to ${to} via both REST API and SMTP`);
+  return false;
 }
 
 export async function verifySmtpConnection(): Promise<boolean> {
   try {
-    const token = await getAccessToken();
-    console.log('SendPulse API connection verified successfully');
-    return true;
+    if (SMTP_USER && SMTP_PASS) {
+      const transport = getTransporter();
+      await transport.verify();
+      console.log('SMTP connection verified successfully');
+      return true;
+    }
+
+    const token = await getApiAccessToken();
+    if (token) {
+      console.log('SendPulse API connection verified successfully');
+      return true;
+    }
+
+    console.warn('No email transport configured');
+    return false;
   } catch (error) {
-    console.error('SendPulse API connection failed:', error);
+    console.error('Email connection verification failed:', error);
     return false;
   }
 }

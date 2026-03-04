@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY!;
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
 const app = express();
 app.use(cors());
@@ -72,6 +73,57 @@ async function requireAuth(req: express.Request, res: express.Response, next: ex
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
+});
+
+app.post('/api/register', async (req, res) => {
+  const { email, password, firstName, lastName, lang } = req.body;
+
+  if (!email || !password) {
+    res.status(400).json({ error: 'Email and password are required' });
+    return;
+  }
+
+  try {
+    const createRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { firstName, lastName },
+      }),
+    });
+
+    if (!createRes.ok) {
+      const errData = await createRes.json().catch(() => ({}));
+      const msg = errData?.msg || errData?.message || 'Registration failed';
+      if (msg.includes('already been registered') || msg.includes('already exists')) {
+        res.status(409).json({ error: 'User already registered' });
+        return;
+      }
+      console.error('Supabase admin create user error:', msg);
+      res.status(400).json({ error: msg });
+      return;
+    }
+
+    const userData = await createRes.json();
+    const userId = userData.id;
+
+    const verifyResult = await sendVerificationForUser(userId, email, firstName || '', lang || 'ru');
+    if (!verifyResult.success) {
+      console.error('Verification email failed after registration:', verifyResult.error);
+    }
+
+    res.json({ success: true, userId });
+  } catch (err) {
+    console.error('Registration error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 app.get('/api/profile', requireAuth, async (req, res) => {
