@@ -1,8 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import crypto from 'crypto';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import pool from './db.js';
 import { sendVerificationEmail, verifySmtpConnection } from './email.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY!;
@@ -443,8 +448,18 @@ app.get('/api/email-status', requireAuth, async (req, res) => {
   }
 });
 
-const PORT = parseInt(process.env.API_PORT || '3001');
+const isProduction = process.env.NODE_ENV === 'production';
+const PORT = isProduction ? 5000 : parseInt(process.env.API_PORT || '3001');
+
+if (isProduction) {
+  const distPath = path.resolve(__dirname, '..', 'dist');
+  app.use(express.static(distPath));
+  app.get('*', (_req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
+
 app.listen(PORT, '0.0.0.0', async () => {
-  console.log(`API server running on port ${PORT}`);
+  console.log(`API server running on port ${PORT}${isProduction ? ' (production)' : ''}`);
   await verifySmtpConnection();
 });
