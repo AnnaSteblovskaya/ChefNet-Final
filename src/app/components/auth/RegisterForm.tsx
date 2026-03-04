@@ -169,7 +169,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
   const handleResend = async () => {
     setResendLoading(true);
     setResendSuccess(false);
-    const success = await resendConfirmationEmail(email);
+    const success = await resendConfirmationEmail(email, language);
     setResendLoading(false);
     if (success) {
       setResendSuccess(true);
@@ -202,7 +202,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
     }
 
     setLoading(true);
-    const result = await register(email, password, firstName, lastName);
+    const result = await register(email, password, firstName, lastName, language);
     setLoading(false);
 
     if (result === 'success') {

@@ -19,11 +19,11 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>;
-  register: (email: string, password: string, firstName: string, lastName: string) => Promise<RegisterResult>;
+  register: (email: string, password: string, firstName: string, lastName: string, lang?: string) => Promise<RegisterResult>;
   logout: () => void;
   loginWithGoogle: () => Promise<void>;
   resetPassword: (email: string, newPassword: string) => Promise<boolean>;
-  resendConfirmationEmail: (email: string) => Promise<boolean>;
+  resendConfirmationEmail: (email: string, lang?: string) => Promise<boolean>;
   authError: string | null;
 }
 
@@ -80,7 +80,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const register = async (email: string, password: string, firstName: string, lastName: string): Promise<RegisterResult> => {
+  const register = async (email: string, password: string, firstName: string, lastName: string, lang?: string): Promise<RegisterResult> => {
     try {
       setAuthError(null);
       const { data, error } = await supabase.auth.signUp({
@@ -102,14 +102,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (data.user) {
-        if (!data.user.email_confirmed_at) {
-          if (data.session) {
-            await supabase.auth.signOut();
-          }
-          return 'confirmation_needed';
+        try {
+          await fetch('/api/send-verification', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email,
+              firstName,
+              lang: lang || 'ru',
+              userId: data.user.id,
+            }),
+          });
+        } catch (emailErr) {
+          console.error('Failed to send custom verification email:', emailErr);
         }
-        setUser(mapSupabaseUser(data.user));
-        return 'success';
+
+        if (data.session) {
+          await supabase.auth.signOut();
+        }
+        return 'confirmation_needed';
       }
 
       return 'error';
@@ -120,18 +131,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const resendConfirmationEmail = async (email: string): Promise<boolean> => {
+  const resendConfirmationEmail = async (email: string, lang?: string): Promise<boolean> => {
     try {
       setAuthError(null);
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email,
-        options: {
-          emailRedirectTo: getSiteUrl(),
-        },
+      const res = await fetch('/api/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          firstName: '',
+          lang: lang || 'ru',
+          userId: user?.id || '',
+        }),
       });
-      if (error) {
-        setAuthError(error.message);
+      if (!res.ok) {
+        setAuthError('Failed to resend verification email');
         return false;
       }
       return true;

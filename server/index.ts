@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
+import crypto from 'crypto';
 import pool from './db.js';
+import { sendVerificationEmail, verifySmtpConnection } from './email.js';
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY!;
@@ -289,7 +291,101 @@ app.post('/api/seed-demo-data', requireAuth, async (req, res) => {
   }
 });
 
+function getSiteUrlServer(): string {
+  if (process.env.VITE_SITE_URL) return process.env.VITE_SITE_URL;
+  if (process.env.REPLIT_DEV_DOMAIN) return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  return 'https://chefnetinvest.com';
+}
+
+app.post('/api/send-verification', async (req, res) => {
+  const { email, firstName, lang, userId } = req.body;
+  if (!email || !userId) {
+    res.status(400).json({ error: 'Email and userId are required' });
+    return;
+  }
+
+  try {
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await pool.query(
+      `INSERT INTO profiles (id, email, email_verified, verification_token, verification_token_expires)
+       VALUES ($1, $2, false, $3, $4)
+       ON CONFLICT (id) DO UPDATE SET
+         email = COALESCE(EXCLUDED.email, profiles.email),
+         verification_token = $3,
+         verification_token_expires = $4`,
+      [userId, email, token, expires]
+    );
+
+    const siteUrl = getSiteUrlServer();
+    const verifyUrl = `${siteUrl}/verify-email?token=${token}`;
+
+    const sent = await sendVerificationEmail(email, firstName || '', verifyUrl, lang || 'ru');
+    if (!sent) {
+      res.status(500).json({ error: 'Failed to send email' });
+      return;
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error sending verification email:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/verify-email', handleVerifyEmail);
+app.get('/verify-email', handleVerifyEmail);
+
+async function handleVerifyEmail(req: express.Request, res: express.Response) {
+  const { token } = req.query;
+  if (!token || typeof token !== 'string') {
+    res.status(400).json({ error: 'Token is required' });
+    return;
+  }
+
+  try {
+    const result = await pool.query(
+      `UPDATE profiles
+       SET email_verified = true, verification_token = NULL, verification_token_expires = NULL
+       WHERE verification_token = $1 AND verification_token_expires > NOW()
+       RETURNING id, email`,
+      [token]
+    );
+
+    if (result.rows.length === 0) {
+      res.status(400).json({ error: 'Invalid or expired token' });
+      return;
+    }
+
+    const siteUrl = getSiteUrlServer();
+    res.redirect(`${siteUrl}/?verified=true`);
+  } catch (err) {
+    console.error('Error verifying email:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
+
+app.get('/api/email-status', requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  try {
+    const result = await pool.query(
+      'SELECT email_verified FROM profiles WHERE id = $1',
+      [userId]
+    );
+    if (result.rows.length === 0) {
+      res.json({ verified: false });
+      return;
+    }
+    res.json({ verified: result.rows[0].email_verified === true });
+  } catch (err) {
+    console.error('Error checking email status:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 const PORT = parseInt(process.env.API_PORT || '3001');
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`API server running on port ${PORT}`);
+  await verifySmtpConnection();
 });
