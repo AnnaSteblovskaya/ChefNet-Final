@@ -99,6 +99,7 @@ npm run dev    # Starts Express (3001) + Vite (5000)
 - Supabase handles auth; Replit PostgreSQL handles data storage.
 - User profile metadata (firstName, lastName) stored in Supabase `user_metadata`.
 - Dashboard components use localStorage as runtime cache; data syncs to/from PostgreSQL on login/logout.
-- Deployment is configured as a static site (builds to `dist/`).
+- Deployment is configured as autoscale (Express serves built frontend + API in production on port 5000).
+- Production start: `npm run start` (NODE_ENV=production, Express serves `dist/` static files + API).
 - Carousel sections use pixel-based slide offsets calculated from container width measurement via `useLayoutEffect`.
 - AdvantagesSection phone carousel uses Framer Motion `drag="x"` with `onDragEnd` for swipe navigation.

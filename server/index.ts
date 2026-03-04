@@ -298,8 +298,11 @@ app.post('/api/seed-demo-data', requireAuth, async (req, res) => {
 
 function getSiteUrlServer(): string {
   if (process.env.VITE_SITE_URL) return process.env.VITE_SITE_URL;
+  if (process.env.REPLIT_DEPLOYMENT === '1' && process.env.REPLIT_DEV_DOMAIN) {
+    return `https://${process.env.REPLIT_DEV_DOMAIN.replace('-00-', '.')}`;
+  }
   if (process.env.REPLIT_DEV_DOMAIN) return `https://${process.env.REPLIT_DEV_DOMAIN}`;
-  return 'https://chefnetinvest.com';
+  return 'https://chefnet.replit.app';
 }
 
 const verificationRateLimit = new Map<string, number>();
@@ -343,7 +346,7 @@ async function sendVerificationForUser(userId: string, email: string, firstName:
 
 app.post('/api/send-verification', async (req, res) => {
   const authHeader = req.headers.authorization;
-  const { email, firstName, lang } = req.body;
+  const { email, firstName, lang, userId: bodyUserId } = req.body;
 
   if (!email) {
     res.status(400).json({ error: 'Email is required' });
@@ -367,14 +370,21 @@ app.post('/api/send-verification', async (req, res) => {
     }
   }
 
-  if (!userId) {
-    const supabaseRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?filter=email.eq.${encodeURIComponent(email)}`, {
-      headers: { 'apikey': SUPABASE_ANON_KEY },
+  if (!userId && bodyUserId) {
+    const supabaseUserRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        'Authorization': `Bearer ${authHeader?.split(' ')[1] || ''}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
     }).catch(() => null);
 
-    if (!supabaseRes) {
-      res.status(400).json({ error: 'User not found' });
-      return;
+    if (supabaseUserRes?.ok) {
+      const supabaseUser = await supabaseUserRes.json();
+      if (supabaseUser?.id === bodyUserId && supabaseUser?.email === email) {
+        userId = bodyUserId;
+      }
+    } else {
+      userId = bodyUserId;
     }
   }
 
@@ -389,6 +399,43 @@ app.post('/api/send-verification', async (req, res) => {
     return;
   }
   res.json({ success: true });
+});
+
+app.post('/api/confirm-supabase-verified', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith('Bearer ')) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const supabaseRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': SUPABASE_ANON_KEY,
+      },
+    });
+    if (!supabaseRes.ok) {
+      res.status(401).json({ error: 'Invalid token' });
+      return;
+    }
+    const user = await supabaseRes.json();
+    if (!user?.id || !user?.email_confirmed_at) {
+      res.status(403).json({ error: 'Email not confirmed in Supabase' });
+      return;
+    }
+
+    await pool.query(
+      `UPDATE profiles SET email_verified = true, verification_token = NULL, verification_token_expires = NULL
+       WHERE id = $1 AND email_verified = false`,
+      [user.id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Error confirming supabase verified:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 app.get('/api/verify-email', handleVerifyEmail);

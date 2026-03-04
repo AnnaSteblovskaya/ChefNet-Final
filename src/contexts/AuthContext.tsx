@@ -64,7 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (err) {
       console.error('Email verification check failed:', err);
     }
-    return true;
+    return false;
   }
 
   useEffect(() => {
@@ -89,9 +89,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     const signingOutUnverified = { current: false };
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (isRegistering.current || isCheckingLogin.current || signingOutUnverified.current) return;
       if (session?.user) {
+        if (event === 'SIGNED_IN' && session.user.email_confirmed_at) {
+          try {
+            await fetch('/api/confirm-supabase-verified', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+                'Content-Type': 'application/json',
+              },
+            });
+          } catch {}
+        }
         const verified = await checkEmailVerified(session.access_token);
         if (!verified) {
           signingOutUnverified.current = true;
@@ -156,6 +167,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               email,
               firstName,
               lang: lang || 'ru',
+              userId: data.user.id,
             }),
           });
           if (!verifyRes.ok) {
@@ -224,25 +236,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (data.user) {
-        try {
-          const statusRes = await fetch('/api/email-status', {
-            headers: {
-              'Authorization': `Bearer ${data.session?.access_token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-          if (statusRes.ok) {
-            const statusData = await statusRes.json();
-            if (!statusData.verified) {
-              await supabase.auth.signOut();
-              setUser(null);
-              setAuthError('email_not_verified');
-              isCheckingLogin.current = false;
-              return false;
-            }
-          }
-        } catch (err) {
-          console.error('Email status check error:', err);
+        const verified = await checkEmailVerified(data.session?.access_token || '');
+        if (!verified) {
+          await supabase.auth.signOut();
+          setUser(null);
+          setAuthError('email_not_verified');
+          isCheckingLogin.current = false;
+          return false;
         }
 
         isCheckingLogin.current = false;
