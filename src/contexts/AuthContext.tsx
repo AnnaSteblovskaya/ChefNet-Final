@@ -103,16 +103,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (data.user) {
         try {
-          await fetch('/api/send-verification', {
+          const verifyRes = await fetch('/api/send-verification', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               email,
               firstName,
               lang: lang || 'ru',
-              userId: data.user.id,
             }),
           });
+          if (!verifyRes.ok) {
+            console.error('Verification email API error:', verifyRes.status);
+          }
         } catch (emailErr) {
           console.error('Failed to send custom verification email:', emailErr);
         }
@@ -141,7 +143,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           email,
           firstName: '',
           lang: lang || 'ru',
-          userId: user?.id || '',
         }),
       });
       if (!res.ok) {

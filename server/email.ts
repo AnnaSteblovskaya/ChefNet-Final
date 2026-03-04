@@ -1,14 +1,34 @@
-import nodemailer from 'nodemailer';
+const SENDPULSE_API_ID = process.env.SENDPULSE_API_ID!;
+const SENDPULSE_API_KEY = process.env.SENDPULSE_API_KEY!;
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp-pulse.com',
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.SENDPULSE_SMTP_USERNAME,
-    pass: process.env.SENDPULSE_SMTP_PASSWORD,
-  },
-});
+let cachedToken: { token: string; expiresAt: number } | null = null;
+
+async function getAccessToken(): Promise<string> {
+  if (cachedToken && cachedToken.expiresAt > Date.now()) {
+    return cachedToken.token;
+  }
+
+  const res = await fetch('https://api.sendpulse.com/oauth/access_token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      grant_type: 'client_credentials',
+      client_id: SENDPULSE_API_ID,
+      client_secret: SENDPULSE_API_KEY,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`SendPulse auth failed: ${res.status} ${await res.text()}`);
+  }
+
+  const data = await res.json();
+  cachedToken = {
+    token: data.access_token,
+    expiresAt: Date.now() + (data.expires_in - 60) * 1000,
+  };
+  return cachedToken.token;
+}
 
 interface EmailTemplates {
   [lang: string]: {
@@ -110,13 +130,35 @@ export async function sendVerificationEmail(
   const t = verificationTemplates[lang] || verificationTemplates.ru;
   
   try {
-    await transporter.sendMail({
-      from: '"ChefNet Invest" <no-reply@chefnet.ai>',
-      to,
-      subject: t.subject,
-      html: buildVerificationHtml(verifyUrl, firstName, lang),
+    const token = await getAccessToken();
+    
+    const res = await fetch('https://api.sendpulse.com/smtp/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: {
+          subject: t.subject,
+          html: buildVerificationHtml(verifyUrl, firstName, lang),
+          from: {
+            name: 'ChefNet Invest',
+            email: 'no-reply@chefnet.ai',
+          },
+          to: [{ email: to }],
+        },
+      }),
     });
-    console.log(`Verification email sent to ${to}`);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`SendPulse API error: ${res.status} ${errorText}`);
+      return false;
+    }
+
+    const result = await res.json();
+    console.log(`Verification email sent to ${to}:`, result);
     return true;
   } catch (error) {
     console.error('Failed to send verification email:', error);
@@ -126,11 +168,11 @@ export async function sendVerificationEmail(
 
 export async function verifySmtpConnection(): Promise<boolean> {
   try {
-    await transporter.verify();
-    console.log('SMTP connection verified successfully');
+    const token = await getAccessToken();
+    console.log('SendPulse API connection verified successfully');
     return true;
   } catch (error) {
-    console.error('SMTP connection failed:', error);
+    console.error('SendPulse API connection failed:', error);
     return false;
   }
 }

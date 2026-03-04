@@ -297,16 +297,18 @@ function getSiteUrlServer(): string {
   return 'https://chefnetinvest.com';
 }
 
-app.post('/api/send-verification', async (req, res) => {
-  const { email, firstName, lang, userId } = req.body;
-  if (!email || !userId) {
-    res.status(400).json({ error: 'Email and userId are required' });
-    return;
+const verificationRateLimit = new Map<string, number>();
+
+async function sendVerificationForUser(userId: string, email: string, firstName: string, lang: string): Promise<{ success: boolean; error?: string; status?: number }> {
+  const now = Date.now();
+  const lastSent = verificationRateLimit.get(email);
+  if (lastSent && now - lastSent < 60_000) {
+    return { success: false, error: 'Please wait before requesting another email', status: 429 };
   }
 
   try {
     const token = crypto.randomBytes(32).toString('hex');
-    const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const expires = new Date(now + 24 * 60 * 60 * 1000);
 
     await pool.query(
       `INSERT INTO profiles (id, email, email_verified, verification_token, verification_token_expires)
@@ -323,15 +325,65 @@ app.post('/api/send-verification', async (req, res) => {
 
     const sent = await sendVerificationEmail(email, firstName || '', verifyUrl, lang || 'ru');
     if (!sent) {
-      res.status(500).json({ error: 'Failed to send email' });
-      return;
+      return { success: false, error: 'Failed to send email', status: 500 };
     }
 
-    res.json({ success: true });
+    verificationRateLimit.set(email, now);
+    return { success: true };
   } catch (err) {
     console.error('Error sending verification email:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    return { success: false, error: 'Internal server error', status: 500 };
   }
+}
+
+app.post('/api/send-verification', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  const { email, firstName, lang } = req.body;
+
+  if (!email) {
+    res.status(400).json({ error: 'Email is required' });
+    return;
+  }
+
+  let userId: string | null = null;
+
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.split(' ')[1];
+    userId = await verifySupabaseToken(token);
+  }
+
+  if (!userId) {
+    const profileResult = await pool.query(
+      'SELECT id FROM profiles WHERE email = $1',
+      [email]
+    );
+    if (profileResult.rows.length > 0) {
+      userId = profileResult.rows[0].id;
+    }
+  }
+
+  if (!userId) {
+    const supabaseRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?filter=email.eq.${encodeURIComponent(email)}`, {
+      headers: { 'apikey': SUPABASE_ANON_KEY },
+    }).catch(() => null);
+
+    if (!supabaseRes) {
+      res.status(400).json({ error: 'User not found' });
+      return;
+    }
+  }
+
+  if (!userId) {
+    res.status(400).json({ error: 'User not found for this email' });
+    return;
+  }
+
+  const result = await sendVerificationForUser(userId, email, firstName || '', lang || 'ru');
+  if (!result.success) {
+    res.status(result.status || 500).json({ error: result.error });
+    return;
+  }
+  res.json({ success: true });
 });
 
 app.get('/api/verify-email', handleVerifyEmail);

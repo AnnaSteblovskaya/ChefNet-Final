@@ -10,6 +10,7 @@ A multilingual investor landing page for ChefNet, an AI-powered restaurant/food 
 - **UI Components**: Radix UI, MUI, Lucide React
 - **Routing**: React Router DOM
 - **Auth**: Supabase Auth (signUp, signInWithPassword, signOut, onAuthStateChange)
+- **Email**: SendPulse REST API (transactional emails for verification)
 - **Backend**: Express API server (port 3001) + Replit PostgreSQL
 - **Database**: Replit PostgreSQL (profiles, investments, rounds, referrals, kyc_submissions, user_rounds)
 - **Animations**: Motion (Framer Motion)
@@ -26,7 +27,18 @@ A multilingual investor landing page for ChefNet, an AI-powered restaurant/food 
 ### Server
 - `server/index.ts` — Express API endpoints (port 3001)
 - `server/db.ts` — PostgreSQL connection pool
-- Vite proxies `/api` requests to the Express server
+- `server/email.ts` — SendPulse REST API email service (verification emails)
+- Vite proxies `/api` and `/verify-email` requests to the Express server
+
+### Email Verification Flow
+1. User registers → Supabase creates account, backend sends verification email via SendPulse API
+2. Email contains verification link with unique token (24h expiry)
+3. User clicks link → `/verify-email?token=xxx` → backend marks profile as verified → redirects to `/?verified=true`
+4. Frontend shows green success banner on the landing page
+5. Resend button available on the "check your email" screen
+- Emails sent from: `no-reply@chefnet.ai` via SendPulse transactional API
+- Multilingual templates: RU, EN, DE, ES, TR
+- DB columns: `profiles.email_verified`, `profiles.verification_token`, `profiles.verification_token_expires`
 
 ### Frontend Data Layer
 - `src/utils/api.ts` — Authenticated fetch helpers (apiGet, apiPost, apiPut)
