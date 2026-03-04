@@ -46,10 +46,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const supabase = getSupabaseClient();
 
   const dataSynced = useRef(false);
+  const isRegistering = useRef(false);
+  const isCheckingLogin = useRef(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
+      if (session?.user && !isRegistering.current) {
         const mappedUser = mapSupabaseUser(session.user);
         setUser(mappedUser);
         if (!dataSynced.current) {
@@ -62,6 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (isRegistering.current || isCheckingLogin.current) return;
       if (session?.user) {
         const mappedUser = mapSupabaseUser(session.user);
         setUser(mappedUser);
@@ -83,6 +86,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const register = async (email: string, password: string, firstName: string, lastName: string, lang?: string): Promise<RegisterResult> => {
     try {
       setAuthError(null);
+      isRegistering.current = true;
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -98,6 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) {
         console.error('Registration error:', error.message);
         setAuthError(error.message);
+        isRegistering.current = false;
         return 'error';
       }
 
@@ -122,13 +128,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (data.session) {
           await supabase.auth.signOut();
         }
+        setUser(null);
+        isRegistering.current = false;
         return 'confirmation_needed';
       }
 
+      isRegistering.current = false;
       return 'error';
     } catch (error) {
       console.error('Registration exception:', error);
       setAuthError('An unexpected error occurred');
+      isRegistering.current = false;
       return 'error';
     }
   };
@@ -159,6 +169,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, password: string, _rememberMe?: boolean): Promise<boolean> => {
     try {
       setAuthError(null);
+      isCheckingLogin.current = true;
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -167,18 +179,43 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (error) {
         console.error('Login error:', error.message);
         setAuthError(error.message);
+        isCheckingLogin.current = false;
         return false;
       }
 
       if (data.user) {
+        try {
+          const statusRes = await fetch('/api/email-status', {
+            headers: {
+              'Authorization': `Bearer ${data.session?.access_token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          if (statusRes.ok) {
+            const statusData = await statusRes.json();
+            if (!statusData.verified) {
+              await supabase.auth.signOut();
+              setUser(null);
+              setAuthError('email_not_verified');
+              isCheckingLogin.current = false;
+              return false;
+            }
+          }
+        } catch (err) {
+          console.error('Email status check error:', err);
+        }
+
+        isCheckingLogin.current = false;
         setUser(mapSupabaseUser(data.user));
         return true;
       }
 
+      isCheckingLogin.current = false;
       return false;
     } catch (error) {
       console.error('Login exception:', error);
       setAuthError('An unexpected error occurred');
+      isCheckingLogin.current = false;
       return false;
     }
   };

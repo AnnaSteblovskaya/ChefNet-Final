@@ -139,7 +139,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister, onSwitchToRes
       onSuccess();
     } else {
       const errorMsg = authError || '';
-      if (errorMsg.toLowerCase().includes('email not confirmed') || errorMsg.toLowerCase().includes('not confirmed')) {
+      if (errorMsg === 'email_not_verified' || errorMsg.toLowerCase().includes('email not confirmed') || errorMsg.toLowerCase().includes('not confirmed')) {
         setEmailNotConfirmed(true);
         setError(t.emailNotConfirmed);
       } else {
