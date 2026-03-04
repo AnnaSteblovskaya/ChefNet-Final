@@ -49,9 +49,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isRegistering = useRef(false);
   const isCheckingLogin = useRef(false);
 
+  async function checkEmailVerified(accessToken: string): Promise<boolean> {
+    try {
+      const res = await fetch('/api/email-status', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.verified === true;
+      }
+    } catch (err) {
+      console.error('Email verification check failed:', err);
+    }
+    return true;
+  }
+
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (session?.user && !isRegistering.current) {
+        const verified = await checkEmailVerified(session.access_token);
+        if (!verified) {
+          await supabase.auth.signOut();
+          setUser(null);
+          setLoading(false);
+          return;
+        }
         const mappedUser = mapSupabaseUser(session.user);
         setUser(mappedUser);
         if (!dataSynced.current) {
@@ -63,9 +88,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     });
 
+    const signingOutUnverified = { current: false };
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (isRegistering.current || isCheckingLogin.current) return;
+      if (isRegistering.current || isCheckingLogin.current || signingOutUnverified.current) return;
       if (session?.user) {
+        const verified = await checkEmailVerified(session.access_token);
+        if (!verified) {
+          signingOutUnverified.current = true;
+          await supabase.auth.signOut();
+          signingOutUnverified.current = false;
+          setUser(null);
+          setLoading(false);
+          return;
+        }
         const mappedUser = mapSupabaseUser(session.user);
         setUser(mappedUser);
         if (!dataSynced.current) {
@@ -108,10 +143,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (data.user) {
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (data.session?.access_token) {
+          headers['Authorization'] = `Bearer ${data.session.access_token}`;
+        }
+
         try {
           const verifyRes = await fetch('/api/send-verification', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers,
             body: JSON.stringify({
               email,
               firstName,

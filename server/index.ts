@@ -422,14 +422,21 @@ app.get('/api/email-status', requireAuth, async (req, res) => {
   const userId = (req as any).userId;
   try {
     const result = await pool.query(
-      'SELECT email_verified FROM profiles WHERE id = $1',
+      'SELECT email_verified, verification_token FROM profiles WHERE id = $1',
       [userId]
     );
     if (result.rows.length === 0) {
-      res.json({ verified: false });
+      res.json({ verified: true });
       return;
     }
-    res.json({ verified: result.rows[0].email_verified === true });
+    const row = result.rows[0];
+    if (row.email_verified === true) {
+      res.json({ verified: true });
+    } else if (row.verification_token !== null) {
+      res.json({ verified: false });
+    } else {
+      res.json({ verified: true });
+    }
   } catch (err) {
     console.error('Error checking email status:', err);
     res.status(500).json({ error: 'Internal server error' });
