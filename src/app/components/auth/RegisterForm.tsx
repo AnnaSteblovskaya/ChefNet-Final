@@ -38,7 +38,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
       logIn: 'Log in',
       errorFill: 'Please fill in all fields',
       errorPassword: 'Passwords do not match',
-      errorPasswordLength: 'Password must be at least 6 characters',
+      errorPasswordLength: 'Password must be at least 8 characters and contain letters and numbers',
       errorExists: 'This email is already registered',
       errorTerms: 'You must agree to the terms and conditions',
       agreeText: 'I agree to',
@@ -65,7 +65,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
       logIn: 'Войти',
       errorFill: 'Заполните все поля',
       errorPassword: 'Пароли не совпадают',
-      errorPasswordLength: 'Пароль должен содержать минимум 6 символов',
+      errorPasswordLength: 'Пароль должен содержать минимум 8 символов, буквы и цифры',
       errorExists: 'Этот email уже зарегистрирован',
       errorTerms: 'Вы должны согласиться с условиями',
       agreeText: 'Я согласен с',
@@ -92,7 +92,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
       logIn: 'Anmelden',
       errorFill: 'Bitte füllen Sie alle Felder aus',
       errorPassword: 'Passwörter stimmen nicht überein',
-      errorPasswordLength: 'Passwort muss mindestens 6 Zeichen lang sein',
+      errorPasswordLength: 'Passwort muss mindestens 8 Zeichen lang sein und Buchstaben und Zahlen enthalten',
       errorExists: 'Diese E-Mail ist bereits registriert',
       errorTerms: 'Sie müssen den Bedingungen zustimmen',
       agreeText: 'Ich stimme den',
@@ -119,7 +119,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
       logIn: 'Acceder',
       errorFill: 'Por favor complete todos los campos',
       errorPassword: 'Las contraseñas no coinciden',
-      errorPasswordLength: 'La contraseña debe tener al menos 6 caracteres',
+      errorPasswordLength: 'La contraseña debe tener al menos 8 caracteres y contener letras y números',
       errorExists: 'Este email ya está registrado',
       errorTerms: 'Debe aceptar los términos y condiciones',
       agreeText: 'Acepto los',
@@ -146,7 +146,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
       logIn: 'Giriş yap',
       errorFill: 'Lütfen tüm alanları doldurun',
       errorPassword: 'Şifreler eşleşmiyor',
-      errorPasswordLength: 'Şifre en az 6 karakter olmalıdır',
+      errorPasswordLength: 'Şifre en az 8 karakter olmalı ve harf ve rakam içermelidir',
       errorExists: 'Bu e-posta zaten kayıtlı',
       errorTerms: 'Şartları ve koşulları kabul etmelisiniz',
       agreeText: '',
@@ -186,7 +186,9 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
       return;
     }
 
-    if (password.length < 6) {
+    const hasLetter = /[a-zA-Zа-яА-Я]/.test(password);
+    const hasDigit = /\d/.test(password);
+    if (password.length < 8 || !hasLetter || !hasDigit) {
       setError(t.errorPasswordLength);
       return;
     }
