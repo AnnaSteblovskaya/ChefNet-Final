@@ -35,10 +35,9 @@ export default defineConfig({
           if (id.includes('node_modules')) {
             if (id.includes('@mui') || id.includes('@emotion')) return 'mui';
             if (id.includes('recharts') || id.includes('d3-') || id.includes('victory-vendor')) return 'charts';
-            if (id.includes('motion') || id.includes('framer-motion')) return 'motion';
             if (id.includes('@supabase')) return 'supabase';
             if (id.includes('@radix-ui')) return 'radix-ui';
-            if (id.includes('react-dom') || id.includes('react-router')) return 'react-vendor';
+            if (id.includes('react-dom') || id.includes('react-router') || id.includes('motion') || id.includes('framer-motion')) return 'react-vendor';
             if (id.includes('react-datepicker') || id.includes('date-fns') || id.includes('react-hook-form') || id.includes('react-google-recaptcha') || id.includes('react-slick') || id.includes('slick-carousel')) return 'form-libs';
             if (id.includes('lucide-react')) return 'icons';
           }

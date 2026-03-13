@@ -1,4 +1,4 @@
-import{r as h}from"./motion-MmPCslB7.js";/**
+import{r as h}from"./react-vendor-CDv5WDhH.js";/**
  * @license lucide-react v0.487.0 - ISC
  *
  * This source code is licensed under the ISC license.
