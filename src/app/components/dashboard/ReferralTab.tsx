@@ -8,6 +8,8 @@ import LanguageSwitcher from '@/app/components/LanguageSwitcher';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { ru, enUS, de, es, tr } from 'date-fns/locale';
+import { useAuth } from '@/contexts/AuthContext';
+import { getSiteUrl } from '@/utils/siteUrl';
 
 // Register locales for date picker
 registerLocale('ru', ru);
@@ -29,10 +31,19 @@ interface ReferralTabProps {
   setActiveTab: (tab: string) => void;
 }
 
+function generateReferralCode(userId: string): string {
+  const clean = userId.replace(/-/g, '').toUpperCase();
+  return 'CHEF-' + clean.substring(0, 6);
+}
+
 export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
   const { language } = useLanguage();
   const t = dashboardTranslations[language];
+  const { user } = useAuth();
   const [copied, setCopied] = useState(false);
+
+  const referralCode = user?.id ? generateReferralCode(user.id) : 'CHEF-XXXXXX';
+  const referralLink = `${getSiteUrl()}/?ref=${referralCode}`;
 
   // Search filters
   const [searchName, setSearchName] = useState('');
@@ -133,7 +144,7 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
   }, [referredInvestors]);
 
   const handleCopyLink = () => {
-    const textToCopy = 'https://chefinvest.com/register?ref=CHEF-X7K9H2';
+    const textToCopy = referralLink;
     
     // Try modern Clipboard API first
     if (navigator.clipboard && window.isSecureContext) {
@@ -257,7 +268,7 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
           <div className="hidden lg:flex flex-col gap-3">
             <input
               type="text"
-              value="https://chefinvest.com/register?ref=CHEF-X7K9H2"
+              value={referralLink}
               readOnly
               className="w-full px-4 py-3 bg-gray-50 border border-gray-300 rounded-xl text-sm text-gray-700"
             />
@@ -275,7 +286,7 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
             <div className="relative">
               <input
                 type="text"
-                value="https://chefinvest.com/register?ref=CHEF-X7K9H2"
+                value={referralLink}
                 readOnly
                 className="w-full px-3 py-3 bg-gray-50 border border-gray-300 rounded-xl text-xs text-gray-700 pr-3"
                 style={{ fontSize: '11px' }}
