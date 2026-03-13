@@ -90,6 +90,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
       setLoading(false);
+    }).catch((err) => {
+      console.error('getSession failed:', err);
+      setLoading(false);
     });
 
     const signingOutUnverified = { current: false };

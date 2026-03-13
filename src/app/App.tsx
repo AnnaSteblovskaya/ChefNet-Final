@@ -1,10 +1,41 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense, Component, ErrorInfo, ReactNode } from 'react';
 import { ThemeProvider } from '@/app/components/ThemeProvider';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import NewPasswordModal from '@/app/components/auth/NewPasswordModal';
 import HeroSection from '@/app/components/sections/HeroSection';
 import StickyNavigation from '@/app/components/StickyNavigation';
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true };
+  }
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('[ErrorBoundary]', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-[var(--color-background)] text-[var(--color-text)]">
+          <div className="text-center p-8">
+            <p className="text-lg mb-4">Что-то пошло не так. Обновите страницу.</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 bg-[#D4522A] text-white rounded-lg hover:bg-[#B8441F] transition-colors"
+            >
+              Обновить
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const AboutSection = lazy(() => import('@/app/components/sections/AboutSection'));
 const UniqueFeaturesSection = lazy(() => import('@/app/components/sections/UniqueFeaturesSection'));
@@ -147,12 +178,16 @@ function AppContent() {
 
 export default function App() {
   return (
-    <LanguageProvider>
-      <AuthProvider>
-        <ThemeProvider defaultTheme="light" storageKey="chefnet-theme">
-          <AppContent />
-        </ThemeProvider>
-      </AuthProvider>
-    </LanguageProvider>
+    <ErrorBoundary>
+      <LanguageProvider>
+        <AuthProvider>
+          <ThemeProvider defaultTheme="light" storageKey="chefnet-theme">
+            <ErrorBoundary>
+              <AppContent />
+            </ErrorBoundary>
+          </ThemeProvider>
+        </AuthProvider>
+      </LanguageProvider>
+    </ErrorBoundary>
   );
 }
