@@ -1,23 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { ThemeProvider } from '@/app/components/ThemeProvider';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import NewPasswordModal from '@/app/components/auth/NewPasswordModal';
 import HeroSection from '@/app/components/sections/HeroSection';
-import AboutSection from '@/app/components/sections/AboutSection';
-import UniqueFeaturesSection from '@/app/components/sections/UniqueFeaturesSection';
-import OpportunitiesSection from '@/app/components/sections/OpportunitiesSection';
-import PartnershipSection from '@/app/components/sections/PartnershipSection';
-import InvestmentsSection from '@/app/components/sections/InvestmentsSection';
-import AdvantagesSection from '@/app/components/sections/AdvantagesSection';
-import RoadmapSection from '@/app/components/sections/RoadmapSection';
-import ChefNetAppSection from '@/app/components/sections/ChefNetAppSection';
-import FAQSection from '@/app/components/sections/FAQSection';
-import CTABanner from '@/app/components/sections/CTABanner';
-import Footer from '@/app/components/sections/Footer';
-import Dashboard from '@/app/components/dashboard/Dashboard';
 import StickyNavigation from '@/app/components/StickyNavigation';
-import TeamSection from '@/app/components/sections/TeamSection';
+
+const AboutSection = lazy(() => import('@/app/components/sections/AboutSection'));
+const UniqueFeaturesSection = lazy(() => import('@/app/components/sections/UniqueFeaturesSection'));
+const OpportunitiesSection = lazy(() => import('@/app/components/sections/OpportunitiesSection'));
+const PartnershipSection = lazy(() => import('@/app/components/sections/PartnershipSection'));
+const InvestmentsSection = lazy(() => import('@/app/components/sections/InvestmentsSection'));
+const AdvantagesSection = lazy(() => import('@/app/components/sections/AdvantagesSection'));
+const RoadmapSection = lazy(() => import('@/app/components/sections/RoadmapSection'));
+const ChefNetAppSection = lazy(() => import('@/app/components/sections/ChefNetAppSection'));
+const FAQSection = lazy(() => import('@/app/components/sections/FAQSection'));
+const CTABanner = lazy(() => import('@/app/components/sections/CTABanner'));
+const TeamSection = lazy(() => import('@/app/components/sections/TeamSection'));
+const Footer = lazy(() => import('@/app/components/sections/Footer'));
+const Dashboard = lazy(() => import('@/app/components/dashboard/Dashboard'));
 
 const verifiedTexts: Record<string, string> = {
   en: 'Email confirmed! You can now log in.',
@@ -94,12 +95,18 @@ function AppContent() {
     );
   }
 
-  // Show dashboard if authenticated and user wants to see it
   if (isAuthenticated && showDashboard) {
-    return <Dashboard onBackToHome={() => setShowDashboard(false)} />;
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-[var(--color-background)]">
+          <div className="w-8 h-8 border-4 border-[#D4522A] border-t-transparent rounded-full animate-spin" />
+        </div>
+      }>
+        <Dashboard onBackToHome={() => setShowDashboard(false)} />
+      </Suspense>
+    );
   }
 
-  // Show main landing page
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)] transition-colors duration-300 overflow-x-hidden w-full max-w-full">
       {(isPasswordRecovery) && <NewPasswordModal />}
@@ -120,18 +127,20 @@ function AppContent() {
       )}
       <StickyNavigation onGoToDashboard={() => setShowDashboard(true)} />
       <HeroSection key={language} onGoToDashboard={() => setShowDashboard(true)} />
-      <UniqueFeaturesSection />
-      <OpportunitiesSection />
-      <PartnershipSection />
-      <InvestmentsSection />
-      <AboutSection />
-      <AdvantagesSection />
-      <RoadmapSection />
-      <ChefNetAppSection />
-      <FAQSection />
-      <CTABanner />
-      <TeamSection />
-      <Footer />
+      <Suspense fallback={null}>
+        <UniqueFeaturesSection />
+        <OpportunitiesSection />
+        <PartnershipSection />
+        <InvestmentsSection />
+        <AboutSection />
+        <AdvantagesSection />
+        <RoadmapSection />
+        <ChefNetAppSection />
+        <FAQSection />
+        <CTABanner />
+        <TeamSection />
+        <Footer />
+      </Suspense>
     </div>
   );
 }
