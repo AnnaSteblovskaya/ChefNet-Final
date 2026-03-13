@@ -582,11 +582,22 @@ export default function InvestmentsTab({ setActiveTab }: InvestmentsTabProps) {
           <div className="mb-4">
             <label className="text-sm text-gray-600 mb-2 block">{t.investmentAmount}</label>
             <input
-              type="number"
+              type="text"
+              inputMode="numeric"
               min={currentRoundData.minInvestment}
               max={availableShares}
-              value={amount}
-              onChange={(e) => setAmount(Number(e.target.value))}
+              value={amount === 0 ? '' : amount}
+              onFocus={(e) => e.target.select()}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, '');
+                const num = raw === '' ? 0 : parseInt(raw, 10);
+                setAmount(num);
+              }}
+              onBlur={() => {
+                if (amount < currentRoundData.minInvestment) {
+                  setAmount(currentRoundData.minInvestment);
+                }
+              }}
               disabled={currentRoundData.status !== 'Активный'}
               className={`w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4522A] ${
                 currentRoundData.status !== 'Активный' ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''
