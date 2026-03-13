@@ -103,43 +103,6 @@ app.post('/api/register', async (req, res) => {
       const errData = await createRes.json().catch(() => ({}));
       const msg = errData?.msg || errData?.message || 'Registration failed';
       if (msg.includes('already been registered') || msg.includes('already exists')) {
-        // User exists in Supabase — check if they're verified in our DB
-        const existingProfile = await pool.query(
-          'SELECT id, email_verified FROM profiles WHERE email = $1',
-          [email.toLowerCase().trim()]
-        );
-        if (existingProfile.rows.length > 0 && existingProfile.rows[0].email_verified) {
-          res.status(409).json({ error: 'User already registered' });
-          return;
-        }
-        // Not verified in our DB — look up Supabase user and resend verification
-        const supabaseUserRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users?email=${encodeURIComponent(email)}`, {
-          headers: { 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, 'apikey': SUPABASE_SERVICE_ROLE_KEY },
-        }).catch(() => null);
-        let existingUserId = existingProfile.rows[0]?.id || null;
-        if (!existingUserId && supabaseUserRes?.ok) {
-          const supabaseData = await supabaseUserRes.json().catch(() => ({}));
-          const supabaseUsers = supabaseData.users || [];
-          const found = supabaseUsers.find((u: any) => u.email?.toLowerCase() === email.toLowerCase().trim());
-          if (found) existingUserId = found.id;
-        }
-        if (existingUserId) {
-          console.log(`[register] Re-sending verification for existing unverified user ${existingUserId}`);
-          // Update name metadata if provided
-          if (firstName || lastName) {
-            await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${existingUserId}`, {
-              method: 'PUT',
-              headers: { 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, 'apikey': SUPABASE_SERVICE_ROLE_KEY, 'Content-Type': 'application/json' },
-              body: JSON.stringify({ user_metadata: { firstName, lastName } }),
-            }).catch(() => null);
-          }
-          const verifyResult = await sendVerificationForUser(existingUserId, email, firstName || '', lang || 'ru', null);
-          if (!verifyResult.success) {
-            console.error('[register] Resend failed for existing user:', verifyResult.error);
-          }
-          res.json({ success: true, userId: existingUserId });
-          return;
-        }
         res.status(409).json({ error: 'User already registered' });
         return;
       }
@@ -167,12 +130,9 @@ app.post('/api/register', async (req, res) => {
       }
     }
 
-    console.log(`[register] New user created: ${userId} (${email})`);
     const verifyResult = await sendVerificationForUser(userId, email, firstName || '', lang || 'ru', referredBy);
     if (!verifyResult.success) {
-      console.error(`[register] Verification email failed for ${email}:`, verifyResult.error);
-    } else {
-      console.log(`[register] Verification email sent to ${email}`);
+      console.error('Verification email failed after registration:', verifyResult.error);
     }
 
     res.json({ success: true, userId });
@@ -471,28 +431,11 @@ app.post('/api/send-verification', async (req, res) => {
 
   if (!userId) {
     const profileResult = await pool.query(
-      'SELECT id FROM profiles WHERE LOWER(email) = LOWER($1)',
+      'SELECT id FROM profiles WHERE email = $1',
       [email]
     );
     if (profileResult.rows.length > 0) {
       userId = profileResult.rows[0].id;
-    }
-  }
-
-  // If not found in our DB, look up in Supabase admin API
-  if (!userId) {
-    const supabaseAdminRes = await fetch(
-      `${SUPABASE_URL}/auth/v1/admin/users?email=${encodeURIComponent(email)}`,
-      { headers: { 'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, 'apikey': SUPABASE_SERVICE_ROLE_KEY } }
-    ).catch(() => null);
-    if (supabaseAdminRes?.ok) {
-      const data = await supabaseAdminRes.json().catch(() => ({}));
-      const users = data.users || [];
-      const found = users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase().trim());
-      if (found) {
-        userId = found.id;
-        console.log(`[send-verification] Found user in Supabase but not in DB: ${userId}`);
-      }
     }
   }
 
