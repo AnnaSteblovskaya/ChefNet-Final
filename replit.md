@@ -32,22 +32,14 @@ A multilingual investor landing page for ChefNet, an AI-powered restaurant/food 
 - Vite proxies `/api` and `/verify-email` requests to the Express server
 
 ### Email Verification Flow
-1. User registers → Supabase creates account (email_confirm:true), backend sends verification email via Gmail API
+1. User registers → Supabase creates account, backend sends verification email via Gmail API
 2. Email contains verification link with unique token (24h expiry)
 3. User clicks link → `/verify-email?token=xxx` → backend marks profile as verified → redirects to `/?verified=true`
 4. Frontend shows green success banner on the landing page
 5. Resend button available on the "check your email" screen
 - Emails sent from: connected Gmail account via Replit Gmail integration
 - Multilingual templates: RU, EN, DE, ES, TR
-- DB columns: `profiles.email_verified`, `profiles.verification_token`, `profiles.verification_token_expires`, `profiles.referred_by`
-
-### Referral Flow
-1. Referrer shares link with `?ref=CHEF-XXXXXX` (first 6 hex chars of their UUID, uppercase)
-2. New user registers via that link → `/api/register` resolves referrer ID from ref code → stores `referred_by` in new user's profile
-3. New user verifies email → `/verify-email` inserts record into `referrals` table (user_id = referrer's ID)
-4. Referrer logs into dashboard → `loadDataFromServer` fetches `/api/referrals` → updates localStorage → ReferralTab displays partner
-- Referral code pattern: `CHEF-` + first 6 chars of `id.replace(/-/g,'').toUpperCase()`
-- `profiles.referred_by` uses COALESCE so it can't be overwritten once set
+- DB columns: `profiles.email_verified`, `profiles.verification_token`, `profiles.verification_token_expires`
 
 ### Frontend Data Layer
 - `src/utils/api.ts` — Authenticated fetch helpers (apiGet, apiPost, apiPut)

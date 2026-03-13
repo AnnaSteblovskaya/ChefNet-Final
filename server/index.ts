@@ -76,7 +76,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.post('/api/register', async (req, res) => {
-  const { email, password, firstName, lastName, lang, ref } = req.body;
+  const { email, password, firstName, lastName, lang } = req.body;
 
   if (!email || !password) {
     res.status(400).json({ error: 'Email and password are required' });
@@ -114,23 +114,7 @@ app.post('/api/register', async (req, res) => {
     const userData = await createRes.json();
     const userId = userData.id;
 
-    // Resolve referrer from ref code (e.g. "CHEF-C78316" → find profile starting with C78316)
-    let referredBy: string | null = null;
-    if (ref && typeof ref === 'string') {
-      const code = ref.replace(/^CHEF-/i, '').toLowerCase();
-      if (code.length === 6) {
-        const refResult = await pool.query(
-          `SELECT id FROM profiles WHERE REPLACE(LOWER(id), '-', '') LIKE $1 LIMIT 1`,
-          [code + '%']
-        );
-        if (refResult.rows.length > 0) {
-          referredBy = refResult.rows[0].id;
-          console.log(`[register] Referral code ${ref} → referrer ${referredBy}`);
-        }
-      }
-    }
-
-    const verifyResult = await sendVerificationForUser(userId, email, firstName || '', lang || 'ru', referredBy);
+    const verifyResult = await sendVerificationForUser(userId, email, firstName || '', lang || 'ru');
     if (!verifyResult.success) {
       console.error('Verification email failed after registration:', verifyResult.error);
     }
@@ -375,7 +359,7 @@ function getSiteUrlServer(): string {
 
 const verificationRateLimit = new Map<string, number>();
 
-async function sendVerificationForUser(userId: string, email: string, firstName: string, lang: string, referredBy: string | null = null): Promise<{ success: boolean; error?: string; status?: number }> {
+async function sendVerificationForUser(userId: string, email: string, firstName: string, lang: string): Promise<{ success: boolean; error?: string; status?: number }> {
   const now = Date.now();
   const lastSent = verificationRateLimit.get(email);
   if (lastSent && now - lastSent < 60_000) {
@@ -387,14 +371,13 @@ async function sendVerificationForUser(userId: string, email: string, firstName:
     const expires = new Date(now + 24 * 60 * 60 * 1000);
 
     await pool.query(
-      `INSERT INTO profiles (id, email, email_verified, verification_token, verification_token_expires, referred_by)
-       VALUES ($1, $2, false, $3, $4, $5)
+      `INSERT INTO profiles (id, email, email_verified, verification_token, verification_token_expires)
+       VALUES ($1, $2, false, $3, $4)
        ON CONFLICT (id) DO UPDATE SET
          email = COALESCE(EXCLUDED.email, profiles.email),
          verification_token = $3,
-         verification_token_expires = $4,
-         referred_by = COALESCE(profiles.referred_by, EXCLUDED.referred_by)`,
-      [userId, email, token, expires, referredBy]
+         verification_token_expires = $4`,
+      [userId, email, token, expires]
     );
 
     const siteUrl = getSiteUrlServer();
@@ -646,7 +629,7 @@ async function handleVerifyEmail(req: express.Request, res: express.Response) {
   try {
     // Check if token exists at all (ignoring expiry) for better diagnostics
     const check = await pool.query(
-      `SELECT id, email, email_verified, verification_token_expires, referred_by FROM profiles WHERE verification_token = $1`,
+      `SELECT id, email, email_verified, verification_token_expires FROM profiles WHERE verification_token = $1`,
       [token]
     );
 
@@ -678,23 +661,6 @@ async function handleVerifyEmail(req: express.Request, res: express.Response) {
     );
 
     console.log(`[verify-email] Successfully verified ${row.email}`);
-
-    // If this user was referred, add them to the referrer's referral list
-    if (row.referred_by) {
-      try {
-        const displayName = row.email.split('@')[0];
-        const today = new Date().toISOString().split('T')[0];
-        await pool.query(
-          `INSERT INTO referrals (user_id, name, status, amount, shares, commission, date, round)
-           VALUES ($1, $2, 'registered', '$0', 0, '$0', $3, 'seed')`,
-          [row.referred_by, displayName, today]
-        );
-        console.log(`[verify-email] Added ${row.email} as referral for ${row.referred_by}`);
-      } catch (refErr) {
-        console.error('[verify-email] Failed to create referral record:', refErr);
-      }
-    }
-
     res.redirect(`${siteUrl}/?verified=true`);
   } catch (err) {
     console.error('Error verifying email:', err);

@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/locales/translations';
-const partnerIcon = '/assets/85a04790adadc69f1d0380e9066216a493e83d6b.webp';
+const partnerIcon = '/assets/85a04790adadc69f1d0380e9066216a493e83d6b.png';
 
 export default function PartnershipSection() {
   const { language } = useLanguage();
@@ -181,7 +181,7 @@ export default function PartnershipSection() {
           className="text-center mb-10"
         >
           <IconBox delay={0.2}>
-            <img loading="lazy" decoding="async" src={partnerIcon} alt="Partner Icon" className="w-16 h-16 relative z-10 drop-shadow-lg -mt-2" />
+            <img src={partnerIcon} alt="Partner Icon" className="w-16 h-16 relative z-10 drop-shadow-lg -mt-2" />
           </IconBox>
           <h2 className="text-4xl md:text-5xl font-bold text-[#3E3E3E] mt-6 sm:mt-8">
             {t.partnersTitle}

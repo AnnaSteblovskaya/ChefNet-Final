@@ -15,8 +15,8 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-const fireIcon = '/assets/175bf7179bacb5a758ec98d1cb083eac03719212.webp';
-const growthIcon = '/assets/64c4e07a3691678d999f938c1479fa2c5b605192.webp';
+const fireIcon = '/assets/175bf7179bacb5a758ec98d1cb083eac03719212.png';
+const growthIcon = '/assets/64c4e07a3691678d999f938c1479fa2c5b605192.png';
 
 const iconComponents = [
   ChefHat,           // 1. Personal AI Companion
@@ -161,7 +161,7 @@ export default function UniqueFeaturesSection() {
           className="text-center mb-10"
         >
           <IconBox delay={0.2}>
-            <img loading="lazy" decoding="async" src={fireIcon} alt="Fire icon" className="w-16 h-16 relative z-10 drop-shadow-lg" />
+            <img src={fireIcon} alt="Fire icon" className="w-16 h-16 relative z-10 drop-shadow-lg" />
           </IconBox>
           <h2 className="text-4xl md:text-5xl font-bold mb-4 mt-6 sm:mt-8">
             {language === 'tr' ? (
@@ -307,8 +307,6 @@ export default function UniqueFeaturesSection() {
                           <img 
                             src={growthIcon} 
                             alt="Growth" 
-                            loading="lazy"
-                            decoding="async"
                             className="w-6 h-6 sm:w-8 sm:h-8 brightness-0 invert"
                             style={{ 
                               filter: 'brightness(0) invert(1) drop-shadow(0 0 0.5px white) drop-shadow(0 0 0.5px white)' 
