@@ -107,12 +107,12 @@ export default function PartnershipSection() {
   const maxIndex = cards.length - visibleCards;
 
   const handlePrev = () => {
-    setCurrentIndex((prev) => Math.max(0, prev - 1));
+    setCurrentIndex((prev) => (prev <= 0 ? maxIndex : prev - 1));
     setLastClicked('prev');
   };
 
   const handleNext = () => {
-    setCurrentIndex((prev) => Math.min(maxIndex, prev + 1));
+    setCurrentIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
     setLastClicked('next');
   };
 
@@ -156,10 +156,10 @@ export default function PartnershipSection() {
     const isLeftSwipe = distance > 50;
     const isRightSwipe = distance < -50;
     
-    if (isLeftSwipe && currentIndex < maxIndex) {
+    if (isLeftSwipe) {
       handleNext();
     }
-    if (isRightSwipe && currentIndex > 0) {
+    if (isRightSwipe) {
       handlePrev();
     }
     
@@ -193,11 +193,8 @@ export default function PartnershipSection() {
           {/* Navigation Buttons */}
           <button
             onClick={handlePrev}
-            disabled={currentIndex === 0}
             className={`absolute left-0 sm:left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 sm:-translate-x-4 z-20 w-8 h-8 sm:w-12 sm:h-12 rounded-full backdrop-blur-sm shadow-lg flex items-center justify-center transition-all ${
-              currentIndex === 0
-                ? 'opacity-30 cursor-not-allowed bg-white/90'
-                : lastClicked === 'prev'
+              lastClicked === 'prev'
                 ? 'opacity-100 bg-[#FF8C42] text-white'
                 : 'opacity-100 bg-white/90 text-black hover:bg-[#FF8C42] hover:text-white'
             }`}
@@ -208,11 +205,8 @@ export default function PartnershipSection() {
 
           <button
             onClick={handleNext}
-            disabled={currentIndex >= maxIndex}
             className={`absolute right-0 sm:right-0 top-1/2 -translate-y-1/2 translate-x-1/2 sm:translate-x-4 z-20 w-8 h-8 sm:w-12 sm:h-12 rounded-full backdrop-blur-sm shadow-lg flex items-center justify-center transition-all ${
-              currentIndex >= maxIndex
-                ? 'opacity-30 cursor-not-allowed bg-white/90'
-                : lastClicked === 'next'
+              lastClicked === 'next'
                 ? 'opacity-100 bg-[#FF8C42] text-white'
                 : 'opacity-100 bg-white/90 text-black hover:bg-[#FF8C42] hover:text-white'
             }`}
@@ -231,9 +225,9 @@ export default function PartnershipSection() {
               dragElastic={0.15}
               onDragEnd={(_, info) => {
                 const threshold = 50;
-                if (info.offset.x > threshold && currentIndex > 0) {
+                if (info.offset.x > threshold) {
                   handlePrev();
-                } else if (info.offset.x < -threshold && currentIndex < maxIndex) {
+                } else if (info.offset.x < -threshold) {
                   handleNext();
                 }
               }}

@@ -522,7 +522,7 @@ export default function AdvantagesSection() {
           >
             {/* Carousel Track - all phones in a row */}
             <motion.div
-              drag="x"
+              drag={isMobile ? false : "x"}
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.2}
               onDragEnd={(_, info) => {
