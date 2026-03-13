@@ -203,8 +203,9 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
       return;
     }
 
+    const refParam = new URLSearchParams(window.location.search).get('ref') || undefined;
     setLoading(true);
-    const result = await register(email, password, firstName, lastName, language);
+    const result = await register(email, password, firstName, lastName, language, refParam);
     setLoading(false);
 
     if (result === 'success') {

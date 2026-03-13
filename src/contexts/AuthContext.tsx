@@ -19,7 +19,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>;
-  register: (email: string, password: string, firstName: string, lastName: string, lang?: string) => Promise<RegisterResult>;
+  register: (email: string, password: string, firstName: string, lastName: string, lang?: string, ref?: string) => Promise<RegisterResult>;
   logout: () => void;
   loginWithGoogle: () => Promise<void>;
   resetPassword: (email: string, newPassword: string, lang?: string) => Promise<boolean>;
@@ -103,17 +103,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (session?.user) {
-        if (event === 'SIGNED_IN' && session.user.email_confirmed_at) {
-          try {
-            await fetch('/api/confirm-supabase-verified', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${session.access_token}`,
-                'Content-Type': 'application/json',
-              },
-            });
-          } catch {}
-        }
         const verified = await checkEmailVerified(session.access_token);
         if (!verified) {
           signingOutUnverified.current = true;
@@ -140,7 +129,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const register = async (email: string, password: string, firstName: string, lastName: string, lang?: string): Promise<RegisterResult> => {
+  const register = async (email: string, password: string, firstName: string, lastName: string, lang?: string, ref?: string): Promise<RegisterResult> => {
     try {
       setAuthError(null);
       isRegistering.current = true;
@@ -148,7 +137,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, firstName, lastName, lang: lang || 'ru' }),
+        body: JSON.stringify({ email, password, firstName, lastName, lang: lang || 'ru', ref: ref || null }),
       });
 
       if (!res.ok) {
