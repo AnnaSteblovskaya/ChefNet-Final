@@ -10,7 +10,7 @@ A multilingual investor landing page for ChefNet, an AI-powered restaurant/food 
 - **UI Components**: Radix UI, MUI, Lucide React
 - **Routing**: React Router DOM
 - **Auth**: Supabase Auth (signUp, signInWithPassword, signOut, onAuthStateChange)
-- **Email**: SendPulse REST API (transactional emails for verification)
+- **Email**: Gmail API via Replit Google Mail integration (transactional emails for verification)
 - **Backend**: Express API server (port 3001) + Replit PostgreSQL
 - **Database**: Replit PostgreSQL (profiles, investments, rounds, referrals, kyc_submissions, user_rounds)
 - **Animations**: Motion (Framer Motion)
@@ -27,16 +27,17 @@ A multilingual investor landing page for ChefNet, an AI-powered restaurant/food 
 ### Server
 - `server/index.ts` — Express API endpoints (port 3001)
 - `server/db.ts` — PostgreSQL connection pool
-- `server/email.ts` — SendPulse REST API email service (verification emails)
+- `server/gmail.ts` — Gmail API client (Replit Google Mail integration, OAuth tokens auto-managed)
+- `server/email.ts` — Email service (verification emails via Gmail API)
 - Vite proxies `/api` and `/verify-email` requests to the Express server
 
 ### Email Verification Flow
-1. User registers → Supabase creates account, backend sends verification email via SendPulse API
+1. User registers → Supabase creates account, backend sends verification email via Gmail API
 2. Email contains verification link with unique token (24h expiry)
 3. User clicks link → `/verify-email?token=xxx` → backend marks profile as verified → redirects to `/?verified=true`
 4. Frontend shows green success banner on the landing page
 5. Resend button available on the "check your email" screen
-- Emails sent from: `no-reply@chefnet.ai` via SendPulse transactional API
+- Emails sent from: connected Gmail account via Replit Gmail integration
 - Multilingual templates: RU, EN, DE, ES, TR
 - DB columns: `profiles.email_verified`, `profiles.verification_token`, `profiles.verification_token_expires`
 

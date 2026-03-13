@@ -1,112 +1,4 @@
-import nodemailer from 'nodemailer';
-
-const SMTP_HOST = 'smtp-pulse.com';
-const SMTP_PORT = 465;
-const SMTP_USER = process.env.SENDPULSE_SMTP_USERNAME!;
-const SMTP_PASS = process.env.SENDPULSE_SMTP_PASSWORD!;
-
-const SENDPULSE_API_ID = process.env.SENDPULSE_API_ID;
-const SENDPULSE_API_KEY = process.env.SENDPULSE_API_KEY;
-
-let transporter: nodemailer.Transporter | null = null;
-
-function getTransporter(): nodemailer.Transporter {
-  if (!transporter) {
-    transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: true,
-      auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
-      },
-    });
-  }
-  return transporter;
-}
-
-let cachedApiToken: { token: string; expiresAt: number } | null = null;
-
-async function getApiAccessToken(): Promise<string | null> {
-  if (!SENDPULSE_API_ID || !SENDPULSE_API_KEY) return null;
-
-  if (cachedApiToken && cachedApiToken.expiresAt > Date.now()) {
-    return cachedApiToken.token;
-  }
-
-  try {
-    const res = await fetch('https://api.sendpulse.com/oauth/access_token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        grant_type: 'client_credentials',
-        client_id: SENDPULSE_API_ID,
-        client_secret: SENDPULSE_API_KEY,
-      }),
-    });
-
-    if (!res.ok) return null;
-
-    const data = await res.json();
-    cachedApiToken = {
-      token: data.access_token,
-      expiresAt: Date.now() + (data.expires_in - 60) * 1000,
-    };
-    return cachedApiToken.token;
-  } catch {
-    return null;
-  }
-}
-
-async function sendViaApi(to: string, subject: string, html: string, fromEmail: string, fromName: string): Promise<boolean> {
-  const token = await getApiAccessToken();
-  if (!token) return false;
-
-  try {
-    const res = await fetch('https://api.sendpulse.com/smtp/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: {
-          subject,
-          html,
-          from: { name: fromName, email: fromEmail },
-          to: [{ email: to }],
-        },
-      }),
-    });
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error(`SendPulse REST API error: ${res.status} ${errorText}`);
-      return false;
-    }
-
-    return true;
-  } catch (err) {
-    console.error('SendPulse REST API failed:', err);
-    return false;
-  }
-}
-
-async function sendViaSmtp(to: string, subject: string, html: string, fromEmail: string, fromName: string): Promise<boolean> {
-  try {
-    const transport = getTransporter();
-    await transport.sendMail({
-      from: `"${fromName}" <${fromEmail}>`,
-      to,
-      subject,
-      html,
-    });
-    return true;
-  } catch (err) {
-    console.error('SMTP send failed:', err);
-    return false;
-  }
-}
+import { getUncachableGmailClient } from './gmail.js';
 
 interface EmailTemplates {
   [lang: string]: {
@@ -175,7 +67,7 @@ function buildVerificationHtml(verifyUrl: string, firstName: string, lang: strin
           <td style="padding:40px;">
             <h2 style="margin:0 0 8px;color:#1a1a1a;font-size:22px;font-weight:700;">${t.heading}</h2>
             <p style="margin:0 0 24px;color:#666;font-size:15px;line-height:1.6;">
-              ${firstName ? `${firstName}, ` : ''}${t.message}
+              ${firstName ? `${escapeHtml(firstName)}, ` : ''}${t.message}
             </p>
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr><td align="center" style="padding:8px 0 32px;">
@@ -199,6 +91,34 @@ function buildVerificationHtml(verifyUrl: string, firstName: string, lang: strin
 </html>`;
 }
 
+function sanitizeEmail(email: string): string {
+  return email.replace(/[\r\n]/g, '');
+}
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function buildRawEmail(to: string, subject: string, html: string): string {
+  const safeTo = sanitizeEmail(to);
+  const boundary = 'boundary_' + Date.now().toString(36);
+  const lines = [
+    `To: ${safeTo}`,
+    `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/html; charset=UTF-8',
+    'Content-Transfer-Encoding: base64',
+    '',
+    Buffer.from(html).toString('base64'),
+    '',
+    `--${boundary}--`,
+  ];
+  return lines.join('\r\n');
+}
+
 export async function sendVerificationEmail(
   to: string,
   firstName: string,
@@ -207,45 +127,39 @@ export async function sendVerificationEmail(
 ): Promise<boolean> {
   const t = verificationTemplates[lang] || verificationTemplates.ru;
   const html = buildVerificationHtml(verifyUrl, firstName, lang);
-  const fromEmail = SMTP_USER || 'no-reply@chefnet.ai';
-  const fromName = 'ChefNet Invest';
 
-  const apiSent = await sendViaApi(to, t.subject, html, fromEmail, fromName);
-  if (apiSent) {
-    console.log(`Verification email sent to ${to} via REST API`);
+  try {
+    const gmail = await getUncachableGmailClient();
+    const raw = buildRawEmail(to, t.subject, html);
+    const encodedMessage = Buffer.from(raw)
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: { raw: encodedMessage },
+    });
+
+    console.log(`Verification email sent to ${to} via Gmail API`);
     return true;
+  } catch (err) {
+    console.error('Failed to send verification email via Gmail:', err);
+    return false;
   }
-
-  console.log('REST API failed, falling back to SMTP...');
-  const smtpSent = await sendViaSmtp(to, t.subject, html, fromEmail, fromName);
-  if (smtpSent) {
-    console.log(`Verification email sent to ${to} via SMTP`);
-    return true;
-  }
-
-  console.error(`Failed to send verification email to ${to} via both REST API and SMTP`);
-  return false;
 }
 
 export async function verifySmtpConnection(): Promise<boolean> {
   try {
-    if (SMTP_USER && SMTP_PASS) {
-      const transport = getTransporter();
-      await transport.verify();
-      console.log('SMTP connection verified successfully');
+    const gmail = await getUncachableGmailClient();
+    if (gmail) {
+      console.log('Gmail API connection verified successfully');
       return true;
     }
-
-    const token = await getApiAccessToken();
-    if (token) {
-      console.log('SendPulse API connection verified successfully');
-      return true;
-    }
-
-    console.warn('No email transport configured');
     return false;
   } catch (error) {
-    console.error('Email connection verification failed:', error);
+    console.error('Gmail connection verification failed:', error);
     return false;
   }
 }

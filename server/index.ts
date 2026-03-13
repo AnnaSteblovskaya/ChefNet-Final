@@ -422,10 +422,10 @@ app.post('/api/send-verification', async (req, res) => {
     }
   }
 
-  if (!userId && bodyUserId) {
+  if (!userId && bodyUserId && authHeader?.startsWith('Bearer ')) {
     const supabaseUserRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
       headers: {
-        'Authorization': `Bearer ${authHeader?.split(' ')[1] || ''}`,
+        'Authorization': `Bearer ${authHeader.split(' ')[1]}`,
         'apikey': SUPABASE_ANON_KEY,
       },
     }).catch(() => null);
@@ -435,8 +435,6 @@ app.post('/api/send-verification', async (req, res) => {
       if (supabaseUser?.id === bodyUserId && supabaseUser?.email === email) {
         userId = bodyUserId;
       }
-    } else {
-      userId = bodyUserId;
     }
   }
 
