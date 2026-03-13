@@ -115,10 +115,22 @@ export default function NewPasswordModal({ resetToken, onClose }: Props) {
         if (response.ok) {
           ok = true;
         } else {
-          setError(data.error || 'Error');
+          const serverErr = data.error || '';
+          if (serverErr.toLowerCase().includes('unavailable') || serverErr.toLowerCase().includes('temporarily')) {
+            const unavailableMsg: Record<string, string> = {
+              ru: 'Сервис временно недоступен. Восстановите проект Supabase и попробуйте снова.',
+              en: 'Service temporarily unavailable. Please try again later.',
+              de: 'Dienst vorübergehend nicht verfügbar. Bitte versuchen Sie es später erneut.',
+              es: 'Servicio temporalmente no disponible. Inténtelo más tarde.',
+              tr: 'Hizmet geçici olarak kullanılamıyor. Lütfen daha sonra tekrar deneyin.',
+            };
+            setError(unavailableMsg[language] || unavailableMsg.ru);
+          } else {
+            setError(serverErr || 'Error');
+          }
         }
       } catch {
-        setError('Network error. Please try again.');
+        setError(language === 'en' ? 'Network error. Please try again.' : 'Ошибка сети. Пожалуйста, попробуйте снова.');
       }
     } else {
       ok = await updatePassword(password);
