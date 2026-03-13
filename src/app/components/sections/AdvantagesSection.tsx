@@ -174,11 +174,11 @@ export default function AdvantagesSection() {
   // Calculate scale for each phone based on distance from center
   const getPhoneScale = (index: number) => {
     if (isMobile) {
-      // Mobile: More pronounced scaling for better visual feedback
+      // Mobile: gentle scaling for smooth transitions
       const distance = Math.abs(index - currentStep);
-      if (distance === 0) return 1.05; // Center - slightly larger for emphasis
-      if (distance === 1) return 0.88; // Neighbors - medium size
-      return 0.72; // Far items - smaller
+      if (distance === 0) return 1.0;  // Center
+      if (distance === 1) return 0.88; // Neighbors
+      return 0.78; // Far items
     }
     // Desktop: gradual scaling
     const distance = Math.abs(index - currentStep);
@@ -522,11 +522,11 @@ export default function AdvantagesSection() {
           >
             {/* Carousel Track - all phones in a row */}
             <motion.div
-              drag={isMobile ? false : "x"}
+              drag="x"
               dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.2}
+              dragElastic={0.08}
               onDragEnd={(_, info) => {
-                const threshold = 50;
+                const threshold = 40;
                 if (info.offset.x < -threshold) {
                   goToNext();
                 } else if (info.offset.x > threshold) {
@@ -550,8 +550,8 @@ export default function AdvantagesSection() {
               whileTap={{ cursor: 'grabbing' }}
               transition={enableTransition ? { 
                 type: 'tween',
-                duration: 0.4,
-                ease: 'easeOut'
+                duration: 0.45,
+                ease: [0.25, 0.46, 0.45, 0.94]
               } : { duration: 0 }}
             >
               {extendedScreens.map((screen, index) => {
@@ -574,13 +574,16 @@ export default function AdvantagesSection() {
                       scale,
                       opacity: 1,
                     }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                    transition={enableTransition ? {
+                      type: 'tween',
+                      duration: 0.45,
+                      ease: [0.25, 0.46, 0.45, 0.94]
+                    } : { duration: 0 }}
                     style={{
                       width: isMobile ? '240px' : `${PHONE_WIDTH}px`,
                       flexShrink: 0,
                       cursor: !isMobile && !isCenter ? 'pointer' : 'default',
-                      willChange: isMobile ? 'transform, opacity' : 'auto',
-                      transform: isMobile ? 'translate3d(0, 0, 0)' : 'none',
+                      willChange: 'transform',
                     }}
                     className="relative"
                   >
