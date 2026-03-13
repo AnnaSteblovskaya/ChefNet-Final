@@ -211,7 +211,7 @@ export default function NewPasswordModal({ resetToken, onClose }: Props) {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4522A] focus:border-transparent transition-all text-sm"
+                    className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-xl bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D4522A] focus:border-transparent transition-all text-sm"
                     placeholder="••••••••"
                     required
                   />
@@ -233,7 +233,7 @@ export default function NewPasswordModal({ resetToken, onClose }: Props) {
                     type={showPassword ? 'text' : 'password'}
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4522A] focus:border-transparent transition-all text-sm"
+                    className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-xl bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D4522A] focus:border-transparent transition-all text-sm"
                     placeholder="••••••••"
                     required
                   />

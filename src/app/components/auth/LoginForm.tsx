@@ -182,7 +182,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister, onSwitchToRes
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4522A] focus:border-transparent transition-all"
+            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D4522A] focus:border-transparent transition-all"
             placeholder="you@example.com"
           />
         </div>
@@ -199,7 +199,7 @@ export default function LoginForm({ onSuccess, onSwitchToRegister, onSwitchToRes
             type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#D4522A] focus:border-transparent transition-all"
+            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#D4522A] focus:border-transparent transition-all"
             placeholder="••••••••"
           />
           <button
