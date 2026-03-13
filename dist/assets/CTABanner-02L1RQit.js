@@ -1,1 +1,0 @@
-import{u as n}from"./index-DoPVcK7q.js";import"./react-vendor-CDv5WDhH.js";import"./supabase-yKjPlrCh.js";import"./icons-DXx_5-1D.js";function e(){const{language:r}=n();return null}export{e as default};

@@ -72,7 +72,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   useEffect(() => {
+    const timeout = setTimeout(() => {
+      console.warn('Auth init timed out — showing page without session');
+      setLoading(false);
+    }, 6000);
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      clearTimeout(timeout);
       if (session?.user && !isRegistering.current) {
         const verified = await checkEmailVerified(session.access_token);
         if (!verified) {
@@ -91,6 +97,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
       setLoading(false);
     }).catch((err) => {
+      clearTimeout(timeout);
       console.error('getSession failed:', err);
       setLoading(false);
     });
