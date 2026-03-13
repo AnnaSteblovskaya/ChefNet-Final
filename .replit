@@ -53,6 +53,8 @@ run = ["npm", "run", "start"]
 [userenv.shared]
 VITE_SUPABASE_URL = "https://sdwlngwkeipgwelzxfai.supabase.co"
 VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNkd2xuZ3drZWlwZ3dlbHp4ZmFpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIzNjgwNDksImV4cCI6MjA4Nzk0NDA0OX0.4nDN_CwoJCg-G1t2PPuX-6A2OmRhVXviBOI6kVOUwdo"
-VITE_SITE_URL = "https://42494885-bbef-45f9-b43e-8e821de7357f-00-rqlrkj293o1v.worf.replit.dev"
 SENDPULSE_API_ID = "7d4e40570ca324cf5c0b890c408b8cb8"
 SENDPULSE_API_KEY = "7521f27808ff7d3e4c06bc113631b70b"
+
+[userenv.production]
+VITE_SITE_URL = "https://chefnet.replit.app"

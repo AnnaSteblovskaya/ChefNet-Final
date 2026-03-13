@@ -349,10 +349,17 @@ app.post('/api/seed-demo-data', requireAuth, async (req, res) => {
 });
 
 function getSiteUrlServer(): string {
+  // Explicit override takes priority (set VITE_SITE_URL=https://chefnet.replit.app in secrets)
   if (process.env.VITE_SITE_URL) return process.env.VITE_SITE_URL;
-  if (process.env.REPLIT_DEPLOYMENT === '1' && process.env.REPLIT_DEV_DOMAIN) {
-    return `https://${process.env.REPLIT_DEV_DOMAIN.replace('-00-', '.')}`;
+  // In deployment: REPLIT_DOMAINS contains the real production domains (e.g. "chefnet.replit.app")
+  if (process.env.REPLIT_DEPLOYMENT === '1') {
+    if (process.env.REPLIT_DOMAINS) {
+      const firstDomain = process.env.REPLIT_DOMAINS.split(',')[0].trim();
+      return `https://${firstDomain}`;
+    }
+    return 'https://chefnet.replit.app';
   }
+  // In dev: use the worf.replit.dev preview domain
   if (process.env.REPLIT_DEV_DOMAIN) return `https://${process.env.REPLIT_DEV_DOMAIN}`;
   return 'https://chefnet.replit.app';
 }
@@ -706,5 +713,6 @@ if (isProduction) {
 
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`API server running on port ${PORT}${isProduction ? ' (production)' : ''}`);
+  console.log(`[site-url] ${getSiteUrlServer()} (REPLIT_DEPLOYMENT=${process.env.REPLIT_DEPLOYMENT}, REPLIT_DOMAINS=${process.env.REPLIT_DOMAINS || 'not set'})`);
   await verifySmtpConnection();
 });
