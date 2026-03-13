@@ -3,29 +3,29 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Network, Users, ChefHat, Cpu, Lightbulb, Bot } from 'lucide-react';
 import IconBox from '@/app/components/IconBox';
-const chefHatIcon = '/assets/54be9ff74347f73ccd52001aa7dd668dab089a70.png';
+const chefHatIcon = '/assets/54be9ff74347f73ccd52001aa7dd668dab089a70.webp';
 
 // Import all 20 phone screen images (in order)
-const screen1 = '/assets/6703e859ae4c1c1c332eda1d88857693fac709f9.png';
-const screen2 = '/assets/6da7e5596b6118ee97481d7b7844693298cf8dae.png';
-const screen3 = '/assets/527d5df8c4d7161277f7248cb9e4e3cd947f5a98.png';
-const screen4 = '/assets/2059faaa98a3f390fa81656ff965e263b5a61898.png';
-const screen5 = '/assets/1921604215d1556792b3703ead92942088abd16c.png';
-const screen6 = '/assets/10e0dc2a9d32a0f276bd9f855e352cddf7883b3d.png';
-const screen7 = '/assets/c059c548f65cfd397a9ee050cd10dce70c961851.png';
-const screen8 = '/assets/d0091a95463244689ef2d2d41947d544bbf31f94.png';
-const screen9 = '/assets/4f157aca04e4e04d86d0767469394af86312b7de.png';
-const screen10 = '/assets/fae7ab5509bba96daa751252012ae0f60ff8f7a2.png';
-const screen11 = '/assets/ba6e0ca809d0e38c46b92ca118a9d265697e745d.png';
-const screen12 = '/assets/0fa925e56abd77b1cad1f80d18631ee4b472a97c.png';
-const screen13 = '/assets/b342fe9431aceefe70b533331bda3c29c35beac1.png';
-const screen14 = '/assets/997e6c5af76db948ce0df0dfcbeacff01fe674a9.png';
-const screen15 = '/assets/f97c2a84643ecd740366d15f08cd366cb0e2032e.png';
-const screen16 = '/assets/a69765b4636ceff80502e8e910ef2c0053b94942.png';
-const screen17 = '/assets/5f2ee46ef6703704e5ecd61cbf608f47e855f091.png';
-const screen18 = '/assets/dea4c79ef16fed416ef4a48040b4163c28c466d9.png';
-const screen19 = '/assets/a9c2ee52a77558b91aad4a7c7c1856e1d8a604ea.png';
-const screen20 = '/assets/2e50fa26a1cfd605840824e117173d05b0780545.png';
+const screen1 = '/assets/6703e859ae4c1c1c332eda1d88857693fac709f9.webp';
+const screen2 = '/assets/6da7e5596b6118ee97481d7b7844693298cf8dae.webp';
+const screen3 = '/assets/527d5df8c4d7161277f7248cb9e4e3cd947f5a98.webp';
+const screen4 = '/assets/2059faaa98a3f390fa81656ff965e263b5a61898.webp';
+const screen5 = '/assets/1921604215d1556792b3703ead92942088abd16c.webp';
+const screen6 = '/assets/10e0dc2a9d32a0f276bd9f855e352cddf7883b3d.webp';
+const screen7 = '/assets/c059c548f65cfd397a9ee050cd10dce70c961851.webp';
+const screen8 = '/assets/d0091a95463244689ef2d2d41947d544bbf31f94.webp';
+const screen9 = '/assets/4f157aca04e4e04d86d0767469394af86312b7de.webp';
+const screen10 = '/assets/fae7ab5509bba96daa751252012ae0f60ff8f7a2.webp';
+const screen11 = '/assets/ba6e0ca809d0e38c46b92ca118a9d265697e745d.webp';
+const screen12 = '/assets/0fa925e56abd77b1cad1f80d18631ee4b472a97c.webp';
+const screen13 = '/assets/b342fe9431aceefe70b533331bda3c29c35beac1.webp';
+const screen14 = '/assets/997e6c5af76db948ce0df0dfcbeacff01fe674a9.webp';
+const screen15 = '/assets/f97c2a84643ecd740366d15f08cd366cb0e2032e.webp';
+const screen16 = '/assets/a69765b4636ceff80502e8e910ef2c0053b94942.webp';
+const screen17 = '/assets/5f2ee46ef6703704e5ecd61cbf608f47e855f091.webp';
+const screen18 = '/assets/dea4c79ef16fed416ef4a48040b4163c28c466d9.webp';
+const screen19 = '/assets/a9c2ee52a77558b91aad4a7c7c1856e1d8a604ea.webp';
+const screen20 = '/assets/2e50fa26a1cfd605840824e117173d05b0780545.webp';
 
 export default function AdvantagesSection() {
   const { language } = useLanguage();
@@ -616,6 +616,8 @@ export default function AdvantagesSection() {
                         <img
                           src={screen}
                           alt={`Phone Screen ${index + 1}`}
+                          loading="lazy"
+                          decoding="async"
                           className={`w-full h-full ${isMobile ? 'object-contain' : 'object-cover'}`}
                         />
                       </div>
