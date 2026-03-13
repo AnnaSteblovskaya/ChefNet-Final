@@ -22,9 +22,12 @@ interface AuthContextType {
   register: (email: string, password: string, firstName: string, lastName: string, lang?: string) => Promise<RegisterResult>;
   logout: () => void;
   loginWithGoogle: () => Promise<void>;
-  resetPassword: (email: string, newPassword: string) => Promise<boolean>;
+  resetPassword: (email: string, newPassword: string, lang?: string) => Promise<boolean>;
+  updatePassword: (newPassword: string) => Promise<boolean>;
   resendConfirmationEmail: (email: string, lang?: string) => Promise<boolean>;
   authError: string | null;
+  isPasswordRecovery: boolean;
+  clearPasswordRecovery: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -43,6 +46,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const supabase = getSupabaseClient();
 
   const dataSynced = useRef(false);
@@ -91,6 +95,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const signingOutUnverified = { current: false };
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (isRegistering.current || isCheckingLogin.current || signingOutUnverified.current) return;
+
+      if (event === 'PASSWORD_RECOVERY' && session?.user) {
+        setIsPasswordRecovery(true);
+        setLoading(false);
+        return;
+      }
+
       if (session?.user) {
         if (event === 'SIGNED_IN' && session.user.email_confirmed_at) {
           try {
@@ -233,16 +244,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
   };
 
-  const resetPassword = async (email: string, _newPassword: string): Promise<boolean> => {
+  const clearPasswordRecovery = () => {
+    setIsPasswordRecovery(false);
+  };
+
+  const updatePassword = async (newPassword: string): Promise<boolean> => {
     try {
       setAuthError(null);
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${getSiteUrl()}/reset-password`,
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        console.error('Update password error:', error.message);
+        setAuthError(error.message);
+        return false;
+      }
+      setIsPasswordRecovery(false);
+      return true;
+    } catch (err) {
+      console.error('Update password exception:', err);
+      setAuthError('An unexpected error occurred');
+      return false;
+    }
+  };
+
+  const resetPassword = async (email: string, _newPassword: string, lang: string = 'ru'): Promise<boolean> => {
+    try {
+      setAuthError(null);
+      const response = await fetch('/api/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, lang }),
       });
 
-      if (error) {
-        console.error('Password reset error:', error.message);
-        setAuthError(error.message);
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        const msg = data.error || 'Failed to send reset email';
+        console.error('Password reset error:', msg);
+        setAuthError(msg);
         return false;
       }
 
@@ -283,8 +320,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       logout,
       loginWithGoogle,
       resetPassword,
+      updatePassword,
       resendConfirmationEmail,
       authError,
+      isPasswordRecovery,
+      clearPasswordRecovery,
     }}>
       {children}
     </AuthContext.Provider>

@@ -119,6 +119,118 @@ function buildRawEmail(to: string, subject: string, html: string): string {
   return lines.join('\r\n');
 }
 
+const resetPasswordTemplates: EmailTemplates = {
+  ru: {
+    subject: 'Сброс пароля — ChefNet Invest',
+    heading: 'Сброс пароля',
+    message: 'Перейдите по ссылке ниже, чтобы задать новый пароль. Ссылка действительна 1 час.',
+    buttonText: 'Сбросить пароль',
+    footer: 'Если вы не запрашивали сброс пароля, проигнорируйте это письмо.',
+  },
+  en: {
+    subject: 'Password Reset — ChefNet Invest',
+    heading: 'Reset your password',
+    message: 'Click the link below to set a new password. The link is valid for 1 hour.',
+    buttonText: 'Reset password',
+    footer: 'If you did not request a password reset, please ignore this email.',
+  },
+  de: {
+    subject: 'Passwort zurücksetzen — ChefNet Invest',
+    heading: 'Passwort zurücksetzen',
+    message: 'Klicken Sie auf den Link unten, um ein neues Passwort festzulegen. Der Link ist 1 Stunde gültig.',
+    buttonText: 'Passwort zurücksetzen',
+    footer: 'Wenn Sie keine Passwortzurücksetzung angefordert haben, ignorieren Sie diese E-Mail.',
+  },
+  es: {
+    subject: 'Restablecer contraseña — ChefNet Invest',
+    heading: 'Restablecer contraseña',
+    message: 'Haz clic en el enlace de abajo para establecer una nueva contraseña. El enlace es válido por 1 hora.',
+    buttonText: 'Restablecer contraseña',
+    footer: 'Si no solicitaste un restablecimiento de contraseña, ignora este correo.',
+  },
+  tr: {
+    subject: 'Şifre Sıfırlama — ChefNet Invest',
+    heading: 'Şifrenizi sıfırlayın',
+    message: 'Yeni bir şifre belirlemek için aşağıdaki bağlantıya tıklayın. Bağlantı 1 saat geçerlidir.',
+    buttonText: 'Şifreyi sıfırla',
+    footer: 'Şifre sıfırlama talebinde bulunmadıysanız bu e-postayı dikkate almayın.',
+  },
+};
+
+function buildResetPasswordHtml(resetUrl: string, firstName: string, lang: string = 'ru'): string {
+  const t = resetPasswordTemplates[lang] || resetPasswordTemplates.ru;
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f5f5;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        <tr>
+          <td style="background:linear-gradient(135deg,#D4522A,#E8744F);padding:32px 40px;text-align:center;">
+            <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;">ChefNet Invest</h1>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:40px;">
+            <h2 style="margin:0 0 8px;color:#1a1a1a;font-size:22px;font-weight:700;">${t.heading}</h2>
+            <p style="margin:0 0 24px;color:#666;font-size:15px;line-height:1.6;">
+              ${firstName ? `${escapeHtml(firstName)}, ` : ''}${t.message}
+            </p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr><td align="center" style="padding:8px 0 32px;">
+                <a href="${resetUrl}" style="display:inline-block;padding:14px 40px;background:linear-gradient(135deg,#D4522A,#E8744F);color:#ffffff;text-decoration:none;border-radius:12px;font-size:16px;font-weight:600;box-shadow:0 4px 16px rgba(212,82,42,0.3);">
+                  ${t.buttonText}
+                </a>
+              </td></tr>
+            </table>
+            <p style="margin:0;color:#999;font-size:13px;line-height:1.5;">${t.footer}</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="background-color:#fafafa;padding:20px 40px;text-align:center;border-top:1px solid #eee;">
+            <p style="margin:0;color:#aaa;font-size:12px;">ChefNet Invest &copy; 2026</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+export async function sendPasswordResetEmail(
+  to: string,
+  firstName: string,
+  resetUrl: string,
+  lang: string = 'ru'
+): Promise<boolean> {
+  const t = resetPasswordTemplates[lang] || resetPasswordTemplates.ru;
+  const html = buildResetPasswordHtml(resetUrl, firstName, lang);
+
+  try {
+    const gmail = await getUncachableGmailClient();
+    const raw = buildRawEmail(to, t.subject, html);
+    const encodedMessage = Buffer.from(raw)
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: { raw: encodedMessage },
+    });
+
+    console.log(`Password reset email sent to ${to} via Gmail API`);
+    return true;
+  } catch (err) {
+    console.error('Failed to send password reset email via Gmail:', err);
+    return false;
+  }
+}
+
 export async function sendVerificationEmail(
   to: string,
   firstName: string,

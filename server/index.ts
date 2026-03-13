@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import pool from './db.js';
-import { sendVerificationEmail, verifySmtpConnection } from './email.js';
+import { sendVerificationEmail, sendPasswordResetEmail, verifySmtpConnection } from './email.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -449,6 +449,132 @@ app.post('/api/send-verification', async (req, res) => {
     return;
   }
   res.json({ success: true });
+});
+
+const resetPasswordRateLimit = new Map<string, number>();
+
+app.post('/api/reset-password', async (req, res) => {
+  const { email, lang } = req.body;
+
+  if (!email || typeof email !== 'string') {
+    res.status(400).json({ error: 'Email is required' });
+    return;
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const now = Date.now();
+  const lastSent = resetPasswordRateLimit.get(normalizedEmail);
+  if (lastSent && now - lastSent < 60_000) {
+    res.status(429).json({ error: 'Please wait before requesting another email' });
+    return;
+  }
+
+  try {
+    const profileRow = await pool.query(
+      'SELECT id, full_name FROM profiles WHERE email = $1 LIMIT 1',
+      [normalizedEmail]
+    );
+
+    if (profileRow.rows.length === 0) {
+      res.json({ success: true });
+      return;
+    }
+
+    const { id: userId, full_name: fullName = '' } = profileRow.rows[0];
+    const firstName = (fullName || '').split(' ')[0] || '';
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+    await pool.query(
+      `INSERT INTO password_reset_tokens (token, user_id, email, expires_at)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (token) DO NOTHING`,
+      [token, userId, normalizedEmail, expiresAt]
+    );
+
+    const siteUrl = getSiteUrlServer();
+    const resetUrl = `${siteUrl}/?reset_token=${token}`;
+
+    const sent = await sendPasswordResetEmail(normalizedEmail, firstName, resetUrl, lang || 'ru');
+    if (!sent) {
+      res.status(500).json({ error: 'Failed to send reset email' });
+      return;
+    }
+
+    resetPasswordRateLimit.set(normalizedEmail, now);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/reset-password-confirm', async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  if (!token || !newPassword) {
+    res.status(400).json({ error: 'Token and new password are required' });
+    return;
+  }
+
+  if (typeof newPassword !== 'string' || newPassword.length < 8) {
+    res.status(400).json({ error: 'Password must be at least 8 characters' });
+    return;
+  }
+
+  try {
+    const tokenRow = await pool.query(
+      `SELECT user_id, email, expires_at, used_at
+       FROM password_reset_tokens
+       WHERE token = $1`,
+      [token]
+    );
+
+    if (tokenRow.rows.length === 0) {
+      res.status(400).json({ error: 'Invalid or expired reset token' });
+      return;
+    }
+
+    const { user_id: userId, expires_at: expiresAt, used_at: usedAt } = tokenRow.rows[0];
+
+    if (usedAt) {
+      res.status(400).json({ error: 'This reset link has already been used' });
+      return;
+    }
+
+    if (new Date(expiresAt) < new Date()) {
+      res.status(400).json({ error: 'Reset link has expired' });
+      return;
+    }
+
+    const updateRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ password: newPassword }),
+    });
+
+    if (!updateRes.ok) {
+      const errText = await updateRes.text();
+      console.error('Supabase update user error:', updateRes.status, errText);
+      res.status(500).json({ error: 'Failed to update password. Service may be temporarily unavailable.' });
+      return;
+    }
+
+    await pool.query(
+      'UPDATE password_reset_tokens SET used_at = NOW() WHERE token = $1',
+      [token]
+    );
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Reset password confirm error:', err);
+    res.status(503).json({ error: 'Service temporarily unavailable. Please try again later.' });
+  }
 });
 
 app.post('/api/confirm-supabase-verified', async (req, res) => {

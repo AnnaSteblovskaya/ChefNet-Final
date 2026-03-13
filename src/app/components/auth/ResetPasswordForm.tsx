@@ -78,7 +78,7 @@ export default function ResetPasswordForm({ onSuccess, onBack }: ResetPasswordFo
     }
 
     setLoading(true);
-    const result = await resetPassword(email, '');
+    const result = await resetPassword(email, '', language);
     setLoading(false);
 
     if (result) {

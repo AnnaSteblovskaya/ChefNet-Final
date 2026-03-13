@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ThemeProvider } from '@/app/components/ThemeProvider';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import NewPasswordModal from '@/app/components/auth/NewPasswordModal';
 import HeroSection from '@/app/components/sections/HeroSection';
 import AboutSection from '@/app/components/sections/AboutSection';
 import UniqueFeaturesSection from '@/app/components/sections/UniqueFeaturesSection';
@@ -27,10 +28,11 @@ const verifiedTexts: Record<string, string> = {
 };
 
 function AppContent() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, isPasswordRecovery } = useAuth();
   const { language } = useLanguage();
   const [showDashboard, setShowDashboard] = useState(false);
   const [verifiedBanner, setVerifiedBanner] = useState(false);
+  const [resetToken, setResetToken] = useState<string | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -38,6 +40,11 @@ function AppContent() {
       setVerifiedBanner(true);
       window.history.replaceState({}, '', window.location.pathname);
       setTimeout(() => setVerifiedBanner(false), 8000);
+    }
+    const token = params.get('reset_token');
+    if (token) {
+      setResetToken(token);
+      window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
 
@@ -57,6 +64,8 @@ function AppContent() {
   // Show main landing page
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)] transition-colors duration-300 overflow-x-hidden w-full max-w-full">
+      {(isPasswordRecovery) && <NewPasswordModal />}
+      {resetToken && <NewPasswordModal resetToken={resetToken} onClose={() => setResetToken(null)} />}
       {verifiedBanner && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] bg-green-600 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
           <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
