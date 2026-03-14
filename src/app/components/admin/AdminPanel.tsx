@@ -81,21 +81,33 @@ export default function AdminPanel({ onExit }: Props) {
     setChecking(true);
     setCheckError(false);
     try {
-      const supabase = getSupabaseClient();
-      const { data } = await Promise.race([
-        supabase.auth.getSession(),
-        new Promise<never>((_, rej) => setTimeout(() => rej(new Error('session timeout')), 8000)),
-      ]) as Awaited<ReturnType<typeof supabase.auth.getSession>>;
+      // Read session directly from localStorage — instant, no network call to Supabase
+      let token: string | null = null;
+      let email = '';
+      try {
+        const raw = localStorage.getItem('sb-sdwlngwkeipgwelzxfai-auth-token');
+        if (raw) {
+          const stored = JSON.parse(raw);
+          token = stored?.access_token ?? null;
+          email = stored?.user?.email ?? '';
+        }
+      } catch {}
 
-      const token = data?.session?.access_token;
-      const email = data?.session?.user?.email || '';
+      // Fallback: ask Supabase client (may make a network call to refresh expired token)
+      if (!token) {
+        const supabase = getSupabaseClient();
+        const { data } = await supabase.auth.getSession();
+        token = data?.session?.access_token ?? null;
+        email = data?.session?.user?.email ?? '';
+      }
+
       if (!token) { setChecking(false); return; }
 
       setSession({ access_token: token, email });
       injectToken(token);
 
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
+      const tid = setTimeout(() => controller.abort(), 20000);
       try {
         const r = await fetch('/api/admin/stats', {
           headers: { Authorization: `Bearer ${token}` },
@@ -103,7 +115,7 @@ export default function AdminPanel({ onExit }: Props) {
         });
         setIsAdmin(r.ok);
       } finally {
-        clearTimeout(timeout);
+        clearTimeout(tid);
       }
     } catch (err) {
       console.error('[admin] check failed:', err);

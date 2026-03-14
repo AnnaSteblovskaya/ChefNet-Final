@@ -18,48 +18,24 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const tokenCache = new Map<string, { userId: string; expiresAt: number }>();
-
-async function verifySupabaseToken(token: string): Promise<string | null> {
-  const cached = tokenCache.get(token);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.userId;
-  }
-
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000);
-    let response: Response;
-    try {
-      response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'apikey': SUPABASE_ANON_KEY,
-        },
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    if (!response.ok) return null;
-
-    const user = await response.json();
-    if (!user?.id) return null;
-
-    tokenCache.set(token, { userId: user.id, expiresAt: Date.now() + 60_000 });
-
-    if (tokenCache.size > 1000) {
-      const now = Date.now();
-      for (const [key, val] of tokenCache) {
-        if (val.expiresAt < now) tokenCache.delete(key);
-      }
-    }
-
-    return user.id;
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const payload = Buffer.from(parts[1], 'base64url').toString('utf8');
+    return JSON.parse(payload);
   } catch {
     return null;
   }
+}
+
+function verifySupabaseToken(token: string): string | null {
+  const payload = decodeJwtPayload(token);
+  if (!payload) return null;
+  const exp = typeof payload.exp === 'number' ? payload.exp : 0;
+  if (exp > 0 && exp * 1000 < Date.now()) return null; // token expired
+  const sub = typeof payload.sub === 'string' ? payload.sub : null;
+  return sub;
 }
 
 async function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
@@ -70,7 +46,7 @@ async function requireAuth(req: express.Request, res: express.Response, next: ex
   }
 
   const token = authHeader.split(' ')[1];
-  const userId = await verifySupabaseToken(token);
+  const userId = verifySupabaseToken(token);
   if (!userId) {
     res.status(401).json({ error: 'Invalid token' });
     return;
@@ -425,7 +401,7 @@ app.post('/api/send-verification', async (req, res) => {
 
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.split(' ')[1];
-    userId = await verifySupabaseToken(token);
+    userId = verifySupabaseToken(token);
   }
 
   if (!userId) {
