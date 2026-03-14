@@ -73,22 +73,47 @@ export default function AdminPanel({ onExit }: Props) {
   const [session, setSession] = useState<SessionInfo | null>(null);
   const [section, setSection] = useState<Section>('overview');
   const [checking, setChecking] = useState(true);
+  const [checkError, setCheckError] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  useEffect(() => {
-    const supabase = getSupabaseClient();
-    supabase.auth.getSession().then(({ data }) => {
-      const token = data.session?.access_token;
-      const email = data.session?.user?.email || '';
+  const checkAdmin = async () => {
+    setChecking(true);
+    setCheckError(false);
+    try {
+      const supabase = getSupabaseClient();
+      const { data } = await Promise.race([
+        supabase.auth.getSession(),
+        new Promise<never>((_, rej) => setTimeout(() => rej(new Error('session timeout')), 8000)),
+      ]) as Awaited<ReturnType<typeof supabase.auth.getSession>>;
+
+      const token = data?.session?.access_token;
+      const email = data?.session?.user?.email || '';
       if (!token) { setChecking(false); return; }
+
       setSession({ access_token: token, email });
       injectToken(token);
-      fetch('/api/admin/stats', { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => { setIsAdmin(r.ok); setChecking(false); })
-        .catch(() => setChecking(false));
-    });
-  }, []);
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      try {
+        const r = await fetch('/api/admin/stats', {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal,
+        });
+        setIsAdmin(r.ok);
+      } finally {
+        clearTimeout(timeout);
+      }
+    } catch (err) {
+      console.error('[admin] check failed:', err);
+      setCheckError(true);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  useEffect(() => { checkAdmin(); }, []);
 
   const handleSignOut = async () => {
     const supabase = getSupabaseClient();
@@ -99,7 +124,25 @@ export default function AdminPanel({ onExit }: Props) {
   if (checking) {
     return (
       <div className="min-h-screen bg-[#0d0d1a] flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-[#D4522A] border-t-transparent rounded-full animate-spin" />
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-[#D4522A] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="text-white/40 text-sm">Проверка сессии...</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (checkError) {
+    return (
+      <div className="min-h-screen bg-[#0d0d1a] flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-white text-xl font-bold mb-2">Ошибка подключения</div>
+          <div className="text-white/50 text-sm mb-6">Сервер не отвечает. Попробуйте ещё раз.</div>
+          <div className="flex gap-3 justify-center">
+            <button onClick={checkAdmin} className="bg-[#D4522A] text-white px-6 py-2 rounded-xl">Повторить</button>
+            <button onClick={onExit} className="bg-white/10 text-white px-6 py-2 rounded-xl">На сайт</button>
+          </div>
+        </div>
       </div>
     );
   }
