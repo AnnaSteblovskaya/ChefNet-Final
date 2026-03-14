@@ -12,7 +12,7 @@ A multilingual investor landing page for ChefNet, an AI-powered restaurant/food 
 - **Auth**: Supabase Auth (signUp, signInWithPassword, signOut, onAuthStateChange)
 - **Email**: Gmail API via Replit Google Mail integration (transactional emails for verification)
 - **Backend**: Express API server (port 3001) + Replit PostgreSQL
-- **Database**: Replit PostgreSQL (profiles, investments, rounds, referrals, kyc_submissions, user_rounds)
+- **Database**: Replit PostgreSQL (profiles, investments, rounds, referrals, kyc_submissions, user_rounds, news, documents, partners, site_content)
 - **Animations**: Motion (Framer Motion)
 
 ## Architecture
@@ -24,8 +24,16 @@ A multilingual investor landing page for ChefNet, an AI-powered restaurant/food 
 4. Dashboard components read/write localStorage as before (no component rewrites needed)
 5. On logout, profile/KYC data saves from localStorage → DB, then localStorage is cleared
 
+### Admin Panel
+- Route: `/admin` (SPA, no server-side routing needed)
+- Auth: Uses Supabase session + `is_admin` flag in profiles table
+- Bootstrap: `POST /api/admin-bootstrap` with `ADMIN_BOOTSTRAP_SECRET` env var to grant first admin
+- Sections: Overview stats, Users, Investments (confirm/reject), Rounds, KYC, Partners, News, Documents, Content
+- All admin API routes under `/api/admin/*` require valid JWT + is_admin=true
+
 ### Server
 - `server/index.ts` — Express API endpoints (port 3001)
+- `server/admin.ts` — Admin CRUD routes + public content routes
 - `server/db.ts` — PostgreSQL connection pool
 - `server/gmail.ts` — Gmail API client (Replit Google Mail integration, OAuth tokens auto-managed)
 - `server/email.ts` — Email service (verification emails via Gmail API)

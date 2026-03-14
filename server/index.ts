@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import pool from './db.js';
 import { sendVerificationEmail, sendPasswordResetEmail, verifySmtpConnection } from './email.js';
+import { createAdminRouter, createPublicContentRouter } from './admin.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -696,6 +697,27 @@ app.get('/api/email-status', requireAuth, async (req, res) => {
     }
   } catch (err) {
     console.error('Error checking email status:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Admin & public content routes
+app.use('/api/admin', createAdminRouter(pool, requireAuth));
+app.use('/api/public', createPublicContentRouter(pool));
+
+// Bootstrap: set first admin (requires ADMIN_BOOTSTRAP_SECRET env var)
+app.post('/api/admin-bootstrap', requireAuth, async (req, res) => {
+  const { secret } = req.body;
+  const BOOTSTRAP_SECRET = process.env.ADMIN_BOOTSTRAP_SECRET;
+  if (!BOOTSTRAP_SECRET || secret !== BOOTSTRAP_SECRET) {
+    res.status(403).json({ error: 'Invalid secret' });
+    return;
+  }
+  const userId = (req as any).userId;
+  try {
+    await pool.query('UPDATE profiles SET is_admin = true WHERE id = $1', [userId]);
+    res.json({ success: true, message: 'You are now an admin!' });
+  } catch (err) {
     res.status(500).json({ error: 'Internal server error' });
   }
 });

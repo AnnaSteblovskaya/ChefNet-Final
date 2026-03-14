@@ -3,6 +3,7 @@ import { ThemeProvider } from '@/app/components/ThemeProvider';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import NewPasswordModal from '@/app/components/auth/NewPasswordModal';
+import AdminPanel from '@/app/components/admin/AdminPanel';
 import HeroSection from '@/app/components/sections/HeroSection';
 import AboutSection from '@/app/components/sections/AboutSection';
 import UniqueFeaturesSection from '@/app/components/sections/UniqueFeaturesSection';
@@ -62,6 +63,7 @@ function AppContent() {
   const { isAuthenticated, loading, isPasswordRecovery } = useAuth();
   const { language } = useLanguage();
   const [showDashboard, setShowDashboard] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(window.location.pathname === '/admin');
   const [verifiedBanner, setVerifiedBanner] = useState(false);
   const [verifyErrorBanner, setVerifyErrorBanner] = useState<string | null>(null);
   const [resetToken, setResetToken] = useState<string | null>(null);
@@ -85,6 +87,11 @@ function AppContent() {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
+
+  // Admin panel — independent of loading state, has its own auth check
+  if (showAdmin) {
+    return <AdminPanel onExit={() => { setShowAdmin(false); window.history.replaceState({}, '', '/'); }} />;
+  }
 
   if (loading) {
     return (

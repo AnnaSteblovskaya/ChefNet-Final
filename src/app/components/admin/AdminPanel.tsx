@@ -1,0 +1,196 @@
+import { useState, useEffect } from 'react';
+import { getSupabaseClient } from '@/utils/supabase/client';
+import { injectToken } from './api';
+import OverviewSection from './sections/OverviewSection';
+import UsersSection from './sections/UsersSection';
+import InvestmentsSection from './sections/InvestmentsSection';
+import RoundsSection from './sections/RoundsSection';
+import KYCSection from './sections/KYCSection';
+import PartnersSection from './sections/PartnersSection';
+import NewsSection from './sections/NewsSection';
+import DocumentsSection from './sections/DocumentsSection';
+import ContentSection from './sections/ContentSection';
+
+function BootstrapScreen({ email, onSuccess, onExit }: { email: string; onSuccess: () => void; onExit: () => void }) {
+  const [secret, setSecret] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const submit = async () => {
+    setLoading(true); setError('');
+    try {
+      const token = (window as any).__supabaseSession?.access_token;
+      const res = await fetch('/api/admin-bootstrap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ secret }),
+      });
+      if (res.ok) { onSuccess(); }
+      else { const d = await res.json(); setError(d.error || 'Неверный секрет'); }
+    } catch { setError('Ошибка соединения'); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0d0d1a] flex items-center justify-center p-4">
+      <div className="bg-[#11111f] border border-white/10 rounded-2xl p-8 w-full max-w-sm text-center">
+        <div className="text-5xl mb-4">🔑</div>
+        <h2 className="text-white text-xl font-bold mb-1">Нет прав администратора</h2>
+        <p className="text-white/40 text-sm mb-6">Аккаунт: {email}<br />Введите секретный ключ администратора</p>
+        <input type="password" value={secret} onChange={e => setSecret(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} placeholder="Секретный ключ..." className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-[#D4522A] mb-3" />
+        {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
+        <button onClick={submit} disabled={loading || !secret} className="w-full bg-[#D4522A] hover:bg-[#c04520] disabled:opacity-50 text-white py-3 rounded-xl text-sm font-medium transition mb-2">{loading ? 'Проверка...' : 'Получить доступ'}</button>
+        <button onClick={onExit} className="w-full bg-white/5 hover:bg-white/10 text-white/50 py-2 rounded-xl text-sm transition">← Вернуться на сайт</button>
+      </div>
+    </div>
+  );
+}
+
+type Section = 'overview' | 'users' | 'investments' | 'rounds' | 'kyc' | 'partners' | 'news' | 'documents' | 'content';
+
+const NAV: Array<{ id: Section; label: string; icon: string }> = [
+  { id: 'overview',     label: 'Обзор',          icon: '📊' },
+  { id: 'users',        label: 'Пользователи',   icon: '👥' },
+  { id: 'investments',  label: 'Инвестиции',     icon: '💰' },
+  { id: 'rounds',       label: 'Раунды',         icon: '🎯' },
+  { id: 'kyc',          label: 'KYC',             icon: '🔍' },
+  { id: 'partners',     label: 'Партнёры',       icon: '🤝' },
+  { id: 'news',         label: 'Новости',        icon: '📰' },
+  { id: 'documents',    label: 'Документы',      icon: '📄' },
+  { id: 'content',      label: 'Контент',        icon: '✏️' },
+];
+
+interface Props {
+  onExit: () => void;
+}
+
+interface SessionInfo {
+  access_token: string;
+  email: string;
+}
+
+export default function AdminPanel({ onExit }: Props) {
+  const [session, setSession] = useState<SessionInfo | null>(null);
+  const [section, setSection] = useState<Section>('overview');
+  const [checking, setChecking] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    supabase.auth.getSession().then(({ data }) => {
+      const token = data.session?.access_token;
+      const email = data.session?.user?.email || '';
+      if (!token) { setChecking(false); return; }
+      setSession({ access_token: token, email });
+      injectToken(token);
+      fetch('/api/admin/stats', { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => { setIsAdmin(r.ok); setChecking(false); })
+        .catch(() => setChecking(false));
+    });
+  }, []);
+
+  const handleSignOut = async () => {
+    const supabase = getSupabaseClient();
+    await supabase.auth.signOut();
+    onExit();
+  };
+
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-[#0d0d1a] flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-[#D4522A] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-[#0d0d1a] flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-white text-xl font-bold mb-2">Требуется авторизация</div>
+          <div className="text-white/50 text-sm mb-6">Войдите в аккаунт для доступа к панели</div>
+          <button onClick={onExit} className="bg-[#D4522A] text-white px-6 py-2 rounded-xl">Вернуться на сайт</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return <BootstrapScreen email={session?.email || ''} onSuccess={() => setIsAdmin(true)} onExit={onExit} />;
+  }
+
+  const SectionComponent = {
+    overview: OverviewSection, users: UsersSection, investments: InvestmentsSection,
+    rounds: RoundsSection, kyc: KYCSection, partners: PartnersSection,
+    news: NewsSection, documents: DocumentsSection, content: ContentSection,
+  }[section];
+
+  return (
+    <div className="min-h-screen bg-[#0d0d1a] flex">
+      {/* Mobile overlay */}
+      {sidebarOpen && <div className="fixed inset-0 bg-black/60 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
+
+      {/* Sidebar */}
+      <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-[#11111f] border-r border-white/5 flex flex-col transform transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        {/* Logo */}
+        <div className="p-6 border-b border-white/5">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-[#D4522A] to-[#E8744F] rounded-lg flex items-center justify-center text-white text-sm font-bold">A</div>
+            <div>
+              <div className="text-white font-bold text-sm">ChefNet</div>
+              <div className="text-white/40 text-xs">Admin Panel</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Nav */}
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+          {NAV.map(item => (
+            <button
+              key={item.id}
+              onClick={() => { setSection(item.id); setSidebarOpen(false); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
+                section === item.id
+                  ? 'bg-[#D4522A]/20 text-[#E8744F]'
+                  : 'text-white/50 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <span className="text-base">{item.icon}</span>
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        {/* User */}
+        <div className="p-4 border-t border-white/5">
+          <div className="text-white/40 text-xs mb-1 truncate">{session?.email}</div>
+          <div className="flex gap-2">
+            <button onClick={onExit} className="flex-1 bg-white/5 hover:bg-white/10 text-white/60 text-xs py-1.5 rounded-lg transition">← Сайт</button>
+            <button onClick={handleSignOut} className="flex-1 bg-white/5 hover:bg-red-500/20 hover:text-red-400 text-white/60 text-xs py-1.5 rounded-lg transition">Выйти</button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top bar */}
+        <header className="bg-[#11111f] border-b border-white/5 px-6 py-4 flex items-center gap-4">
+          <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-white/60 hover:text-white">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+          </button>
+          <div className="flex items-center gap-2 text-white/40 text-sm">
+            <span>Admin</span>
+            <span>/</span>
+            <span className="text-white">{NAV.find(n => n.id === section)?.label}</span>
+          </div>
+        </header>
+
+        {/* Content */}
+        <main className="flex-1 p-6 overflow-y-auto">
+          <SectionComponent />
+        </main>
+      </div>
+    </div>
+  );
+}
