@@ -11,6 +11,57 @@ import NewsSection from './sections/NewsSection';
 import DocumentsSection from './sections/DocumentsSection';
 import ContentSection from './sections/ContentSection';
 
+function AdminLoginForm({ onSuccess, onExit }: { onSuccess: () => void; onExit: () => void }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true); setError('');
+    try {
+      const supabase = getSupabaseClient();
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      if (authError) { setError('Неверный email или пароль'); return; }
+      onSuccess();
+    } catch { setError('Ошибка соединения'); }
+    finally { setLoading(false); }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0d0d1a] flex items-center justify-center p-4">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <div className="text-2xl font-bold text-white mb-1">ChefNet Admin</div>
+          <div className="text-white/40 text-sm">Войдите для доступа к панели</div>
+        </div>
+        <form onSubmit={submit} className="space-y-4">
+          <input
+            type="email" placeholder="Email" value={email}
+            onChange={e => setEmail(e.target.value)} required
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#D4522A]"
+          />
+          <input
+            type="password" placeholder="Пароль" value={password}
+            onChange={e => setPassword(e.target.value)} required
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#D4522A]"
+          />
+          {error && <div className="text-red-400 text-sm text-center">{error}</div>}
+          <button type="submit" disabled={loading}
+            className="w-full bg-[#D4522A] text-white py-3 rounded-xl font-semibold disabled:opacity-50">
+            {loading ? 'Вход...' : 'Войти'}
+          </button>
+          <button type="button" onClick={onExit}
+            className="w-full bg-white/5 text-white/50 py-2 rounded-xl text-sm">
+            На сайт
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function BootstrapScreen({ email, onSuccess, onExit }: { email: string; onSuccess: () => void; onExit: () => void }) {
   const [secret, setSecret] = useState('');
   const [loading, setLoading] = useState(false);
@@ -167,15 +218,7 @@ export default function AdminPanel({ onExit }: Props) {
   }
 
   if (!session) {
-    return (
-      <div className="min-h-screen bg-[#0d0d1a] flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-white text-xl font-bold mb-2">Требуется авторизация</div>
-          <div className="text-white/50 text-sm mb-6">Войдите в аккаунт для доступа к панели</div>
-          <button onClick={onExit} className="bg-[#D4522A] text-white px-6 py-2 rounded-xl">Вернуться на сайт</button>
-        </div>
-      </div>
-    );
+    return <AdminLoginForm onSuccess={checkAdmin} onExit={onExit} />;
   }
 
   if (!isAdmin) {
