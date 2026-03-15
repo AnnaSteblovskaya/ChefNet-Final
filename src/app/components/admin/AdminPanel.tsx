@@ -80,8 +80,12 @@ export default function AdminPanel({ onExit }: Props) {
   const checkAdmin = async () => {
     setChecking(true);
     setCheckError(false);
+
+    const controller = new AbortController();
+    const globalTimeout = setTimeout(() => controller.abort(), 15000);
+
     try {
-      // Read session directly from localStorage — instant, no network call to Supabase
+      // 1. Read session from localStorage — instant, no network call
       let token: string | null = null;
       let email = '';
       try {
@@ -93,34 +97,37 @@ export default function AdminPanel({ onExit }: Props) {
         }
       } catch {}
 
-      // Fallback: ask Supabase client (may make a network call to refresh expired token)
+      // 2. Fallback: ask Supabase client with timeout
       if (!token) {
-        const supabase = getSupabaseClient();
-        const { data } = await supabase.auth.getSession();
-        token = data?.session?.access_token ?? null;
-        email = data?.session?.user?.email ?? '';
+        try {
+          const supabase = getSupabaseClient();
+          const sessionResult = await Promise.race([
+            supabase.auth.getSession(),
+            new Promise<never>((_, rej) => setTimeout(() => rej(new Error('timeout')), 8000)),
+          ]) as Awaited<ReturnType<typeof supabase.auth.getSession>>;
+          token = sessionResult?.data?.session?.access_token ?? null;
+          email = sessionResult?.data?.session?.user?.email ?? '';
+        } catch {
+          // session fetch failed or timed out — user not logged in
+        }
       }
 
-      if (!token) { setChecking(false); return; }
+      if (!token) { setChecking(false); clearTimeout(globalTimeout); return; }
 
       setSession({ access_token: token, email });
       injectToken(token);
 
-      const controller = new AbortController();
-      const tid = setTimeout(() => controller.abort(), 20000);
-      try {
-        const r = await fetch('/api/admin/stats', {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: controller.signal,
-        });
-        setIsAdmin(r.ok);
-      } finally {
-        clearTimeout(tid);
-      }
+      // 3. Check admin status on server
+      const r = await fetch('/api/admin/stats', {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
+      });
+      setIsAdmin(r.ok);
     } catch (err) {
       console.error('[admin] check failed:', err);
       setCheckError(true);
     } finally {
+      clearTimeout(globalTimeout);
       setChecking(false);
     }
   };
