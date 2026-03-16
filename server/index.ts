@@ -138,8 +138,12 @@ app.post('/api/register', async (req, res) => {
     if (cleanReferralCode) {
       try {
         await pool.query(
-          `UPDATE profiles SET referred_by = $1, full_name = COALESCE(full_name, $2) WHERE id = $3`,
-          [cleanReferralCode, `${firstName || ''} ${lastName || ''}`.trim(), userId]
+          `INSERT INTO profiles (id, email, referred_by, full_name)
+           VALUES ($3, $4, $1, $2)
+           ON CONFLICT (id) DO UPDATE SET
+             referred_by = COALESCE(profiles.referred_by, EXCLUDED.referred_by),
+             full_name = COALESCE(profiles.full_name, EXCLUDED.full_name)`,
+          [cleanReferralCode, `${firstName || ''} ${lastName || ''}`.trim(), userId, email]
         );
         console.log(`[register] Referral code ${cleanReferralCode} saved for user ${userId}`);
       } catch (refErr) {
@@ -268,11 +272,48 @@ app.post('/api/investments', requireAuth, async (req, res) => {
 app.get('/api/referrals', requireAuth, async (req, res) => {
   const userId = (req as any).userId;
   try {
-    const result = await pool.query(
+    const referralCode = `CHEF-${userId.replace(/-/g, '').substring(0, 6).toUpperCase()}`;
+
+    // Get records from referrals table
+    const referralsResult = await pool.query(
       'SELECT * FROM referrals WHERE user_id = $1 ORDER BY created_at DESC',
       [userId]
     );
-    res.json(result.rows);
+
+    // Also get users from profiles who registered with this referral code
+    // but may not have a referrals record yet
+    const profilesResult = await pool.query(
+      `SELECT p.id, p.full_name, p.email, p.referred_by, p.email_verified, p.created_at
+       FROM profiles p
+       WHERE UPPER(p.referred_by) = $1`,
+      [referralCode.toUpperCase()]
+    );
+
+    // Merge: profiles-based records that are not yet in referrals table
+    const existingNames = new Set(referralsResult.rows.map((r: any) => r.name?.toLowerCase()));
+    const extraFromProfiles = profilesResult.rows
+      .filter((p: any) => {
+        const name = (p.full_name || p.email || '').trim();
+        return !existingNames.has(name.toLowerCase());
+      })
+      .map((p: any) => ({
+        id: null,
+        user_id: userId,
+        name: p.full_name || p.email || 'Unknown',
+        status: 'registered',
+        amount: '$0',
+        shares: 0,
+        commission: '$0',
+        date: p.created_at ? p.created_at.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        round: null,
+        created_at: p.created_at,
+      }));
+
+    const combined = [...referralsResult.rows, ...extraFromProfiles].sort(
+      (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    res.json(combined);
   } catch (err) {
     console.error('Error fetching referrals:', err);
     res.status(500).json({ error: 'Internal server error' });

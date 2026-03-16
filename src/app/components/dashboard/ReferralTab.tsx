@@ -10,6 +10,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { ru, enUS, de, es, tr } from 'date-fns/locale';
 import { useAuth } from '@/contexts/AuthContext';
 import { getSiteUrl } from '@/utils/siteUrl';
+import { apiGet } from '@/utils/api';
 
 // Register locales for date picker
 registerLocale('ru', ru);
@@ -53,53 +54,8 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
   const [searchCommission, setSearchCommission] = useState('');
   const [searchDate, setSearchDate] = useState('');
 
-  // Load referrals from localStorage or use defaults
-  const [referredInvestors, setReferredInvestors] = useState(() => {
-    const saved = localStorage.getItem('chefnet_referrals_data');
-    const version = localStorage.getItem('chefnet_referrals_version');
-    const currentVersion = '6.0'; // Increment this to force data reset
-    
-    if (saved && version === currentVersion) {
-      const data = JSON.parse(saved);
-      // Check if data has old invalid share amounts (less than 1000 OR incorrect pricing OR missing round field)
-      const hasInvalidData = data.some((investor: any) => {
-        if (investor.shares === 0) return false; // Skip registered users
-        if (!investor.round) return true; // Missing round field
-        const amountNum = parseFloat(investor.amount.replace(/[$,]/g, ''));
-        const pricePerShare = amountNum / investor.shares;
-        // Check if price is not matching any round price (with some tolerance)
-        const validPrices = [0.075, 0.175, 0.50, 1.00];
-        const isValidPrice = validPrices.some(price => Math.abs(pricePerShare - price) < 0.01);
-        return investor.shares > 0 && (investor.shares < 1000 || !isValidPrice);
-      });
-      
-      // If data is invalid, reset to defaults
-      if (hasInvalidData) {
-        const defaultData = [
-          { name: 'John Doe', status: 'invested', amount: '$150', shares: 2000, commission: '$15', date: '2026-01-15', round: 'seed' },
-          { name: 'Jane Smith', status: 'registered', amount: '$0', shares: 0, commission: '$0', date: '2026-01-20', round: null },
-          { name: 'Peter Jones', status: 'invested', amount: '$300', shares: 4000, commission: '$30', date: '2026-01-22', round: 'seed' },
-          { name: 'Alice Williams', status: 'invested', amount: '$75', shares: 1000, commission: '$7.50', date: '2026-01-28', round: 'seed' },
-          { name: 'John Doe', status: 'invested', amount: '$7500', shares: 100000, commission: '$750', date: '2026-02-09', round: 'seed' },
-        ];
-        localStorage.setItem('chefnet_referrals_data', JSON.stringify(defaultData));
-        localStorage.setItem('chefnet_referrals_version', currentVersion);
-        return defaultData;
-      }
-      return data;
-    }
-    // Reset data if version mismatch or no saved data
-    const defaultData = [
-      { name: 'John Doe', status: 'invested', amount: '$150', shares: 2000, commission: '$15', date: '2026-01-15', round: 'seed' },
-      { name: 'Jane Smith', status: 'registered', amount: '$0', shares: 0, commission: '$0', date: '2026-01-20', round: null },
-      { name: 'Peter Jones', status: 'invested', amount: '$300', shares: 4000, commission: '$30', date: '2026-01-22', round: 'seed' },
-      { name: 'Alice Williams', status: 'invested', amount: '$75', shares: 1000, commission: '$7.50', date: '2026-01-28', round: 'seed' },
-      { name: 'John Doe', status: 'invested', amount: '$7500', shares: 100000, commission: '$750', date: '2026-02-09', round: 'seed' },
-    ];
-    localStorage.setItem('chefnet_referrals_data', JSON.stringify(defaultData));
-    localStorage.setItem('chefnet_referrals_version', currentVersion);
-    return defaultData;
-  });
+  const [referredInvestors, setReferredInvestors] = useState<any[]>([]);
+  const [loadingReferrals, setLoadingReferrals] = useState(true);
 
   // Filter referrals based on search criteria
   const filteredInvestors = referredInvestors.filter((investor) => {
@@ -138,10 +94,21 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
     }
   };
 
-  // Save to localStorage whenever referredInvestors changes
+  // Fetch real referrals from API
   useEffect(() => {
-    localStorage.setItem('chefnet_referrals_data', JSON.stringify(referredInvestors));
-  }, [referredInvestors]);
+    const fetchReferrals = async () => {
+      setLoadingReferrals(true);
+      try {
+        const data = await apiGet<any[]>('/api/referrals');
+        setReferredInvestors(data);
+      } catch (e) {
+        console.error('Failed to fetch referrals:', e);
+      } finally {
+        setLoadingReferrals(false);
+      }
+    };
+    fetchReferrals();
+  }, []);
 
   const handleCopyLink = () => {
     const textToCopy = referralLink;
@@ -392,7 +359,19 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
               </tr>
             </thead>
             <tbody>
-              {filteredInvestors.map((investor, idx) => (
+              {loadingReferrals ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-sm text-gray-400">
+                    {language === 'ru' ? 'Загрузка...' : 'Loading...'}
+                  </td>
+                </tr>
+              ) : filteredInvestors.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-sm text-gray-400">
+                    {language === 'ru' ? 'Пока нет партнёров' : 'No partners yet'}
+                  </td>
+                </tr>
+              ) : filteredInvestors.map((investor, idx) => (
                 <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-3 lg:py-4 px-2 lg:px-4 text-xs lg:text-sm text-gray-900">{formatDate(investor.date)}</td>
                   <td className="py-3 lg:py-4 px-2 lg:px-4 text-xs lg:text-sm text-gray-900">{investor.name}</td>
