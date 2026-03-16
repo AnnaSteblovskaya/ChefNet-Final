@@ -106,6 +106,32 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Public endpoint — look up referrer's display name by referral code (no auth required)
+app.get('/api/referrer-name', async (req, res) => {
+  const { code } = req.query;
+  if (!code || typeof code !== 'string' || !/^CHEF-[A-Z0-9]{6}$/i.test(code)) {
+    res.status(400).json({ error: 'Invalid code' });
+    return;
+  }
+  try {
+    const result = await pool.query(
+      `SELECT full_name FROM profiles
+       WHERE 'CHEF-' || UPPER(SUBSTRING(REPLACE(id::text, '-', ''), 1, 6)) = $1
+       LIMIT 1`,
+      [code.toUpperCase()]
+    );
+    if (result.rows.length === 0) {
+      res.status(404).json({ error: 'Not found' });
+      return;
+    }
+    const name = result.rows[0].full_name || null;
+    res.json({ name });
+  } catch (err) {
+    console.error('Error fetching referrer name:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.post('/api/register', async (req, res) => {
   const { email, password, firstName, lastName, lang, referralCode } = req.body;
 

@@ -24,13 +24,22 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
+  const [referrerName, setReferrerName] = useState<string | null>(null);
   const { register, resendConfirmationEmail, authError } = useAuth();
   const { language } = useLanguage();
 
   useEffect(() => {
     const storedCode = localStorage.getItem('chefnet_referral_code');
     if (storedCode && /^CHEF-[A-Z0-9]{6}$/i.test(storedCode)) {
-      setReferralCode(storedCode.toUpperCase());
+      const code = storedCode.toUpperCase();
+      setReferralCode(code);
+      // Fetch the referrer's display name
+      fetch(`/api/referrer-name?code=${encodeURIComponent(code)}`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => {
+          if (data?.name) setReferrerName(data.name);
+        })
+        .catch(() => {});
     }
   }, []);
 
@@ -264,16 +273,16 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
   }
 
   const referralBannerText: Record<string, string> = {
-    ru: 'Вы регистрируетесь по приглашению партнёра',
-    en: 'You are registering via partner invitation',
-    de: 'Sie registrieren sich über eine Partnereinladung',
-    es: 'Te estás registrando mediante invitación de socio',
-    tr: 'Ortak daveti ile kayıt oluyorsunuz',
+    ru: 'Вы регистрируетесь по приглашению',
+    en: 'You are registering via invitation from',
+    de: 'Sie registrieren sich auf Einladung von',
+    es: 'Te estás registrando por invitación de',
+    tr: 'Davet eden kişi:',
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Referral code banner */}
+      {/* Referral banner */}
       {referralCode && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -283,7 +292,9 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
           <UserPlus className="w-5 h-5 text-[#D4522A] flex-shrink-0" />
           <div className="min-w-0">
             <p className="text-xs text-gray-500">{referralBannerText[language] || referralBannerText.en}</p>
-            <p className="text-sm font-bold text-[#D4522A] tracking-wider">{referralCode}</p>
+            <p className="text-sm font-bold text-[#D4522A]">
+              {referrerName || referralCode}
+            </p>
           </div>
         </motion.div>
       )}
