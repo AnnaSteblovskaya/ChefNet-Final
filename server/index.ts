@@ -176,6 +176,52 @@ async function ensureDbSchema() {
       value_tr text,
       updated_at timestamptz NOT NULL DEFAULT now()
     )`,
+    `CREATE TABLE IF NOT EXISTS faq (
+      id serial PRIMARY KEY,
+      question_en text,
+      question_ru text,
+      question_de text,
+      question_es text,
+      question_tr text,
+      answer_en text,
+      answer_ru text,
+      answer_de text,
+      answer_es text,
+      answer_tr text,
+      is_active boolean NOT NULL DEFAULT true,
+      sort_order integer NOT NULL DEFAULT 0
+    )`,
+    `CREATE TABLE IF NOT EXISTS payments (
+      id serial PRIMARY KEY,
+      user_id text,
+      amount numeric NOT NULL DEFAULT 0,
+      payment_date timestamptz NOT NULL DEFAULT now(),
+      contract_number text,
+      status text NOT NULL DEFAULT 'pending'
+    )`,
+    `CREATE TABLE IF NOT EXISTS notifications (
+      id serial PRIMARY KEY,
+      user_email text,
+      type text,
+      message text,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )`,
+    `CREATE TABLE IF NOT EXISTS settings (
+      id serial PRIMARY KEY,
+      key text UNIQUE NOT NULL,
+      value text
+    )`,
+    `CREATE TABLE IF NOT EXISTS email_templates (
+      id serial PRIMARY KEY,
+      event text UNIQUE NOT NULL,
+      email_enabled boolean NOT NULL DEFAULT false,
+      account_enabled boolean NOT NULL DEFAULT true,
+      subject_en text,
+      subject_ru text,
+      body_en text,
+      body_ru text,
+      sort_order integer NOT NULL DEFAULT 0
+    )`,
   ];
   for (const sql of tableMigrations) {
     try {
@@ -186,6 +232,22 @@ async function ensureDbSchema() {
   }
 
   const migrations = [
+    `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS target_sum numeric DEFAULT 0`,
+    `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS market_cap numeric DEFAULT 0`,
+    `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS share_price numeric DEFAULT 0`,
+    `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS min_order numeric DEFAULT 0`,
+    `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS active boolean DEFAULT true`,
+    `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS description_en text`,
+    `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS description_ru text`,
+    `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS description_de text`,
+    `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS description_es text`,
+    `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS description_tr text`,
+    `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS tasks_en text`,
+    `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS tasks_ru text`,
+    `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS tasks_de text`,
+    `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS tasks_es text`,
+    `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS tasks_tr text`,
+    `ALTER TABLE referrals ADD COLUMN IF NOT EXISTS status text DEFAULT 'pending'`,
     `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS verification_token text`,
     `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS verification_token_expires timestamptz`,
     `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS email_verified boolean DEFAULT false`,
@@ -263,6 +325,28 @@ async function ensureDbSchema() {
   } catch (err: any) {
     console.error('[db-init] full_name backfill failed:', err.message);
   }
+  // Seed default email templates
+  const defaultTemplates = [
+    { event: 'User registered', sort_order: 1 },
+    { event: 'Need email verification', sort_order: 2 },
+    { event: 'Email verified', sort_order: 3 },
+    { event: 'Need KYC verification', sort_order: 4 },
+    { event: 'Password changed', sort_order: 5 },
+    { event: 'Referral registered', sort_order: 6 },
+    { event: 'Referral paid', sort_order: 7 },
+    { event: 'Referral bonus credited', sort_order: 8 },
+  ];
+  for (const t of defaultTemplates) {
+    try {
+      await pool.query(
+        `INSERT INTO email_templates (event, email_enabled, account_enabled, sort_order)
+         VALUES ($1, false, true, $2)
+         ON CONFLICT (event) DO NOTHING`,
+        [t.event, t.sort_order]
+      );
+    } catch { /* skip */ }
+  }
+
   console.log('[db-init] Schema check complete');
 }
 
@@ -391,6 +475,7 @@ app.post('/api/register', async (req, res) => {
       }
     }
 
+    pool.query('INSERT INTO notifications (user_email, type) VALUES ($1, $2)', [email, 'User registered']).catch(() => {});
     res.json({ success: true, userId });
   } catch (err) {
     console.error('Registration error:', err);
@@ -1097,6 +1182,7 @@ app.post('/api/confirm-supabase-verified', async (req, res) => {
        WHERE id = $1 AND email_verified = false`,
       [user.id]
     );
+    pool.query('INSERT INTO notifications (user_email, type) VALUES ($1, $2)', [user.email || '', 'Email verified']).catch(() => {});
     res.json({ success: true });
   } catch (err) {
     console.error('Error confirming supabase verified:', err);

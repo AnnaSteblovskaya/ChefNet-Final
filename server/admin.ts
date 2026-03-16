@@ -4,7 +4,6 @@ import { Pool } from 'pg';
 export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandler) {
   const router = express.Router();
 
-  // Middleware: check admin flag
   const requireAdmin: express.RequestHandler = async (req, res, next) => {
     const userId = (req as any).userId;
     try {
@@ -24,19 +23,19 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
   // ─── STATS ───────────────────────────────────────────────────────────────
   router.get('/stats', ...auth, async (_req, res) => {
     try {
-      const [users, investments, kyc, news, partners] = await Promise.all([
+      const [users, investments, kyc, payments, faq] = await Promise.all([
         pool.query('SELECT COUNT(*) as count, COUNT(*) FILTER (WHERE email_verified) as verified FROM profiles WHERE is_admin = false OR is_admin IS NULL'),
         pool.query("SELECT COUNT(*) as count, COALESCE(SUM(shares),0) as total_shares, COUNT(*) FILTER (WHERE status='pending') as pending FROM investments"),
         pool.query("SELECT COUNT(*) as count, COUNT(*) FILTER (WHERE status='pending') as pending FROM kyc_submissions"),
-        pool.query('SELECT COUNT(*) as count FROM news WHERE published=true'),
-        pool.query("SELECT COUNT(*) as count FROM partners WHERE status='active'"),
+        pool.query("SELECT COUNT(*) as count FROM payments"),
+        pool.query("SELECT COUNT(*) as count FROM faq WHERE is_active=true"),
       ]);
       res.json({
         users: { total: +users.rows[0].count, verified: +users.rows[0].verified },
         investments: { total: +investments.rows[0].count, totalShares: +investments.rows[0].total_shares, pending: +investments.rows[0].pending },
         kyc: { total: +kyc.rows[0].count, pending: +kyc.rows[0].pending },
-        news: { published: +news.rows[0].count },
-        partners: { active: +partners.rows[0].count },
+        payments: { total: +payments.rows[0].count },
+        faq: { active: +faq.rows[0].count },
       });
     } catch (err) {
       console.error(err);
@@ -169,11 +168,18 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
   });
 
   router.post('/rounds', ...auth, async (req, res) => {
-    const { id, name, price, min_investment, total_shares, status, amount, highlight, sort_order } = req.body;
+    const { id, name, target_sum, market_cap, share_price, min_order, active, sort_order,
+      description_en, description_ru, description_de, description_es, description_tr,
+      tasks_en, tasks_ru, tasks_de, tasks_es, tasks_tr } = req.body;
     try {
       const result = await pool.query(
-        'INSERT INTO rounds (id, name, price, min_investment, total_shares, status, amount, highlight, sort_order) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *',
-        [id, name, price, min_investment, total_shares, status || 'active', amount || '0', highlight || false, sort_order || 0]
+        `INSERT INTO rounds (id, name, target_sum, market_cap, share_price, min_order, active, sort_order,
+          description_en, description_ru, description_de, description_es, description_tr,
+          tasks_en, tasks_ru, tasks_de, tasks_es, tasks_tr)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
+        [id, name, target_sum||0, market_cap||0, share_price||0, min_order||0, active !== false, sort_order||0,
+          description_en||'', description_ru||'', description_de||'', description_es||'', description_tr||'',
+          tasks_en||'', tasks_ru||'', tasks_de||'', tasks_es||'', tasks_tr||'']
       );
       res.json(result.rows[0]);
     } catch (err) {
@@ -183,11 +189,19 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
   });
 
   router.put('/rounds/:id', ...auth, async (req, res) => {
-    const { name, price, min_investment, total_shares, sold_shares, status, amount, highlight, sort_order } = req.body;
+    const { name, target_sum, market_cap, share_price, min_order, active, sort_order,
+      description_en, description_ru, description_de, description_es, description_tr,
+      tasks_en, tasks_ru, tasks_de, tasks_es, tasks_tr } = req.body;
     try {
       await pool.query(
-        'UPDATE rounds SET name=$1, price=$2, min_investment=$3, total_shares=$4, sold_shares=$5, status=$6, amount=$7, highlight=$8, sort_order=$9 WHERE id=$10',
-        [name, price, min_investment, total_shares, sold_shares, status, amount, highlight, sort_order, req.params.id]
+        `UPDATE rounds SET name=$1, target_sum=$2, market_cap=$3, share_price=$4, min_order=$5,
+          active=$6, sort_order=$7,
+          description_en=$8, description_ru=$9, description_de=$10, description_es=$11, description_tr=$12,
+          tasks_en=$13, tasks_ru=$14, tasks_de=$15, tasks_es=$16, tasks_tr=$17
+         WHERE id=$18`,
+        [name, target_sum||0, market_cap||0, share_price||0, min_order||0, active !== false, sort_order||0,
+          description_en||'', description_ru||'', description_de||'', description_es||'', description_tr||'',
+          tasks_en||'', tasks_ru||'', tasks_de||'', tasks_es||'', tasks_tr||'', req.params.id]
       );
       res.json({ success: true });
     } catch (err) {
@@ -410,10 +424,243 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
     }
   });
 
+  // ─── FAQ / QUESTIONS ──────────────────────────────────────────────────────
+  router.get('/faq', ...auth, async (_req, res) => {
+    try {
+      const result = await pool.query('SELECT * FROM faq ORDER BY sort_order, id');
+      res.json(result.rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  router.post('/faq', ...auth, async (req, res) => {
+    const { question_en, question_ru, question_de, question_es, question_tr,
+            answer_en, answer_ru, answer_de, answer_es, answer_tr, is_active, sort_order } = req.body;
+    try {
+      const result = await pool.query(
+        `INSERT INTO faq (question_en,question_ru,question_de,question_es,question_tr,
+           answer_en,answer_ru,answer_de,answer_es,answer_tr,is_active,sort_order)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING *`,
+        [question_en||'', question_ru||'', question_de||'', question_es||'', question_tr||'',
+         answer_en||'', answer_ru||'', answer_de||'', answer_es||'', answer_tr||'',
+         is_active !== false, sort_order||0]
+      );
+      res.json(result.rows[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  router.put('/faq/:id', ...auth, async (req, res) => {
+    const { question_en, question_ru, question_de, question_es, question_tr,
+            answer_en, answer_ru, answer_de, answer_es, answer_tr, is_active, sort_order } = req.body;
+    try {
+      await pool.query(
+        `UPDATE faq SET question_en=$1,question_ru=$2,question_de=$3,question_es=$4,question_tr=$5,
+           answer_en=$6,answer_ru=$7,answer_de=$8,answer_es=$9,answer_tr=$10,
+           is_active=$11,sort_order=$12 WHERE id=$13`,
+        [question_en||'', question_ru||'', question_de||'', question_es||'', question_tr||'',
+         answer_en||'', answer_ru||'', answer_de||'', answer_es||'', answer_tr||'',
+         is_active !== false, sort_order||0, req.params.id]
+      );
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  router.delete('/faq/:id', ...auth, async (req, res) => {
+    try {
+      await pool.query('DELETE FROM faq WHERE id = $1', [req.params.id]);
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // ─── PAYMENTS ─────────────────────────────────────────────────────────────
+  router.get('/payments', ...auth, async (_req, res) => {
+    try {
+      const result = await pool.query(`
+        SELECT pay.*, p.email, p.full_name
+        FROM payments pay
+        LEFT JOIN profiles p ON p.id = pay.user_id
+        ORDER BY pay.payment_date DESC
+      `);
+      res.json(result.rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  router.post('/payments', ...auth, async (req, res) => {
+    const { user_id, amount, payment_date, contract_number, status } = req.body;
+    try {
+      const result = await pool.query(
+        'INSERT INTO payments (user_id, amount, payment_date, contract_number, status) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+        [user_id, amount||0, payment_date||new Date().toISOString(), contract_number||'', status||'pending']
+      );
+      res.json(result.rows[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  router.put('/payments/:id', ...auth, async (req, res) => {
+    const { amount, payment_date, contract_number, status } = req.body;
+    try {
+      await pool.query(
+        'UPDATE payments SET amount=$1, payment_date=$2, contract_number=$3, status=$4 WHERE id=$5',
+        [amount, payment_date, contract_number, status, req.params.id]
+      );
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  router.delete('/payments/:id', ...auth, async (req, res) => {
+    try {
+      await pool.query('DELETE FROM payments WHERE id = $1', [req.params.id]);
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // ─── NOTIFICATIONS ────────────────────────────────────────────────────────
+  router.get('/notifications', ...auth, async (_req, res) => {
+    try {
+      const result = await pool.query('SELECT * FROM notifications ORDER BY created_at DESC LIMIT 500');
+      res.json(result.rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  router.post('/notifications', ...auth, async (req, res) => {
+    const { user_email, type, message } = req.body;
+    try {
+      const result = await pool.query(
+        'INSERT INTO notifications (user_email, type, message) VALUES ($1,$2,$3) RETURNING *',
+        [user_email||'', type||'', message||'']
+      );
+      res.json(result.rows[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  router.delete('/notifications/:id', ...auth, async (req, res) => {
+    try {
+      await pool.query('DELETE FROM notifications WHERE id = $1', [req.params.id]);
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // ─── SETTINGS ─────────────────────────────────────────────────────────────
+  router.get('/settings', ...auth, async (_req, res) => {
+    try {
+      const result = await pool.query('SELECT * FROM settings ORDER BY key');
+      res.json(result.rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  router.put('/settings', ...auth, async (req, res) => {
+    const settings: Record<string, string> = req.body;
+    try {
+      for (const [key, value] of Object.entries(settings)) {
+        await pool.query(
+          `INSERT INTO settings (key, value) VALUES ($1,$2)
+           ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value`,
+          [key, value || '']
+        );
+      }
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // ─── TEMPLATES ────────────────────────────────────────────────────────────
+  router.get('/templates', ...auth, async (_req, res) => {
+    try {
+      const result = await pool.query('SELECT * FROM email_templates ORDER BY sort_order, id');
+      res.json(result.rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  router.put('/templates/:id', ...auth, async (req, res) => {
+    const { email_enabled, account_enabled, subject_en, subject_ru, body_en, body_ru } = req.body;
+    try {
+      await pool.query(
+        'UPDATE email_templates SET email_enabled=$1, account_enabled=$2, subject_en=$3, subject_ru=$4, body_en=$5, body_ru=$6 WHERE id=$7',
+        [email_enabled, account_enabled, subject_en||'', subject_ru||'', body_en||'', body_ru||'', req.params.id]
+      );
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // ─── BONUSES ─────────────────────────────────────────────────────────────
+  router.get('/bonuses', ...auth, async (_req, res) => {
+    try {
+      const result = await pool.query(`
+        SELECT r.id, r.commission as amount, r.shares, r.created_at,
+          p_referrer.email as referrer_email, p_referrer.full_name as referrer_name,
+          p_ref.email as referral_email, p_ref.full_name as referral_name,
+          r.user_id as referrer_id, r.referred_user_id,
+          r.level, r.status
+        FROM referrals r
+        LEFT JOIN profiles p_referrer ON p_referrer.id = r.user_id
+        LEFT JOIN profiles p_ref ON p_ref.id = r.referred_user_id
+        ORDER BY r.created_at DESC
+      `);
+      res.json(result.rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  router.put('/bonuses/:id', ...auth, async (req, res) => {
+    const { status } = req.body;
+    try {
+      await pool.query('UPDATE referrals SET status=$1 WHERE id=$2', [status, req.params.id]);
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   return router;
 }
 
-// Public endpoints (no admin required)
+// Public endpoints
 export function createPublicContentRouter(pool: Pool) {
   const router = express.Router();
 
@@ -447,6 +694,24 @@ export function createPublicContentRouter(pool: Pool) {
   router.get('/partners/public', async (_req, res) => {
     try {
       const result = await pool.query("SELECT * FROM partners WHERE status='active' ORDER BY sort_order, id");
+      res.json(result.rows);
+    } catch (err) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  router.get('/faq/public', async (_req, res) => {
+    try {
+      const result = await pool.query('SELECT * FROM faq WHERE is_active=true ORDER BY sort_order, id');
+      res.json(result.rows);
+    } catch (err) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  router.get('/settings/public', async (_req, res) => {
+    try {
+      const result = await pool.query('SELECT key, value FROM settings');
       res.json(result.rows);
     } catch (err) {
       res.status(500).json({ error: 'Internal server error' });

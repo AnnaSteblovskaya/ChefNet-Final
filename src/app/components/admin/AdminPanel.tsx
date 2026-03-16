@@ -10,6 +10,12 @@ import PartnersSection from './sections/PartnersSection';
 import NewsSection from './sections/NewsSection';
 import DocumentsSection from './sections/DocumentsSection';
 import ContentSection from './sections/ContentSection';
+import FAQSection from './sections/FAQSection';
+import PaymentsSection from './sections/PaymentsSection';
+import NotificationsSection from './sections/NotificationsSection';
+import SettingsSection from './sections/SettingsSection';
+import TemplatesSection from './sections/TemplatesSection';
+import BonusesSection from './sections/BonusesSection';
 
 function AdminLoginForm({ onSuccess, onExit }: { onSuccess: () => void; onExit: () => void }) {
   const [email, setEmail] = useState('');
@@ -97,18 +103,24 @@ function BootstrapScreen({ email, onSuccess, onExit }: { email: string; onSucces
   );
 }
 
-type Section = 'overview' | 'users' | 'investments' | 'rounds' | 'kyc' | 'partners' | 'news' | 'documents' | 'content';
+type Section = 'overview' | 'users' | 'investments' | 'rounds' | 'kyc' | 'partners' | 'news' | 'documents' | 'content' | 'faq' | 'payments' | 'notifications' | 'settings' | 'templates' | 'bonuses';
 
 const NAV: Array<{ id: Section; label: string; icon: string }> = [
-  { id: 'overview',     label: 'Обзор',          icon: '📊' },
-  { id: 'users',        label: 'Пользователи',   icon: '👥' },
-  { id: 'investments',  label: 'Инвестиции',     icon: '💰' },
-  { id: 'rounds',       label: 'Раунды',         icon: '🎯' },
-  { id: 'kyc',          label: 'KYC',             icon: '🔍' },
-  { id: 'partners',     label: 'Партнёры',       icon: '🤝' },
-  { id: 'news',         label: 'Новости',        icon: '📰' },
-  { id: 'documents',    label: 'Документы',      icon: '📄' },
-  { id: 'content',      label: 'Контент',        icon: '✏️' },
+  { id: 'overview',       label: 'Обзор',          icon: '📊' },
+  { id: 'settings',       label: 'Настройки',      icon: '⚙️' },
+  { id: 'bonuses',        label: 'Бонусы',         icon: '🎁' },
+  { id: 'documents',      label: 'Документы',      icon: '📄' },
+  { id: 'notifications',  label: 'Уведомления',    icon: '🔔' },
+  { id: 'payments',       label: 'Платежи',        icon: '💳' },
+  { id: 'faq',            label: 'Вопросы',        icon: '❓' },
+  { id: 'rounds',         label: 'Раунды',         icon: '🎯' },
+  { id: 'templates',      label: 'Шаблоны',        icon: '📝' },
+  { id: 'users',          label: 'Пользователи',   icon: '👥' },
+  { id: 'kyc',            label: 'Верификации',    icon: '✅' },
+  { id: 'investments',    label: 'Инвестиции',     icon: '💰' },
+  { id: 'partners',       label: 'Партнёры',       icon: '🤝' },
+  { id: 'news',           label: 'Новости',        icon: '📰' },
+  { id: 'content',        label: 'Контент',        icon: '✏️' },
 ];
 
 interface Props {
@@ -229,6 +241,8 @@ export default function AdminPanel({ onExit }: Props) {
     overview: OverviewSection, users: UsersSection, investments: InvestmentsSection,
     rounds: RoundsSection, kyc: KYCSection, partners: PartnersSection,
     news: NewsSection, documents: DocumentsSection, content: ContentSection,
+    faq: FAQSection, payments: PaymentsSection, notifications: NotificationsSection,
+    settings: SettingsSection, templates: TemplatesSection, bonuses: BonusesSection,
   }[section];
 
   return (

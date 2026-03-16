@@ -28,6 +28,12 @@ export const adminApi = {
   news: { list: () => req('GET', '/news'), create: (d: unknown) => req('POST', '/news', d), update: (id: number, d: unknown) => req('PUT', `/news/${id}`, d), remove: (id: number) => req('DELETE', `/news/${id}`) },
   documents: { list: () => req('GET', '/documents'), create: (d: unknown) => req('POST', '/documents', d), update: (id: number, d: unknown) => req('PUT', `/documents/${id}`, d), remove: (id: number) => req('DELETE', `/documents/${id}`) },
   content: { list: () => req('GET', '/content'), save: (key: string, d: unknown) => req('PUT', `/content/${key}`, d) },
+  faq: { list: () => req('GET', '/faq'), create: (d: unknown) => req('POST', '/faq', d), update: (id: number, d: unknown) => req('PUT', `/faq/${id}`, d), remove: (id: number) => req('DELETE', `/faq/${id}`) },
+  payments: { list: () => req('GET', '/payments'), create: (d: unknown) => req('POST', '/payments', d), update: (id: number, d: unknown) => req('PUT', `/payments/${id}`, d), remove: (id: number) => req('DELETE', `/payments/${id}`) },
+  notifications: { list: () => req('GET', '/notifications'), remove: (id: number) => req('DELETE', `/notifications/${id}`) },
+  settings: { list: () => req('GET', '/settings'), save: (d: unknown) => req('PUT', '/settings', d) },
+  templates: { list: () => req('GET', '/templates'), update: (id: number, d: unknown) => req('PUT', `/templates/${id}`, d) },
+  bonuses: { list: () => req('GET', '/bonuses'), update: (id: number, d: unknown) => req('PUT', `/bonuses/${id}`, d) },
 };
 
 export function injectToken(token: string) {
