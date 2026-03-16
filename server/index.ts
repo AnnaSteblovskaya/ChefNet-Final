@@ -84,6 +84,107 @@ async function requireAuth(req: express.Request, res: express.Response, next: ex
 }
 
 async function ensureDbSchema() {
+  const tableMigrations = [
+    `CREATE TABLE IF NOT EXISTS rounds (
+      id text PRIMARY KEY,
+      name text NOT NULL,
+      price numeric NOT NULL DEFAULT 0,
+      total_shares integer NOT NULL DEFAULT 0,
+      sold_shares integer NOT NULL DEFAULT 0,
+      status text NOT NULL DEFAULT 'upcoming',
+      sort_order integer NOT NULL DEFAULT 0
+    )`,
+    `CREATE TABLE IF NOT EXISTS investments (
+      id serial PRIMARY KEY,
+      user_id text NOT NULL,
+      round text,
+      shares integer NOT NULL DEFAULT 0,
+      amount numeric NOT NULL DEFAULT 0,
+      date timestamptz NOT NULL DEFAULT now(),
+      status text NOT NULL DEFAULT 'pending'
+    )`,
+    `CREATE TABLE IF NOT EXISTS user_rounds (
+      id serial PRIMARY KEY,
+      user_id text NOT NULL,
+      round_id text NOT NULL,
+      my_shares integer NOT NULL DEFAULT 0,
+      UNIQUE(user_id, round_id)
+    )`,
+    `CREATE TABLE IF NOT EXISTS kyc_submissions (
+      id serial PRIMARY KEY,
+      user_id text NOT NULL,
+      status text NOT NULL DEFAULT 'pending',
+      country text,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    )`,
+    `CREATE TABLE IF NOT EXISTS referrals (
+      id serial PRIMARY KEY,
+      user_id text NOT NULL,
+      name text,
+      level integer NOT NULL DEFAULT 0,
+      shares integer NOT NULL DEFAULT 0,
+      commission numeric NOT NULL DEFAULT 0,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )`,
+    `CREATE TABLE IF NOT EXISTS partners (
+      id serial PRIMARY KEY,
+      name text NOT NULL,
+      logo_url text,
+      website text,
+      description_en text,
+      description_ru text,
+      status text NOT NULL DEFAULT 'active',
+      sort_order integer NOT NULL DEFAULT 0
+    )`,
+    `CREATE TABLE IF NOT EXISTS news (
+      id serial PRIMARY KEY,
+      title_en text,
+      title_ru text,
+      title_de text,
+      title_es text,
+      title_tr text,
+      body_en text,
+      body_ru text,
+      body_de text,
+      body_es text,
+      body_tr text,
+      published boolean NOT NULL DEFAULT false,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    )`,
+    `CREATE TABLE IF NOT EXISTS documents (
+      id serial PRIMARY KEY,
+      title_en text,
+      title_ru text,
+      title_de text,
+      title_es text,
+      title_tr text,
+      file_url text,
+      category text,
+      visible boolean NOT NULL DEFAULT true,
+      created_at timestamptz NOT NULL DEFAULT now()
+    )`,
+    `CREATE TABLE IF NOT EXISTS site_content (
+      id serial PRIMARY KEY,
+      key text UNIQUE NOT NULL,
+      label text,
+      value_en text,
+      value_ru text,
+      value_de text,
+      value_es text,
+      value_tr text,
+      updated_at timestamptz NOT NULL DEFAULT now()
+    )`,
+  ];
+  for (const sql of tableMigrations) {
+    try {
+      await pool.query(sql);
+    } catch (err: any) {
+      console.error('[db-init] Table creation failed:', err.message);
+    }
+  }
+
   const migrations = [
     `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS verification_token text`,
     `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS verification_token_expires timestamptz`,
