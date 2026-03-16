@@ -55,40 +55,58 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   async function checkEmailVerified(accessToken: string): Promise<boolean> {
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 6000);
       const res = await fetch('/api/email-status', {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
       if (res.ok) {
         const data = await res.json();
         return data.verified === true;
       }
     } catch (err) {
-      console.error('Email verification check failed:', err);
+      console.warn('[auth] Email verification check failed (treating as verified to avoid lockout):', err);
+      // On network error or timeout, treat as verified to avoid blocking the user
+      return true;
     }
     return false;
   }
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user && !isRegistering.current) {
-        const verified = await checkEmailVerified(session.access_token);
-        if (!verified) {
-          await supabase.auth.signOut();
-          setUser(null);
-          setLoading(false);
-          return;
+      try {
+        if (session?.user && !isRegistering.current) {
+          const verified = await checkEmailVerified(session.access_token);
+          if (!verified) {
+            await supabase.auth.signOut();
+            setUser(null);
+            return;
+          }
+          const mappedUser = mapSupabaseUser(session.user);
+          setUser(mappedUser);
+          if (!dataSynced.current) {
+            dataSynced.current = true;
+            try {
+              await seedDemoData();
+              await loadDataFromServer();
+            } catch (syncErr) {
+              console.warn('[auth] Data sync failed (non-critical):', syncErr);
+            }
+          }
         }
-        const mappedUser = mapSupabaseUser(session.user);
-        setUser(mappedUser);
-        if (!dataSynced.current) {
-          dataSynced.current = true;
-          await seedDemoData();
-          await loadDataFromServer();
-        }
+      } catch (err) {
+        console.error('[auth] Session init error:', err);
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
+    }).catch((err) => {
+      console.error('[auth] getSession failed:', err);
       setLoading(false);
     });
 
@@ -96,45 +114,55 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (isRegistering.current || isCheckingLogin.current || signingOutUnverified.current) return;
 
-      if (event === 'PASSWORD_RECOVERY' && session?.user) {
-        setIsPasswordRecovery(true);
-        setLoading(false);
-        return;
-      }
-
-      if (session?.user) {
-        if (event === 'SIGNED_IN' && session.user.email_confirmed_at) {
-          try {
-            await fetch('/api/confirm-supabase-verified', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${session.access_token}`,
-                'Content-Type': 'application/json',
-              },
-            });
-          } catch {}
-        }
-        const verified = await checkEmailVerified(session.access_token);
-        if (!verified) {
-          signingOutUnverified.current = true;
-          await supabase.auth.signOut();
-          signingOutUnverified.current = false;
-          setUser(null);
+      try {
+        if (event === 'PASSWORD_RECOVERY' && session?.user) {
+          setIsPasswordRecovery(true);
           setLoading(false);
           return;
         }
-        const mappedUser = mapSupabaseUser(session.user);
-        setUser(mappedUser);
-        if (!dataSynced.current) {
-          dataSynced.current = true;
-          await seedDemoData();
-          await loadDataFromServer();
+
+        if (session?.user) {
+          if (event === 'SIGNED_IN' && session.user.email_confirmed_at) {
+            try {
+              await fetch('/api/confirm-supabase-verified', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${session.access_token}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+            } catch {}
+          }
+          const verified = await checkEmailVerified(session.access_token);
+          if (!verified) {
+            signingOutUnverified.current = true;
+            await supabase.auth.signOut();
+            signingOutUnverified.current = false;
+            setUser(null);
+            setLoading(false);
+            return;
+          }
+          const mappedUser = mapSupabaseUser(session.user);
+          setUser(mappedUser);
+          if (!dataSynced.current) {
+            dataSynced.current = true;
+            try {
+              await seedDemoData();
+              await loadDataFromServer();
+            } catch (syncErr) {
+              console.warn('[auth] Data sync failed (non-critical):', syncErr);
+            }
+          }
+        } else {
+          dataSynced.current = false;
+          setUser(null);
         }
-      } else {
-        dataSynced.current = false;
+      } catch (err) {
+        console.error('[auth] onAuthStateChange error:', err);
         setUser(null);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();

@@ -1,0 +1,178 @@
+Проверил снаружи: главная страница `https://chefnet.replit.app` сейчас открывается и отдается, то есть это **не выглядит как полный отказ сайта или падение домена**. ([chefnet.replit.app][1])
+
+По симптому «первый заход нормальный, дальше в этом же браузере бесконечная загрузка» у тебя наиболее вероятны **5 причин**:
+
+1. **Битые site data в браузере** — cookies / localStorage / IndexedDB / cache.
+   Это самый вероятный сценарий: первый визит проходит, потом сайт сохраняет состояние, и уже это состояние ломает следующие открытия.
+
+2. **Service Worker / Cache Storage отдает старый или битый bundle.**
+   Service worker работает как прокси между браузером и сервером и может подсовывать закэшированные ресурсы; его можно отдельно unregister, а данные сайта можно очистить целиком. ([developer.mozilla.org][2])
+
+3. **Зацикленный редирект после установки cookie/token.**
+   Часто бывает, когда после первого открытия появляется auth-cookie, а дальше фронт пытается проверить сессию и уходит в бесконечный redirect/loading.
+
+4. **Битый frontend state после гидрации.**
+   Например, приложение читает из localStorage невалидный JSON, неверную версию объекта или старый token и зависает на loader.
+
+5. **Неверный тип деплоя в Replit.**
+   Если приложение имеет server-side поведение, а выложено как Static Deployment, Replit прямо пишет, что такой вариант может работать некорректно; для таких приложений нужен Autoscale. ([docs.replit.com][3])
+
+Что делать **сразу**, без гаданий:
+
+### 1) Быстрый тест
+
+Открой сайт в:
+
+* **инкогнито**
+* **другом браузере**
+
+Если там сайт открывается стабильно, значит проблема почти точно **в данных браузера**, а не в самом домене/сервере.
+
+### 2) Очисти данные только для этого сайта
+
+В Chrome:
+
+* открой сайт
+* нажми на значок слева от адреса
+* **Site settings**
+* **Clear data / Reset permissions**
+
+Или через DevTools:
+
+* `F12`
+* вкладка **Application**
+* **Storage**
+* **Clear site data**
+
+Chrome DevTools прямо рекомендует `Clear site data`, это удаляет cache/storage, а команда Clear Site Data очищает cookies, localStorage, sessionStorage, IndexedDB, Cache и service workers. ([Chrome for Developers][4])
+
+### 3) Удали service worker
+
+В DevTools:
+
+* `F12`
+* **Application**
+* **Service Workers**
+* **Unregister**
+* потом hard reload: `Ctrl+Shift+R`
+
+Это особенно важно, если сайт раньше был PWA или ты менял сборку/роутинг.
+
+---
+
+## Что исправить в коде
+
+Ниже — самые рабочие исправления.
+
+### Вариант A. Защити чтение localStorage
+
+Если есть что-то вроде:
+
+```js
+const user = JSON.parse(localStorage.getItem('user'));
+```
+
+замени на:
+
+```js
+function safeReadJSON(key, fallback = null) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    return JSON.parse(raw);
+  } catch (e) {
+    localStorage.removeItem(key);
+    return fallback;
+  }
+}
+
+const user = safeReadJSON('user');
+```
+
+И так для `token`, `profile`, `settings`, `language`, `session`.
+
+### Вариант B. Добавь versioned storage
+
+Чтобы старая структура данных не ломала новую сборку:
+
+```js
+const APP_STORAGE_VERSION = 'v3';
+
+function initStorageVersion() {
+  const current = localStorage.getItem('app_storage_version');
+  if (current !== APP_STORAGE_VERSION) {
+    localStorage.clear();
+    sessionStorage.clear();
+    localStorage.setItem('app_storage_version', APP_STORAGE_VERSION);
+  }
+}
+
+initStorageVersion();
+```
+
+### Вариант C. Временно отключи service worker
+
+Если он зарегистрирован, но не нужен:
+
+```js
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    regs.forEach((reg) => reg.unregister());
+  });
+}
+```
+
+### Вариант D. Не зависай бесконечно на проверке auth
+
+Если есть логика вида “пока не проверим токен — показываем loader”, добавь timeout и fallback:
+
+```js
+async function bootstrapApp() {
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('bootstrap timeout')), 8000)
+  );
+
+  try {
+    await Promise.race([restoreSession(), timeout]);
+  } catch (e) {
+    localStorage.removeItem('token');
+    sessionStorage.clear();
+  } finally {
+    startApp();
+  }
+}
+```
+
+### Вариант E. Проверь Replit deployment type
+
+Если у тебя:
+
+* SSR
+* API routes
+* auth callbacks
+* server rendering
+* middleware
+
+то **не Static**, а **Autoscale**. Replit прямо указывает, что Static Deployment подходит только для статических файлов, а для server-side поведения — нет. ([docs.replit.com][3])
+
+---
+
+## Мой вывод
+
+**Самая вероятная причина — сломанные данные браузера после первого захода: localStorage / cookies / service worker cache.**
+Если после очистки site data сайт снова работает, а потом проблема возвращается — значит баг **в коде инициализации состояния**, а не в браузере.
+
+**Порядок исправления:**
+
+1. Clear site data
+2. Unregister service worker
+3. Защитить чтение localStorage
+4. Добавить versioning storage
+5. Проверить, не выложен ли SSR/app-router проект как Static Deployment в Replit ([docs.replit.com][3])
+
+Если дашь доступ к коду `main.tsx / App.tsx / auth provider / service worker / replit config`, я укажу точное место поломки и дам готовый патч.
+
+[1]: https://chefnet.replit.app/ "ChefNet Invest - Интеллектуальная платформа для инвесторов"
+[2]: https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API/Using_Service_Workers?utm_source=chatgpt.com "Using Service Workers - Web APIs - MDN"
+[3]: https://docs.replit.com/cloud-services/deployments/troubleshooting?utm_source=chatgpt.com "Troubleshoot publishing"
+[4]: https://developer.chrome.com/docs/devtools/storage/cache?utm_source=chatgpt.com "View cache data | Chrome DevTools"
