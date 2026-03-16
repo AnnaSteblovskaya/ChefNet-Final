@@ -70,6 +70,9 @@ async function ensureDbSchema() {
     `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS date_of_birth text`,
     `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS nationality text`,
     `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS zip_code text`,
+    `ALTER TABLE referrals ADD COLUMN IF NOT EXISTS referred_user_id text`,
+    `ALTER TABLE referrals ADD COLUMN IF NOT EXISTS email text`,
+    `ALTER TABLE referrals ALTER COLUMN referred_user_id TYPE text USING referred_user_id::text`,
   ];
   for (const sql of migrations) {
     try {
@@ -79,6 +82,22 @@ async function ensureDbSchema() {
         console.error('[db-init] Migration failed:', sql, err.message);
       }
     }
+  }
+  // Backfill referred_user_id and email for existing referral records using name matching
+  try {
+    await pool.query(`
+      UPDATE referrals r
+      SET referred_user_id = p.id, email = p.email
+      FROM profiles p
+      WHERE r.referred_user_id IS NULL
+        AND LOWER(p.full_name) = LOWER(r.name)
+        AND UPPER(p.referred_by) = (
+          'CHEF-' || UPPER(SUBSTRING(REPLACE(r.user_id::text, '-', ''), 1, 6))
+        )
+    `);
+    console.log('[db-init] Referral backfill complete');
+  } catch (err: any) {
+    console.error('[db-init] Referral backfill failed:', err.message);
   }
   console.log('[db-init] Schema check complete');
 }
@@ -274,9 +293,12 @@ app.get('/api/referrals', requireAuth, async (req, res) => {
   try {
     const referralCode = `CHEF-${userId.replace(/-/g, '').substring(0, 6).toUpperCase()}`;
 
-    // Get records from referrals table
+    // Get records from referrals table, join with profiles to get email if missing
     const referralsResult = await pool.query(
-      'SELECT * FROM referrals WHERE user_id = $1 ORDER BY created_at DESC',
+      `SELECT r.*, COALESCE(r.email, p.email) as email
+       FROM referrals r
+       LEFT JOIN profiles p ON r.referred_user_id = p.id
+       WHERE r.user_id = $1 ORDER BY r.created_at DESC`,
       [userId]
     );
 
@@ -290,21 +312,26 @@ app.get('/api/referrals', requireAuth, async (req, res) => {
     );
 
     // Merge: profiles-based records that are not yet in referrals table
-    const existingNames = new Set(referralsResult.rows.map((r: any) => r.name?.toLowerCase()));
+    const existingUserIds = new Set(referralsResult.rows.map((r: any) => r.referred_user_id).filter(Boolean));
+    const existingEmails = new Set(referralsResult.rows.map((r: any) => r.email?.toLowerCase()).filter(Boolean));
+    const existingNames = new Set(referralsResult.rows.map((r: any) => r.name?.toLowerCase()).filter(Boolean));
     const extraFromProfiles = profilesResult.rows
-      .filter((p: any) => {
-        const name = (p.full_name || p.email || '').trim();
-        return !existingNames.has(name.toLowerCase());
-      })
+      .filter((p: any) =>
+        !existingUserIds.has(p.id) &&
+        !existingEmails.has(p.email?.toLowerCase()) &&
+        !existingNames.has((p.full_name || p.email || '').toLowerCase())
+      )
       .map((p: any) => ({
         id: null,
         user_id: userId,
         name: p.full_name || p.email || 'Unknown',
+        email: p.email || '',
+        referred_user_id: p.id,
         status: 'registered',
         amount: '$0',
         shares: 0,
         commission: '$0',
-        date: p.created_at ? p.created_at.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        date: p.created_at ? new Date(p.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
         round: null,
         created_at: p.created_at,
       }));
@@ -316,6 +343,56 @@ app.get('/api/referrals', requireAuth, async (req, res) => {
     res.json(combined);
   } catch (err) {
     console.error('Error fetching referrals:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Referral tree - recursive multi-level structure
+app.get('/api/referral-tree', requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  try {
+    // Get all profiles in the entire downline using recursive query
+    const treeResult = await pool.query(
+      `WITH RECURSIVE downline AS (
+        -- Direct referrals (level 1)
+        SELECT
+          p.id,
+          p.email,
+          p.full_name,
+          p.referred_by,
+          p.created_at,
+          'CHEF-' || UPPER(SUBSTRING(REPLACE(p.id::text, '-', ''), 1, 6)) as own_ref_code,
+          1 as level,
+          $2::text as parent_ref_code
+        FROM profiles p
+        WHERE UPPER(p.referred_by) = $2
+        UNION ALL
+        -- Deeper levels
+        SELECT
+          p.id,
+          p.email,
+          p.full_name,
+          p.referred_by,
+          p.created_at,
+          'CHEF-' || UPPER(SUBSTRING(REPLACE(p.id::text, '-', ''), 1, 6)),
+          d.level + 1,
+          d.own_ref_code
+        FROM profiles p
+        INNER JOIN downline d ON UPPER(p.referred_by) = d.own_ref_code
+        WHERE d.level < 10
+      )
+      SELECT d.*, r.shares, r.amount, r.status, r.commission
+      FROM downline d
+      LEFT JOIN referrals r ON r.referred_user_id = d.id AND r.user_id = (
+        SELECT id FROM profiles WHERE 'CHEF-' || UPPER(SUBSTRING(REPLACE(id::text, '-', ''), 1, 6)) = d.parent_ref_code LIMIT 1
+      )
+      ORDER BY d.level, d.created_at`,
+      [userId, `CHEF-${userId.replace(/-/g, '').substring(0, 6).toUpperCase()}`]
+    );
+
+    res.json(treeResult.rows);
+  } catch (err) {
+    console.error('Error fetching referral tree:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -754,9 +831,10 @@ async function handleVerifyEmail(req: express.Request, res: express.Response) {
         if (referrerRow.rows.length > 0) {
           const referrerId = referrerRow.rows[0].id;
           await pool.query(
-            `INSERT INTO referrals (user_id, name, status, amount, shares, commission, date)
-             VALUES ($1, $2, 'registered', '$0', 0, '$0', CURRENT_DATE)`,
-            [referrerId, newUserName]
+            `INSERT INTO referrals (user_id, name, email, referred_user_id, status, amount, shares, commission, date)
+             VALUES ($1, $2, $3, $4, 'registered', '$0', 0, '$0', CURRENT_DATE)
+             ON CONFLICT DO NOTHING`,
+            [referrerId, newUserName, row.email, row.id]
           );
           console.log(`[verify-email] Referral record created: ${referrerId} referred ${row.email}`);
         }

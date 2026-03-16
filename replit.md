@@ -39,6 +39,15 @@ A multilingual investor landing page for ChefNet, an AI-powered restaurant/food 
 - `server/email.ts` — Email service (verification emails via Gmail API)
 - Vite proxies `/api` and `/verify-email` requests to the Express server
 
+### Referral System
+- Referral code format: `CHEF-` + first 6 chars of user UUID (uppercase, no dashes)
+- `profiles.referred_by` — tracks which referral code was used during registration
+- `referrals` table — one record per referred user per referrer, with `referred_user_id` and `email` columns
+- `GET /api/referrals` — flat list of direct referrals with email, deduped against profiles
+- `GET /api/referral-tree` — recursive WITH RECURSIVE CTE returning all levels of downline (max 10)
+- Commission rule: 10% of purchased shares, only from first-line (level 1) referrals
+- Auto-backfill on startup: fills `referred_user_id` and `email` for existing records by name+referred_by match
+
 ### Email Verification Flow
 1. User registers → Supabase creates account, backend sends verification email via Gmail API
 2. Email contains verification link with unique token (24h expiry)

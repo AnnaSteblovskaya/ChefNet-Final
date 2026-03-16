@@ -1,9 +1,10 @@
+import React from 'react';
 import { motion } from 'motion/react';
-import { Users, Copy, Share2, TrendingUp, Bell, UserCheck } from 'lucide-react';
+import { Users, Copy, Share2, Bell, UserCheck, Network } from 'lucide-react';
 import { ScrollIndicator } from '../ScrollIndicator';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { dashboardTranslations } from '@/utils/dashboardTranslations';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import LanguageSwitcher from '@/app/components/LanguageSwitcher';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -57,6 +58,46 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
   const [referredInvestors, setReferredInvestors] = useState<any[]>([]);
   const [loadingReferrals, setLoadingReferrals] = useState(true);
 
+  // Tree state
+  const [treeNodes, setTreeNodes] = useState<any[]>([]);
+  const [loadingTree, setLoadingTree] = useState(true);
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const toggleExpand = useCallback((id: string) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  // Build nested tree from flat API data
+  const buildTree = (flatNodes: any[]): any[] => {
+    if (!flatNodes || flatNodes.length === 0) return [];
+    // Map own_ref_code -> node (with mutable children array)
+    const nodeMap: Record<string, any> = {};
+    for (const n of flatNodes) {
+      nodeMap[n.own_ref_code] = { ...n, children: [] };
+    }
+    // Attach children to their parents
+    const roots: any[] = [];
+    for (const n of flatNodes) {
+      const node = nodeMap[n.own_ref_code];
+      if (n.level === 1) {
+        roots.push(node);
+      } else {
+        const parent = nodeMap[n.parent_ref_code];
+        if (parent) {
+          parent.children.push(node);
+        } else {
+          roots.push(node);
+        }
+      }
+    }
+    return roots;
+  };
+
   // Filter referrals based on search criteria
   const filteredInvestors = referredInvestors.filter((investor) => {
     const matchesName = investor.name.toLowerCase().includes(searchName.toLowerCase());
@@ -107,7 +148,21 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
         setLoadingReferrals(false);
       }
     };
+
+    const fetchTree = async () => {
+      setLoadingTree(true);
+      try {
+        const flat = await apiGet<any[]>('/api/referral-tree');
+        setTreeNodes(buildTree(flat));
+      } catch (e) {
+        console.error('Failed to fetch referral tree:', e);
+      } finally {
+        setLoadingTree(false);
+      }
+    };
+
     fetchReferrals();
+    fetchTree();
   }, []);
 
   const handleCopyLink = () => {
@@ -154,6 +209,72 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
     }
     
     document.body.removeChild(textArea);
+  };
+
+  // Recursive tree row renderer
+  const renderTreeRows = (nodes: any[], depth: number = 0): React.ReactNode => {
+    return nodes.map((node) => {
+      const hasChildren = node.children && node.children.length > 0;
+      const isExpanded = expandedIds.has(node.id);
+      const dateStr = node.created_at ? new Date(node.created_at).toISOString().split('T')[0] : '';
+      const shares = node.shares || 0;
+      const commission = depth === 0 ? Math.floor(shares * 0.1) : 0;
+      const bgClass = depth === 0 ? '' : depth === 1 ? 'bg-orange-50/40' : depth === 2 ? 'bg-blue-50/30' : 'bg-gray-50/30';
+
+      return (
+        <React.Fragment key={node.id}>
+          <tr className={`border-b border-gray-100 hover:bg-gray-50/60 ${bgClass}`}>
+            <td className="py-2.5 px-2 lg:px-4 text-xs lg:text-sm text-gray-700"
+              style={{ paddingLeft: `${8 + depth * 20}px` }}>
+              {formatDate(dateStr)}
+            </td>
+            <td className="py-2.5 px-2 lg:px-4 text-xs lg:text-sm text-gray-900">
+              <div className="flex items-center gap-1.5">
+                {depth > 0 && (
+                  <span className="text-gray-300 text-xs" style={{ marginLeft: `${depth * 4}px` }}>└</span>
+                )}
+                <button
+                  onClick={() => hasChildren && toggleExpand(node.id)}
+                  className={`inline-flex items-center justify-center min-w-[22px] h-5 px-1 rounded text-xs font-bold border transition-colors ${
+                    hasChildren
+                      ? isExpanded
+                        ? 'border-orange-400 bg-orange-50 text-orange-600 hover:bg-orange-100 cursor-pointer'
+                        : 'border-green-500 bg-green-50 text-green-700 hover:bg-green-100 cursor-pointer'
+                      : 'border-gray-200 bg-gray-50 text-gray-400 cursor-default'
+                  }`}
+                  title={hasChildren ? (isExpanded ? 'Свернуть' : 'Развернуть') : 'Нет подпартнёров'}
+                >
+                  {hasChildren
+                    ? isExpanded
+                      ? '−'
+                      : `+${node.children.length}`
+                    : '−'}
+                </button>
+                <span className="font-medium">{node.full_name || node.email || 'Unknown'}</span>
+              </div>
+            </td>
+            <td className="py-2.5 px-2 lg:px-4 text-xs lg:text-sm text-gray-500">{node.email || '—'}</td>
+            <td className="py-2.5 px-2 lg:px-4">
+              <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                node.status === 'invested'
+                  ? 'bg-blue-100 text-blue-800 border border-blue-200'
+                  : 'bg-gray-100 text-gray-700 border border-gray-200'
+              }`}>
+                {node.status === 'invested' ? t.invested : t.registered}
+              </span>
+            </td>
+            <td className="py-2.5 px-2 lg:px-4 text-xs lg:text-sm font-semibold text-gray-900">{shares}</td>
+            <td className="py-2.5 px-2 lg:px-4 text-xs lg:text-sm text-gray-900">{node.amount || '$0'}</td>
+            <td className="py-2.5 px-2 lg:px-4 text-xs lg:text-sm font-semibold">
+              {depth === 0
+                ? <span className="text-green-600">{commission}</span>
+                : <span className="text-gray-400">—</span>}
+            </td>
+          </tr>
+          {isExpanded && hasChildren && renderTreeRows(node.children, depth + 1)}
+        </React.Fragment>
+      );
+    });
   };
 
   return (
@@ -287,11 +408,12 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
         <p className="text-sm text-gray-600 mb-4 lg:mb-6">{t.trackDesc}</p>
 
         <ScrollIndicator className="-mx-4 lg:mx-0 px-4 lg:px-0">
-          <table className="w-full min-w-[900px]">
+          <table className="w-full min-w-[1000px]">
             <thead>
               <tr className="border-b border-gray-200">
                 <th className="text-left py-3 px-2 lg:px-4 text-xs lg:text-sm font-bold text-gray-900">{t.partnerDate}</th>
                 <th className="text-left py-3 px-2 lg:px-4 text-xs lg:text-sm font-bold text-gray-900">{t.partnerName}</th>
+                <th className="text-left py-3 px-2 lg:px-4 text-xs lg:text-sm font-bold text-gray-900">Email</th>
                 <th className="text-left py-3 px-2 lg:px-4 text-xs lg:text-sm font-bold text-gray-900">{t.status}</th>
                 <th className="text-left py-3 px-2 lg:px-4 text-xs lg:text-sm font-bold text-gray-900">{t.partnerShares}</th>
                 <th className="text-left py-3 px-2 lg:px-4 text-xs lg:text-sm font-bold text-gray-900">{t.investedAmount}</th>
@@ -317,6 +439,17 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
                     onChange={(e) => setSearchName(e.target.value)}
                     className="w-full px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
+                </th>
+                <th className="py-2 px-2 lg:px-4">
+                  <input
+                    type="text"
+                    placeholder="Email"
+                    value={searchName}
+                    onChange={(e) => setSearchName(e.target.value)}
+                    className="w-full px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    style={{ display: 'none' }}
+                  />
+                  <span className="text-xs text-gray-400">—</span>
                 </th>
                 <th className="py-2 px-2 lg:px-4">
                   <select
@@ -361,13 +494,13 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
             <tbody>
               {loadingReferrals ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-sm text-gray-400">
+                  <td colSpan={7} className="py-8 text-center text-sm text-gray-400">
                     {language === 'ru' ? 'Загрузка...' : 'Loading...'}
                   </td>
                 </tr>
               ) : filteredInvestors.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-sm text-gray-400">
+                  <td colSpan={7} className="py-8 text-center text-sm text-gray-400">
                     {language === 'ru' ? 'Пока нет партнёров' : 'No partners yet'}
                   </td>
                 </tr>
@@ -375,6 +508,7 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
                 <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-3 lg:py-4 px-2 lg:px-4 text-xs lg:text-sm text-gray-900">{formatDate(investor.date)}</td>
                   <td className="py-3 lg:py-4 px-2 lg:px-4 text-xs lg:text-sm text-gray-900">{investor.name}</td>
+                  <td className="py-3 lg:py-4 px-2 lg:px-4 text-xs lg:text-sm text-gray-500">{investor.email || '—'}</td>
                   <td className="py-3 lg:py-4 px-2 lg:px-4">
                     <span
                       className={`inline-flex px-2 lg:px-3 py-0.5 lg:py-1 rounded-full text-[10px] lg:text-xs font-medium ${
@@ -388,9 +522,63 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
                   </td>
                   <td className="py-3 lg:py-4 px-2 lg:px-4 text-xs lg:text-sm font-semibold text-gray-900">{investor.shares}</td>
                   <td className="py-3 lg:py-4 px-2 lg:px-4 text-xs lg:text-sm text-gray-900">{investor.amount}</td>
-                  <td className="py-3 lg:py-4 px-2 lg:px-4 text-xs lg:text-sm font-semibold text-green-600">{Math.floor(investor.shares * 0.1)}</td>
+                  <td className="py-3 lg:py-4 px-2 lg:px-4 text-xs lg:text-sm font-semibold text-green-600">{Math.floor((investor.shares || 0) * 0.1)}</td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </ScrollIndicator>
+      </motion.div>
+
+      {/* Referral Network Tree */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="bg-white rounded-2xl p-4 lg:p-6 shadow-sm border border-gray-100 overflow-visible mt-6"
+      >
+        <div className="flex items-center gap-2 mb-3 lg:mb-4">
+          <Network className="w-5 h-5 text-gray-700" />
+          <h3 className="text-lg lg:text-xl font-bold text-gray-900">
+            {language === 'ru' ? 'Реферальная сеть' : 'Referral Network'}
+          </h3>
+        </div>
+        <p className="text-sm text-gray-600 mb-4 lg:mb-5">
+          {language === 'ru'
+            ? 'Многоуровневая структура вашей команды. Нажмите на кнопку +N чтобы раскрыть подпартнёров. Комиссия 10% начисляется только с первой линии.'
+            : 'Multi-level team structure. Click +N to expand sub-partners. 10% commission applies to first line only.'}
+        </p>
+        <ScrollIndicator className="-mx-4 lg:mx-0 px-4 lg:px-0">
+          <table className="w-full min-w-[1000px]">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 px-2 lg:px-4 text-xs lg:text-sm font-bold text-gray-900">{t.partnerDate}</th>
+                <th className="text-left py-3 px-2 lg:px-4 text-xs lg:text-sm font-bold text-gray-900">{t.partnerName}</th>
+                <th className="text-left py-3 px-2 lg:px-4 text-xs lg:text-sm font-bold text-gray-900">Email</th>
+                <th className="text-left py-3 px-2 lg:px-4 text-xs lg:text-sm font-bold text-gray-900">{t.status}</th>
+                <th className="text-left py-3 px-2 lg:px-4 text-xs lg:text-sm font-bold text-gray-900">{t.partnerShares}</th>
+                <th className="text-left py-3 px-2 lg:px-4 text-xs lg:text-sm font-bold text-gray-900">{t.investedAmount}</th>
+                <th className="text-left py-3 px-2 lg:px-4 text-xs lg:text-sm font-bold text-gray-900">
+                  {t.yourCommission} (10%)
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {loadingTree ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-sm text-gray-400">
+                    {language === 'ru' ? 'Загрузка...' : 'Loading...'}
+                  </td>
+                </tr>
+              ) : treeNodes.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-sm text-gray-400">
+                    {language === 'ru' ? 'Сеть пуста. Пригласите первых партнёров по реферальной ссылке.' : 'No network yet. Invite partners using your referral link.'}
+                  </td>
+                </tr>
+              ) : (
+                renderTreeRows(treeNodes, 0)
+              )}
             </tbody>
           </table>
         </ScrollIndicator>
