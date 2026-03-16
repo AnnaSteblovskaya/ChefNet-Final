@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import pool from './db.js';
-import { sendVerificationEmail, sendPasswordResetEmail, verifySmtpConnection } from './email.js';
+import { sendVerificationEmail, sendPasswordResetEmail, verifySmtpConnection, sendReferralNotificationEmail } from './email.js';
 import { createAdminRouter, createPublicContentRouter } from './admin.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -476,6 +476,41 @@ app.post('/api/register', async (req, res) => {
     }
 
     pool.query('INSERT INTO notifications (user_email, type) VALUES ($1, $2)', [email, 'User registered']).catch(() => {});
+
+    if (cleanReferralCode) {
+      (async () => {
+        try {
+          const refOwner = await pool.query(
+            `SELECT email, full_name FROM profiles WHERE UPPER(referral_code) = UPPER($1) OR UPPER(id::text) = UPPER(REPLACE($1, 'CHEF-', ''))`,
+            [cleanReferralCode]
+          );
+          if (!refOwner.rows.length) {
+            const ownerByCode = await pool.query(
+              `SELECT p.email, p.full_name FROM profiles p WHERE UPPER(CONCAT('CHEF-', LEFT(REPLACE(p.id::text,'-',''), 6))) = UPPER($1)`,
+              [cleanReferralCode]
+            );
+            if (ownerByCode.rows.length) {
+              await sendReferralNotificationEmail(
+                ownerByCode.rows[0].email,
+                'registered',
+                `${firstName || ''} ${lastName || ''}`.trim() || email,
+                email
+              );
+            }
+          } else {
+            await sendReferralNotificationEmail(
+              refOwner.rows[0].email,
+              'registered',
+              `${firstName || ''} ${lastName || ''}`.trim() || email,
+              email
+            );
+          }
+        } catch (e) {
+          console.error('[referral-notify] register lookup failed:', e);
+        }
+      })();
+    }
+
     res.json({ success: true, userId });
   } catch (err) {
     console.error('Registration error:', err);
@@ -584,6 +619,35 @@ app.post('/api/investments', requireAuth, async (req, res) => {
     );
 
     await client.query('COMMIT');
+
+    (async () => {
+      try {
+        const investorRow = await pool.query(
+          `SELECT email, full_name, referred_by FROM profiles WHERE id = $1`,
+          [userId]
+        );
+        if (investorRow.rows.length && investorRow.rows[0].referred_by) {
+          const refCode = investorRow.rows[0].referred_by as string;
+          const partnerName = investorRow.rows[0].full_name || '';
+          const partnerEmail = investorRow.rows[0].email || '';
+          const ownerRow = await pool.query(
+            `SELECT email FROM profiles p WHERE UPPER(CONCAT('CHEF-', LEFT(REPLACE(p.id::text,'-',''), 6))) = UPPER($1)`,
+            [refCode]
+          );
+          if (ownerRow.rows.length) {
+            await sendReferralNotificationEmail(ownerRow.rows[0].email, 'investment', partnerName, partnerEmail, {
+              shares: Number(shares),
+              amount: Number(amount),
+              round: String(round),
+            });
+            pool.query('INSERT INTO notifications (user_email, type) VALUES ($1, $2)', [ownerRow.rows[0].email, 'Partner investment']).catch(() => {});
+          }
+        }
+      } catch (e) {
+        console.error('[referral-notify] investment lookup failed:', e);
+      }
+    })();
+
     res.json({ success: true });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -862,6 +926,33 @@ app.post('/api/kyc/webhook', express.raw({ type: '*/*' }), async (req, res) => {
       [externalUserId, status]
     );
     console.log(`[sumsub] webhook: user ${externalUserId} → ${status}`);
+
+    if (status === 'verified') {
+      (async () => {
+        try {
+          const userRow = await pool.query(
+            `SELECT email, full_name, referred_by FROM profiles WHERE id = $1`,
+            [externalUserId]
+          );
+          if (userRow.rows.length && userRow.rows[0].referred_by) {
+            const refCode = userRow.rows[0].referred_by as string;
+            const partnerName = userRow.rows[0].full_name || '';
+            const partnerEmail = userRow.rows[0].email || '';
+            const ownerRow = await pool.query(
+              `SELECT email FROM profiles p WHERE UPPER(CONCAT('CHEF-', LEFT(REPLACE(p.id::text,'-',''), 6))) = UPPER($1)`,
+              [refCode]
+            );
+            if (ownerRow.rows.length) {
+              await sendReferralNotificationEmail(ownerRow.rows[0].email, 'kyc_approved', partnerName, partnerEmail);
+              pool.query('INSERT INTO notifications (user_email, type) VALUES ($1, $2)', [ownerRow.rows[0].email, 'Partner KYC verified']).catch(() => {});
+            }
+          }
+        } catch (e) {
+          console.error('[referral-notify] kyc_approved lookup failed:', e);
+        }
+      })();
+    }
+
     res.json({ ok: true });
   } catch (err) {
     console.error('[sumsub] webhook error:', err);

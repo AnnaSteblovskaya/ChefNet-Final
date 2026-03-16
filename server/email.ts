@@ -262,6 +262,115 @@ export async function sendVerificationEmail(
   }
 }
 
+export type ReferralNotificationType = 'registered' | 'kyc_approved' | 'investment';
+
+function buildReferralNotificationHtml(
+  type: ReferralNotificationType,
+  partnerName: string,
+  partnerEmail: string,
+  extra?: { shares?: number; amount?: number; round?: string }
+): string {
+  const content: Record<ReferralNotificationType, { heading: string; message: string }> = {
+    registered: {
+      heading: 'Новый партнёр зарегистрировался по вашей ссылке!',
+      message: `По вашей реферальной ссылке зарегистрировался новый партнёр:<br><br>
+        <strong>${escapeHtml(partnerName || partnerEmail)}</strong>${partnerEmail ? ` (${escapeHtml(partnerEmail)})` : ''}<br><br>
+        Когда партнёр пройдёт верификацию и купит доли — вы получите 10% комиссию в акциях.`,
+    },
+    kyc_approved: {
+      heading: 'Ваш партнёр прошёл верификацию личности!',
+      message: `Ваш реферальный партнёр успешно прошёл KYC-верификацию:<br><br>
+        <strong>${escapeHtml(partnerName || partnerEmail)}</strong>${partnerEmail ? ` (${escapeHtml(partnerEmail)})` : ''}<br><br>
+        Теперь партнёр может покупать инвестиционные доли. Как только он это сделает — вы получите 10% комиссию в акциях.`,
+    },
+    investment: {
+      heading: 'Ваш партнёр купил доли — вы получили бонус!',
+      message: `Ваш реферальный партнёр совершил инвестицию:<br><br>
+        <strong>${escapeHtml(partnerName || partnerEmail)}</strong>${partnerEmail ? ` (${escapeHtml(partnerEmail)})` : ''}<br><br>
+        ${extra?.shares ? `Куплено долей: <strong>${extra.shares}</strong><br>` : ''}
+        ${extra?.amount ? `Сумма: <strong>$${extra.amount}</strong><br>` : ''}
+        ${extra?.round ? `Раунд: <strong>${escapeHtml(extra.round)}</strong><br>` : ''}
+        <br>Вы получили <strong>10% комиссию</strong> в виде акций ChefNet Invest. Проверьте ваш личный кабинет.`,
+    },
+  };
+
+  const { heading, message } = content[type];
+
+  return `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background-color:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f5f5;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        <tr>
+          <td style="background:linear-gradient(135deg,#D4522A,#E8744F);padding:32px 40px;text-align:center;">
+            <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;">ChefNet Invest</h1>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:40px;">
+            <h2 style="margin:0 0 16px;color:#1a1a1a;font-size:20px;font-weight:700;">${heading}</h2>
+            <p style="margin:0 0 24px;color:#444;font-size:15px;line-height:1.7;">${message}</p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr><td align="center" style="padding:8px 0 24px;">
+                <a href="https://chefnet.replit.app" style="display:inline-block;padding:12px 32px;background:linear-gradient(135deg,#D4522A,#E8744F);color:#ffffff;text-decoration:none;border-radius:12px;font-size:15px;font-weight:600;box-shadow:0 4px 16px rgba(212,82,42,0.3);">
+                  Открыть личный кабинет
+                </a>
+              </td></tr>
+            </table>
+            <p style="margin:0;color:#999;font-size:13px;line-height:1.5;">Это автоматическое уведомление. Если у вас есть вопросы — напишите нам на <a href="mailto:support@chefnet.ai" style="color:#D4522A;">support@chefnet.ai</a></p>
+          </td>
+        </tr>
+        <tr>
+          <td style="background-color:#fafafa;padding:20px 40px;text-align:center;border-top:1px solid #eee;">
+            <p style="margin:0;color:#aaa;font-size:12px;">ChefNet Invest &copy; 2026</p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+export async function sendReferralNotificationEmail(
+  to: string,
+  type: ReferralNotificationType,
+  partnerName: string,
+  partnerEmail: string,
+  extra?: { shares?: number; amount?: number; round?: string }
+): Promise<boolean> {
+  const subjects: Record<ReferralNotificationType, string> = {
+    registered: '🎉 Новый партнёр зарегистрировался по вашей ссылке — ChefNet Invest',
+    kyc_approved: '✅ Ваш партнёр прошёл верификацию — ChefNet Invest',
+    investment: '💰 Ваш партнёр купил доли, вам начислен бонус — ChefNet Invest',
+  };
+
+  const html = buildReferralNotificationHtml(type, partnerName, partnerEmail, extra);
+
+  try {
+    const gmail = await getUncachableGmailClient();
+    const raw = buildRawEmail(to, subjects[type], html);
+    const encodedMessage = Buffer.from(raw)
+      .toString('base64')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    await gmail.users.messages.send({
+      userId: 'me',
+      requestBody: { raw: encodedMessage },
+    });
+
+    console.log(`[referral-notify] ${type} → ${to}`);
+    return true;
+  } catch (err) {
+    console.error(`[referral-notify] Failed to send ${type} email to ${to}:`, err);
+    return false;
+  }
+}
+
 export async function verifySmtpConnection(): Promise<boolean> {
   try {
     const gmail = await getUncachableGmailClient();
