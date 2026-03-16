@@ -5,6 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { dashboardTranslations } from '@/utils/dashboardTranslations';
 import { useState, useEffect } from 'react';
 import PortfolioChart from './PortfolioChart';
+import { getSiteUrl } from '@/utils/siteUrl';
+import { apiGet } from '@/utils/api';
 
 export default function DashboardTab() {
   const { language } = useLanguage();
@@ -128,8 +130,11 @@ export default function DashboardTab() {
     { name: 'Remaining', value: 85 }
   ];
 
+  const referralCode = user?.id ? 'CHEF-' + user.id.replace(/-/g, '').substring(0, 6).toUpperCase() : '';
+  const referralLink = referralCode ? `${getSiteUrl()}/?ref=${referralCode}` : '';
+
   const handleCopyReferralLink = () => {
-    const textToCopy = 'https://chefinvest.com/register?ref=CHEF-X7K9H2';
+    const textToCopy = referralLink;
     
     // Try modern Clipboard API first
     if (navigator.clipboard && window.isSecureContext) {
@@ -195,39 +200,13 @@ export default function DashboardTab() {
   const totalMyShares = Object.values(roundsData).reduce((sum, round) => sum + round.myShares, 0);
   const totalSpent = Object.values(roundsData).reduce((sum, round) => sum + (round.myShares * round.price), 0);
   
-  // Load referrals data from localStorage
+  // Fetch referrals data from API
   const [referralsData, setReferralsData] = useState<any[]>([]);
 
-  // Listen for changes in referrals data
   useEffect(() => {
-    const handleReferralsChange = () => {
-      const saved = localStorage.getItem('chefnet_referrals_data');
-      if (saved) {
-        try {
-          const data = JSON.parse(saved);
-          setReferralsData(data);
-        } catch (error) {
-          console.error('Error parsing referrals data:', error);
-          setReferralsData([]);
-        }
-      } else {
-        setReferralsData([]);
-      }
-    };
-
-    // Initial check immediately on mount - with slight delay to ensure Dashboard has initialized
-    setTimeout(handleReferralsChange, 50);
-
-    // Check for updates every 500ms to sync between tabs and components
-    const interval = setInterval(handleReferralsChange, 500);
-    
-    // Listen for storage events from other tabs
-    window.addEventListener('storage', handleReferralsChange);
-    
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('storage', handleReferralsChange);
-    };
+    apiGet<any[]>('/api/referrals')
+      .then(data => setReferralsData(data))
+      .catch(() => setReferralsData([]));
   }, []);
 
   // Calculate team stats from referrals
@@ -626,7 +605,7 @@ export default function DashboardTab() {
           <div>
             <label className="text-sm lg:text-base font-bold text-[#FF6B35] mb-2 block">{t.yourReferralLink}</label>
             <div className="flex items-center gap-2 bg-[#F5EAE1] border border-orange-200 rounded-xl p-3 lg:p-4">
-              <span className="flex-1 text-sm lg:text-base font-medium text-[var(--color-text)] break-all">https://chefinvest.com/register?ref=CHEF-X7K9H2</span>
+              <span className="flex-1 text-sm lg:text-base font-medium text-[var(--color-text)] break-all">{referralLink}</span>
               <button
                 onClick={handleCopyReferralLink}
                 className="p-2 hover:bg-white rounded-lg transition-colors flex-shrink-0"
