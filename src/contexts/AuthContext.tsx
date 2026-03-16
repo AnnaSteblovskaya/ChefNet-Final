@@ -78,7 +78,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Hard safety valve: if everything hangs, unblock the UI after 8 seconds
+    const safetyTimer = setTimeout(() => {
+      console.warn('[auth] Safety timeout: forcing loading=false');
+      setLoading(false);
+    }, 8000);
+
+    const getSessionWithTimeout = () =>
+      Promise.race([
+        supabase.auth.getSession(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('getSession timeout')), 7000)
+        ),
+      ]);
+
+    getSessionWithTimeout().then(async ({ data: { session } }: any) => {
       try {
         if (session?.user && !isRegistering.current) {
           const verified = await checkEmailVerified(session.access_token);
@@ -103,10 +117,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.error('[auth] Session init error:', err);
         setUser(null);
       } finally {
+        clearTimeout(safetyTimer);
         setLoading(false);
       }
-    }).catch((err) => {
-      console.error('[auth] getSession failed:', err);
+    }).catch((err: any) => {
+      console.error('[auth] getSession failed or timed out:', err);
+      clearTimeout(safetyTimer);
       setLoading(false);
     });
 
@@ -165,7 +181,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(safetyTimer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const register = async (email: string, password: string, firstName: string, lastName: string, lang?: string, referralCode?: string): Promise<RegisterResult> => {
