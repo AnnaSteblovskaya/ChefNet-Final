@@ -28,7 +28,8 @@ A multilingual investor landing page for ChefNet, an AI-powered restaurant/food 
 - Route: `/admin` (SPA, no server-side routing needed)
 - Auth: Uses Supabase session + `is_admin` flag in profiles table
 - Bootstrap: `POST /api/admin-bootstrap` with `ADMIN_BOOTSTRAP_SECRET` env var to grant first admin
-- Sections: Overview stats, Users, Investments (confirm/reject), Rounds, KYC, Partners, News, Documents, Content
+- Theme: Full light/SaaS theme — white sidebar, gray-50 background, amber-500 accent buttons, white cards with gray-200 borders
+- All 15 sections converted to light theme: Dashboard, Users, Payments, Notifications, Settings, FAQ, Templates, Documents, KYC, Investments, Rounds, Partners, News, Content, Wallets, Bonuses
 - All admin API routes under `/api/admin/*` require valid JWT + is_admin=true
 
 ### Server

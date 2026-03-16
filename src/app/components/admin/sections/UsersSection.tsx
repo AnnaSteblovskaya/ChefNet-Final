@@ -7,13 +7,23 @@ interface User {
   total_shares: number; total_amount: number; kyc_status: string;
 }
 
+const KYC_STYLES: Record<string, string> = {
+  verified:    'bg-green-50 text-green-700 border-green-200',
+  pending:     'bg-yellow-50 text-yellow-700 border-yellow-200',
+  rejected:    'bg-red-50 text-red-600 border-red-200',
+  not_started: 'bg-gray-50 text-gray-500 border-gray-200',
+};
+
 export default function UsersSection() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [saving, setSaving] = useState<string | null>(null);
 
-  const load = () => { setLoading(true); adminApi.users.list().then(d => { setUsers(d); setLoading(false); }).catch(() => setLoading(false)); };
+  const load = () => {
+    setLoading(true);
+    adminApi.users.list().then(d => { setUsers(d); setLoading(false); }).catch(() => setLoading(false));
+  };
   useEffect(load, []);
 
   const toggle = async (user: User, field: 'is_admin' | 'email_verified') => {
@@ -30,68 +40,99 @@ export default function UsersSection() {
     setUsers(u => u.filter(x => x.id !== id));
   };
 
-  const filtered = users.filter(u => u.email?.toLowerCase().includes(search.toLowerCase()) || u.full_name?.toLowerCase().includes(search.toLowerCase()));
-
-  const kycBadge = (s: string) => {
-    const m: Record<string, string> = { verified: 'bg-green-500/20 text-green-400', pending: 'bg-yellow-500/20 text-yellow-400', rejected: 'bg-red-500/20 text-red-400' };
-    return m[s] || 'bg-white/10 text-white/40';
-  };
+  const filtered = users.filter(u =>
+    u.email?.toLowerCase().includes(search.toLowerCase()) ||
+    u.full_name?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-white">Пользователи <span className="text-white/40 text-lg">({users.length})</span></h2>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск по email / имени..." className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white text-sm w-64 focus:outline-none focus:border-[#D4522A]" />
+      <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
+        <h1 className="text-2xl font-bold text-gray-900">Users <span className="text-gray-400 font-normal text-xl">({users.length})</span></h1>
       </div>
 
-      {loading ? <div className="flex justify-center p-8"><div className="w-8 h-8 border-4 border-[#D4522A] border-t-transparent rounded-full animate-spin" /></div> : (
-        <div className="overflow-x-auto rounded-2xl border border-white/10">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-white/5 text-white/50">
-                <th className="text-left p-3">Email / Имя</th>
-                <th className="text-left p-3">Страна</th>
-                <th className="text-right p-3">Акции</th>
-                <th className="text-center p-3">Email ✓</th>
-                <th className="text-center p-3">KYC</th>
-                <th className="text-center p-3">Админ</th>
-                <th className="text-left p-3">Дата</th>
-                <th className="p-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((u, i) => (
-                <tr key={u.id} className={`border-t border-white/5 ${i % 2 === 0 ? 'bg-white/[0.02]' : ''}`}>
-                  <td className="p-3">
-                    <div className="text-white font-medium">{u.email}</div>
-                    <div className="text-white/40 text-xs">{u.full_name || '—'}</div>
-                  </td>
-                  <td className="p-3 text-white/60">{u.country || '—'}</td>
-                  <td className="p-3 text-right text-white font-mono">{Number(u.total_shares || 0).toLocaleString()}</td>
-                  <td className="p-3 text-center">
-                    <button onClick={() => toggle(u, 'email_verified')} disabled={saving === u.id + 'email_verified'} className={`px-2 py-1 rounded-lg text-xs font-medium transition ${u.email_verified ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                      {u.email_verified ? 'Да' : 'Нет'}
-                    </button>
-                  </td>
-                  <td className="p-3 text-center">
-                    <span className={`px-2 py-1 rounded-lg text-xs font-medium ${kycBadge(u.kyc_status)}`}>{u.kyc_status || '—'}</span>
-                  </td>
-                  <td className="p-3 text-center">
-                    <button onClick={() => toggle(u, 'is_admin')} disabled={saving === u.id + 'is_admin'} className={`px-2 py-1 rounded-lg text-xs font-medium transition ${u.is_admin ? 'bg-[#D4522A]/30 text-[#D4522A]' : 'bg-white/5 text-white/40'}`}>
-                      {u.is_admin ? 'Да' : 'Нет'}
-                    </button>
-                  </td>
-                  <td className="p-3 text-white/40 text-xs">{new Date(u.created_at).toLocaleDateString('ru')}</td>
-                  <td className="p-3">
-                    <button onClick={() => remove(u.id)} className="text-red-400/60 hover:text-red-400 transition text-xs">✕</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filtered.length === 0 && <div className="text-center text-white/40 py-8">Нет пользователей</div>}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 gap-3 flex-wrap">
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by email or name..."
+              className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-orange-400 w-64" />
+          </div>
         </div>
-      )}
+
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-8 h-8 border-[3px] border-amber-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[800px] text-sm">
+              <thead>
+                <tr className="border-b border-gray-100">
+                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">User</th>
+                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Country</th>
+                  <th className="text-right px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Shares</th>
+                  <th className="text-center px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Email</th>
+                  <th className="text-center px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">KYC</th>
+                  <th className="text-center px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Admin</th>
+                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Joined</th>
+                  <th className="px-5 py-3" />
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(u => (
+                  <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                    <td className="px-5 py-3.5">
+                      <div className="font-medium text-gray-900">{u.email}</div>
+                      <div className="text-xs text-gray-400 mt-0.5">{u.full_name || '—'}</div>
+                    </td>
+                    <td className="px-5 py-3.5 text-gray-600">{u.country || '—'}</td>
+                    <td className="px-5 py-3.5 text-right font-semibold text-gray-900 font-mono">{Number(u.total_shares || 0).toLocaleString()}</td>
+                    <td className="px-5 py-3.5 text-center">
+                      <button onClick={() => toggle(u, 'email_verified')} disabled={saving === u.id + 'email_verified'}
+                        className={`px-2.5 py-1 rounded-full border text-xs font-medium transition ${u.email_verified ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-600 border-red-200'}`}>
+                        {u.email_verified ? 'Yes' : 'No'}
+                      </button>
+                    </td>
+                    <td className="px-5 py-3.5 text-center">
+                      <span className={`px-2.5 py-1 rounded-full border text-xs font-medium ${KYC_STYLES[u.kyc_status] || 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                        {u.kyc_status || '—'}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3.5 text-center">
+                      <button onClick={() => toggle(u, 'is_admin')} disabled={saving === u.id + 'is_admin'}
+                        className={`px-2.5 py-1 rounded-full border text-xs font-medium transition ${u.is_admin ? 'bg-orange-50 text-orange-600 border-orange-200' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
+                        {u.is_admin ? 'Yes' : 'No'}
+                      </button>
+                    </td>
+                    <td className="px-5 py-3.5 text-gray-400 text-xs">
+                      {u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}
+                    </td>
+                    <td className="px-5 py-3.5">
+                      <button onClick={() => remove(u.id)} className="text-xs text-red-500 hover:text-red-700 transition">Delete</button>
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={8}>
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                      </div>
+                      <p className="text-sm text-gray-500">No users</p>
+                    </div>
+                  </td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {!loading && filtered.length > 0 && (
+          <div className="px-5 py-3 border-t border-gray-100 text-xs text-gray-400">
+            Showing {filtered.length} of {users.length} users
+          </div>
+        )}
+      </div>
     </div>
   );
 }

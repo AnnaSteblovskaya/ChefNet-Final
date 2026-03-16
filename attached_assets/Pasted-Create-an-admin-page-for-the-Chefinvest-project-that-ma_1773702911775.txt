@@ -1,0 +1,78 @@
+Create an admin page for the Chefinvest project that matches the provided Bonuses page screenshot as closely as possible.
+
+Build a clean light SaaS admin dashboard page with the following structure:
+
+- top white header with the text "Chefinvest" on the left
+- left vertical sidebar navigation
+- main content area on the right
+
+Sidebar menu items:
+Dashboard
+Settings
+Bonuses
+Documents
+Notifications
+Payments
+Questions
+Rounds
+Templates
+Users
+Verifications
+Wallets
+
+The active menu item must be "Bonuses" with:
+- light gray rounded background
+- orange icon
+- orange text
+
+Main content area:
+- breadcrumbs: "Bonuses > List"
+- large page title: "Bonuses"
+- top-right action buttons:
+  1. Export to CSV
+  2. New bonus
+
+Button style:
+- warm yellow-orange background
+- dark text
+- rounded corners
+- clean modern admin dashboard style
+
+Below that, create one large white rounded card with a subtle light gray border.
+
+Inside the card:
+- top-right search input with search icon and placeholder "Search"
+- a small gray layout/view icon next to the search input
+- table header row with columns:
+  ID
+  Amount
+  Shares
+  Referrer
+  Referral
+  Payment
+
+Add sort chevrons/icons for Amount and Shares.
+
+Do not render table rows because the page is empty.
+Instead, show a centered empty state inside the card:
+- light gray circular icon with an X or neutral empty symbol
+- text below it: "No bonuses"
+
+Design requirements:
+- light gray page background
+- white cards
+- very subtle borders
+- minimal shadows or no shadows
+- soft rounded corners
+- dark heading text
+- muted gray secondary text
+- premium clean CRM/SaaS admin style
+- spacing and proportions should closely match the screenshot
+
+Technical requirements:
+- reuse existing layout/components if available
+- keep the code clean and component-based
+- integrate the page into the current routing/navigation
+- prepare the table to accept real data later, but use an empty array for now
+- prioritize desktop layout matching the screenshot
+- add reasonable responsive behavior for tablet/mobile
