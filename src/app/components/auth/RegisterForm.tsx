@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Mail, Lock, User, AlertCircle, CheckCircle, Eye, EyeOff, MailCheck, RefreshCw } from 'lucide-react';
+import { Mail, Lock, User, AlertCircle, CheckCircle, Eye, EyeOff, MailCheck, RefreshCw, UserPlus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 
@@ -263,8 +263,31 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
     );
   }
 
+  const referralBannerText: Record<string, string> = {
+    ru: 'Вы регистрируетесь по приглашению партнёра',
+    en: 'You are registering via partner invitation',
+    de: 'Sie registrieren sich über eine Partnereinladung',
+    es: 'Te estás registrando mediante invitación de socio',
+    tr: 'Ortak daveti ile kayıt oluyorsunuz',
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {/* Referral code banner */}
+      {referralCode && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-orange-50 border border-orange-200 px-4 py-3 rounded-xl flex items-center gap-3"
+        >
+          <UserPlus className="w-5 h-5 text-[#D4522A] flex-shrink-0" />
+          <div className="min-w-0">
+            <p className="text-xs text-gray-500">{referralBannerText[language] || referralBannerText.en}</p>
+            <p className="text-sm font-bold text-[#D4522A] tracking-wider">{referralCode}</p>
+          </div>
+        </motion.div>
+      )}
+
       {/* Error message */}
       {error && (
         <motion.div

@@ -10,9 +10,11 @@ import MobileMenu from '@/app/components/MobileMenu';
 
 interface StickyNavigationProps {
   onGoToDashboard: () => void;
+  autoOpenRegister?: boolean;
+  onAutoOpenHandled?: () => void;
 }
 
-export default function StickyNavigation({ onGoToDashboard }: StickyNavigationProps) {
+export default function StickyNavigation({ onGoToDashboard, autoOpenRegister, onAutoOpenHandled }: StickyNavigationProps) {
   const { language } = useLanguage();
   const { isAuthenticated } = useAuth();
   const t = translations[language];
@@ -49,6 +51,15 @@ export default function StickyNavigation({ onGoToDashboard }: StickyNavigationPr
       observer.disconnect();
     };
   }, []);
+
+  // Auto-open register modal when coming from referral link
+  useEffect(() => {
+    if (autoOpenRegister && !isAuthenticated) {
+      setAuthMode('register');
+      setAuthModalOpen(true);
+      onAutoOpenHandled?.();
+    }
+  }, [autoOpenRegister]);
 
   const handleLoginClick = () => {
     if (isAuthenticated) {

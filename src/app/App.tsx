@@ -71,6 +71,7 @@ function AppContent() {
   const [resendSent, setResendSent] = useState(false);
   const [showResendInput, setShowResendInput] = useState(false);
   const [resetToken, setResetToken] = useState<string | null>(null);
+  const [autoOpenRegister, setAutoOpenRegister] = useState(false);
   const resendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -78,6 +79,10 @@ function AppContent() {
     const ref = params.get('ref');
     if (ref && /^CHEF-[A-Z0-9]{6}$/i.test(ref)) {
       localStorage.setItem('chefnet_referral_code', ref.toUpperCase());
+      if (!isAuthenticated) {
+        setAutoOpenRegister(true);
+      }
+      window.history.replaceState({}, '', window.location.pathname);
     }
     if (params.get('verified') === 'true') {
       setVerifiedBanner(true);
@@ -201,7 +206,7 @@ function AppContent() {
           </div>
         </div>
       )}
-      <StickyNavigation onGoToDashboard={() => setShowDashboard(true)} />
+      <StickyNavigation onGoToDashboard={() => setShowDashboard(true)} autoOpenRegister={autoOpenRegister} onAutoOpenHandled={() => setAutoOpenRegister(false)} />
       <HeroSection key={language} onGoToDashboard={() => setShowDashboard(true)} />
       <UniqueFeaturesSection />
       <OpportunitiesSection />
