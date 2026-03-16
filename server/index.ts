@@ -99,6 +99,41 @@ async function ensureDbSchema() {
   } catch (err: any) {
     console.error('[db-init] Referral backfill failed:', err.message);
   }
+  // Backfill full_name from Supabase auth metadata for profiles where it is null
+  try {
+    const nullNames = await pool.query(
+      `SELECT id FROM profiles WHERE full_name IS NULL OR full_name = ''`
+    );
+    if (nullNames.rows.length > 0) {
+      let updated = 0;
+      for (const row of nullNames.rows) {
+        try {
+          const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${row.id}`, {
+            headers: {
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'apikey': SUPABASE_SERVICE_ROLE_KEY,
+            },
+          });
+          if (authRes.ok) {
+            const authUser = await authRes.json();
+            const firstName = authUser.user_metadata?.firstName || '';
+            const lastName = authUser.user_metadata?.lastName || '';
+            const combinedName = `${firstName} ${lastName}`.trim();
+            if (combinedName) {
+              await pool.query(
+                'UPDATE profiles SET full_name = $1 WHERE id = $2',
+                [combinedName, row.id]
+              );
+              updated++;
+            }
+          }
+        } catch (_e) { /* skip individual failures */ }
+      }
+      if (updated > 0) console.log(`[db-init] Backfilled full_name for ${updated} profile(s)`);
+    }
+  } catch (err: any) {
+    console.error('[db-init] full_name backfill failed:', err.message);
+  }
   console.log('[db-init] Schema check complete');
 }
 
@@ -115,7 +150,7 @@ app.get('/api/referrer-name', async (req, res) => {
   }
   try {
     const result = await pool.query(
-      `SELECT full_name FROM profiles
+      `SELECT id, full_name FROM profiles
        WHERE 'CHEF-' || UPPER(SUBSTRING(REPLACE(id::text, '-', ''), 1, 6)) = $1
        LIMIT 1`,
       [code.toUpperCase()]
@@ -124,8 +159,39 @@ app.get('/api/referrer-name', async (req, res) => {
       res.status(404).json({ error: 'Not found' });
       return;
     }
-    const name = result.rows[0].full_name || null;
-    res.json({ name });
+    const { id: userId, full_name } = result.rows[0];
+    // If full_name is already set, return it directly
+    if (full_name && full_name.trim()) {
+      res.json({ name: full_name.trim() });
+      return;
+    }
+    // Otherwise fetch from Supabase auth metadata (firstName + lastName stored at registration)
+    try {
+      const authRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${userId}`, {
+        headers: {
+          'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+          'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        },
+      });
+      if (authRes.ok) {
+        const authUser = await authRes.json();
+        const firstName = authUser.user_metadata?.firstName || '';
+        const lastName = authUser.user_metadata?.lastName || '';
+        const combinedName = `${firstName} ${lastName}`.trim();
+        if (combinedName) {
+          // Backfill full_name in profiles so future lookups are fast
+          await pool.query(
+            'UPDATE profiles SET full_name = $1 WHERE id = $2',
+            [combinedName, userId]
+          );
+          res.json({ name: combinedName });
+          return;
+        }
+      }
+    } catch (_e) {
+      // Auth lookup failed, fall through to null
+    }
+    res.json({ name: null });
   } catch (err) {
     console.error('Error fetching referrer name:', err);
     res.status(500).json({ error: 'Internal server error' });
