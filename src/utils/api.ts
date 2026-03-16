@@ -2,12 +2,22 @@ import { getSupabaseClient } from '@/utils/supabase/client';
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const supabase = getSupabaseClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session?.access_token) {
-    return {
-      'Authorization': `Bearer ${session.access_token}`,
-      'Content-Type': 'application/json',
-    };
+  try {
+    const sessionResult = await Promise.race([
+      supabase.auth.getSession(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('getSession timeout')), 5000)
+      ),
+    ]);
+    const session = (sessionResult as any)?.data?.session;
+    if (session?.access_token) {
+      return {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      };
+    }
+  } catch {
+    // timeout or error — proceed without auth header
   }
   return { 'Content-Type': 'application/json' };
 }

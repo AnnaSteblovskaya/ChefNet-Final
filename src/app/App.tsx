@@ -79,9 +79,10 @@ function AppContent() {
     const ref = params.get('ref');
     if (ref && /^CHEF-[A-Z0-9]{6}$/i.test(ref)) {
       localStorage.setItem('chefnet_referral_code', ref.toUpperCase());
-      if (!isAuthenticated) {
-        setAutoOpenRegister(true);
-      }
+      // Set a one-time flag so StickyNavigation opens the register modal
+      // regardless of auth loading timing
+      localStorage.setItem('chefnet_referral_open_modal', '1');
+      setAutoOpenRegister(true);
       window.history.replaceState({}, '', window.location.pathname);
     }
     if (params.get('verified') === 'true') {

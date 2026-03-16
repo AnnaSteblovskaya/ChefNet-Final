@@ -52,14 +52,20 @@ export default function StickyNavigation({ onGoToDashboard, autoOpenRegister, on
     };
   }, []);
 
-  // Auto-open register modal when coming from referral link
+  // Auto-open register modal when coming from referral link.
+  // We check a one-time flag in localStorage so the modal opens reliably
+  // even if the prop arrives after auth loading completes.
   useEffect(() => {
-    if (autoOpenRegister && !isAuthenticated) {
-      setAuthMode('register');
-      setAuthModalOpen(true);
-      onAutoOpenHandled?.();
+    if (!isAuthenticated) {
+      const shouldOpen = autoOpenRegister || localStorage.getItem('chefnet_referral_open_modal') === '1';
+      if (shouldOpen) {
+        localStorage.removeItem('chefnet_referral_open_modal');
+        setAuthMode('register');
+        setAuthModalOpen(true);
+        onAutoOpenHandled?.();
+      }
     }
-  }, [autoOpenRegister]);
+  }, [autoOpenRegister, isAuthenticated]);
 
   const handleLoginClick = () => {
     if (isAuthenticated) {
