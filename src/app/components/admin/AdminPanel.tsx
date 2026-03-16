@@ -16,25 +16,6 @@ import NotificationsSection from './sections/NotificationsSection';
 import SettingsSection from './sections/SettingsSection';
 import TemplatesSection from './sections/TemplatesSection';
 import BonusesSection from './sections/BonusesSection';
-import WalletsSection from './sections/WalletsSection';
-
-function Icon({ name }: { name: string }) {
-  const icons: Record<string, JSX.Element> = {
-    dashboard: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" strokeWidth="1.8"/><rect x="14" y="3" width="7" height="7" rx="1" strokeWidth="1.8"/><rect x="3" y="14" width="7" height="7" rx="1" strokeWidth="1.8"/><rect x="14" y="14" width="7" height="7" rx="1" strokeWidth="1.8"/></svg>,
-    settings: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" strokeWidth="1.8"/></svg>,
-    bonuses: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"/></svg>,
-    documents: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>,
-    notifications: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>,
-    payments: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2" strokeWidth="1.8"/><path strokeLinecap="round" strokeWidth="1.8" d="M2 10h20"/></svg>,
-    questions: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>,
-    rounds: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>,
-    templates: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm0 8a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zm12 0a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/></svg>,
-    users: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>,
-    verifications: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>,
-    wallets: <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>,
-  };
-  return icons[name] || <span className="w-4 h-4 block" />;
-}
 
 function AdminLoginForm({ onSuccess, onExit }: { onSuccess: () => void; onExit: () => void }) {
   const [email, setEmail] = useState('');
@@ -55,35 +36,33 @@ function AdminLoginForm({ onSuccess, onExit }: { onSuccess: () => void; onExit: 
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#0d0d1a] flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="text-2xl font-bold text-gray-900 mb-1">Chefinvest</div>
-          <div className="text-gray-500 text-sm">Войдите для доступа к панели</div>
+          <div className="text-2xl font-bold text-white mb-1">ChefNet Admin</div>
+          <div className="text-white/40 text-sm">Войдите для доступа к панели</div>
         </div>
-        <div className="bg-white border border-gray-200 rounded-2xl p-8">
-          <form onSubmit={submit} className="space-y-4">
-            <input
-              type="email" placeholder="Email" value={email}
-              onChange={e => setEmail(e.target.value)} required
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-orange-400 text-sm"
-            />
-            <input
-              type="password" placeholder="Пароль" value={password}
-              onChange={e => setPassword(e.target.value)} required
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:border-orange-400 text-sm"
-            />
-            {error && <div className="text-red-500 text-sm text-center">{error}</div>}
-            <button type="submit" disabled={loading}
-              className="w-full bg-amber-500 hover:bg-amber-600 text-white py-3 rounded-xl font-semibold disabled:opacity-50 transition text-sm">
-              {loading ? 'Вход...' : 'Войти'}
-            </button>
-            <button type="button" onClick={onExit}
-              className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 py-2.5 rounded-xl text-sm transition">
-              На сайт
-            </button>
-          </form>
-        </div>
+        <form onSubmit={submit} className="space-y-4">
+          <input
+            type="email" placeholder="Email" value={email}
+            onChange={e => setEmail(e.target.value)} required
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#D4522A]"
+          />
+          <input
+            type="password" placeholder="Пароль" value={password}
+            onChange={e => setPassword(e.target.value)} required
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#D4522A]"
+          />
+          {error && <div className="text-red-400 text-sm text-center">{error}</div>}
+          <button type="submit" disabled={loading}
+            className="w-full bg-[#D4522A] text-white py-3 rounded-xl font-semibold disabled:opacity-50">
+            {loading ? 'Вход...' : 'Войти'}
+          </button>
+          <button type="button" onClick={onExit}
+            className="w-full bg-white/5 text-white/50 py-2 rounded-xl text-sm">
+            На сайт
+          </button>
+        </form>
       </div>
     </div>
   );
@@ -110,47 +89,48 @@ function BootstrapScreen({ email, onSuccess, onExit }: { email: string; onSucces
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="bg-white border border-gray-200 rounded-2xl p-8 w-full max-w-sm text-center shadow-sm">
-        <div className="w-14 h-14 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-4">
-          <svg className="w-7 h-7 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
-        </div>
-        <h2 className="text-gray-900 text-xl font-bold mb-1">Нет прав администратора</h2>
-        <p className="text-gray-500 text-sm mb-6">Аккаунт: {email}<br />Введите секретный ключ</p>
-        <input type="password" value={secret} onChange={e => setSecret(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && submit()}
-          placeholder="Секретный ключ..."
-          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-gray-900 text-sm focus:outline-none focus:border-orange-400 mb-3" />
-        {error && <p className="text-red-500 text-sm mb-3">{error}</p>}
-        <button onClick={submit} disabled={loading || !secret}
-          className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-50 text-white py-3 rounded-xl text-sm font-medium transition mb-2">
-          {loading ? 'Проверка...' : 'Получить доступ'}
-        </button>
-        <button onClick={onExit} className="w-full bg-gray-100 hover:bg-gray-200 text-gray-600 py-2.5 rounded-xl text-sm transition">← Вернуться на сайт</button>
+    <div className="min-h-screen bg-[#0d0d1a] flex items-center justify-center p-4">
+      <div className="bg-[#11111f] border border-white/10 rounded-2xl p-8 w-full max-w-sm text-center">
+        <div className="text-5xl mb-4">🔑</div>
+        <h2 className="text-white text-xl font-bold mb-1">Нет прав администратора</h2>
+        <p className="text-white/40 text-sm mb-6">Аккаунт: {email}<br />Введите секретный ключ администратора</p>
+        <input type="password" value={secret} onChange={e => setSecret(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} placeholder="Секретный ключ..." className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-[#D4522A] mb-3" />
+        {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
+        <button onClick={submit} disabled={loading || !secret} className="w-full bg-[#D4522A] hover:bg-[#c04520] disabled:opacity-50 text-white py-3 rounded-xl text-sm font-medium transition mb-2">{loading ? 'Проверка...' : 'Получить доступ'}</button>
+        <button onClick={onExit} className="w-full bg-white/5 hover:bg-white/10 text-white/50 py-2 rounded-xl text-sm transition">← Вернуться на сайт</button>
       </div>
     </div>
   );
 }
 
-type Section = 'overview' | 'settings' | 'bonuses' | 'documents' | 'notifications' | 'payments' | 'faq' | 'rounds' | 'templates' | 'users' | 'kyc' | 'wallets' | 'investments' | 'partners' | 'news' | 'content';
+type Section = 'overview' | 'users' | 'investments' | 'rounds' | 'kyc' | 'partners' | 'news' | 'documents' | 'content' | 'faq' | 'payments' | 'notifications' | 'settings' | 'templates' | 'bonuses';
 
 const NAV: Array<{ id: Section; label: string; icon: string }> = [
-  { id: 'overview',       label: 'Dashboard',      icon: 'dashboard' },
-  { id: 'settings',       label: 'Settings',       icon: 'settings' },
-  { id: 'bonuses',        label: 'Bonuses',        icon: 'bonuses' },
-  { id: 'documents',      label: 'Documents',      icon: 'documents' },
-  { id: 'notifications',  label: 'Notifications',  icon: 'notifications' },
-  { id: 'payments',       label: 'Payments',       icon: 'payments' },
-  { id: 'faq',            label: 'Questions',      icon: 'questions' },
-  { id: 'rounds',         label: 'Rounds',         icon: 'rounds' },
-  { id: 'templates',      label: 'Templates',      icon: 'templates' },
-  { id: 'users',          label: 'Users',          icon: 'users' },
-  { id: 'kyc',            label: 'Verifications',  icon: 'verifications' },
-  { id: 'wallets',        label: 'Wallets',        icon: 'wallets' },
+  { id: 'overview',       label: 'Обзор',          icon: '📊' },
+  { id: 'settings',       label: 'Настройки',      icon: '⚙️' },
+  { id: 'bonuses',        label: 'Бонусы',         icon: '🎁' },
+  { id: 'documents',      label: 'Документы',      icon: '📄' },
+  { id: 'notifications',  label: 'Уведомления',    icon: '🔔' },
+  { id: 'payments',       label: 'Платежи',        icon: '💳' },
+  { id: 'faq',            label: 'Вопросы',        icon: '❓' },
+  { id: 'rounds',         label: 'Раунды',         icon: '🎯' },
+  { id: 'templates',      label: 'Шаблоны',        icon: '📝' },
+  { id: 'users',          label: 'Пользователи',   icon: '👥' },
+  { id: 'kyc',            label: 'Верификации',    icon: '✅' },
+  { id: 'investments',    label: 'Инвестиции',     icon: '💰' },
+  { id: 'partners',       label: 'Партнёры',       icon: '🤝' },
+  { id: 'news',           label: 'Новости',        icon: '📰' },
+  { id: 'content',        label: 'Контент',        icon: '✏️' },
 ];
 
-interface Props { onExit: () => void; }
-interface SessionInfo { access_token: string; email: string; }
+interface Props {
+  onExit: () => void;
+}
+
+interface SessionInfo {
+  access_token: string;
+  email: string;
+}
 
 export default function AdminPanel({ onExit }: Props) {
   const [session, setSession] = useState<SessionInfo | null>(null);
@@ -161,16 +141,26 @@ export default function AdminPanel({ onExit }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const checkAdmin = async () => {
-    setChecking(true); setCheckError(false);
+    setChecking(true);
+    setCheckError(false);
+
     const controller = new AbortController();
     const globalTimeout = setTimeout(() => controller.abort(), 15000);
+
     try {
+      // 1. Read session from localStorage — instant, no network call
       let token: string | null = null;
       let email = '';
       try {
         const raw = localStorage.getItem('sb-sdwlngwkeipgwelzxfai-auth-token');
-        if (raw) { const stored = JSON.parse(raw); token = stored?.access_token ?? null; email = stored?.user?.email ?? ''; }
+        if (raw) {
+          const stored = JSON.parse(raw);
+          token = stored?.access_token ?? null;
+          email = stored?.user?.email ?? '';
+        }
       } catch {}
+
+      // 2. Fallback: ask Supabase client with timeout
       if (!token) {
         try {
           const supabase = getSupabaseClient();
@@ -180,17 +170,28 @@ export default function AdminPanel({ onExit }: Props) {
           ]) as Awaited<ReturnType<typeof supabase.auth.getSession>>;
           token = sessionResult?.data?.session?.access_token ?? null;
           email = sessionResult?.data?.session?.user?.email ?? '';
-        } catch {}
+        } catch {
+          // session fetch failed or timed out — user not logged in
+        }
       }
+
       if (!token) { setChecking(false); clearTimeout(globalTimeout); return; }
+
       setSession({ access_token: token, email });
       injectToken(token);
-      const r = await fetch('/api/admin/stats', { headers: { Authorization: `Bearer ${token}` }, signal: controller.signal });
+
+      // 3. Check admin status on server
+      const r = await fetch('/api/admin/stats', {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: controller.signal,
+      });
       setIsAdmin(r.ok);
     } catch (err) {
-      console.error('[admin] check failed:', err); setCheckError(true);
+      console.error('[admin] check failed:', err);
+      setCheckError(true);
     } finally {
-      clearTimeout(globalTimeout); setChecking(false);
+      clearTimeout(globalTimeout);
+      setChecking(false);
     }
   };
 
@@ -202,30 +203,39 @@ export default function AdminPanel({ onExit }: Props) {
     onExit();
   };
 
-  if (checking) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-9 h-9 border-[3px] border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <div className="text-gray-400 text-sm">Проверка сессии...</div>
-      </div>
-    </div>
-  );
-
-  if (checkError) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="text-center bg-white border border-gray-200 rounded-2xl p-10 shadow-sm">
-        <div className="text-gray-900 text-xl font-bold mb-2">Ошибка подключения</div>
-        <div className="text-gray-500 text-sm mb-6">Сервер не отвечает. Попробуйте ещё раз.</div>
-        <div className="flex gap-3 justify-center">
-          <button onClick={checkAdmin} className="bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-xl text-sm transition">Повторить</button>
-          <button onClick={onExit} className="bg-gray-100 hover:bg-gray-200 text-gray-600 px-6 py-2 rounded-xl text-sm transition">На сайт</button>
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-[#0d0d1a] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-10 h-10 border-4 border-[#D4522A] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="text-white/40 text-sm">Проверка сессии...</div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 
-  if (!session) return <AdminLoginForm onSuccess={checkAdmin} onExit={onExit} />;
-  if (!isAdmin) return <BootstrapScreen email={session?.email || ''} onSuccess={() => setIsAdmin(true)} onExit={onExit} />;
+  if (checkError) {
+    return (
+      <div className="min-h-screen bg-[#0d0d1a] flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-white text-xl font-bold mb-2">Ошибка подключения</div>
+          <div className="text-white/50 text-sm mb-6">Сервер не отвечает. Попробуйте ещё раз.</div>
+          <div className="flex gap-3 justify-center">
+            <button onClick={checkAdmin} className="bg-[#D4522A] text-white px-6 py-2 rounded-xl">Повторить</button>
+            <button onClick={onExit} className="bg-white/10 text-white px-6 py-2 rounded-xl">На сайт</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!session) {
+    return <AdminLoginForm onSuccess={checkAdmin} onExit={onExit} />;
+  }
+
+  if (!isAdmin) {
+    return <BootstrapScreen email={session?.email || ''} onSuccess={() => setIsAdmin(true)} onExit={onExit} />;
+  }
 
   const SectionComponent = {
     overview: OverviewSection, users: UsersSection, investments: InvestmentsSection,
@@ -233,48 +243,50 @@ export default function AdminPanel({ onExit }: Props) {
     news: NewsSection, documents: DocumentsSection, content: ContentSection,
     faq: FAQSection, payments: PaymentsSection, notifications: NotificationsSection,
     settings: SettingsSection, templates: TemplatesSection, bonuses: BonusesSection,
-    wallets: WalletsSection,
   }[section];
 
-  const activeNav = NAV.find(n => n.id === section);
-
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {sidebarOpen && <div className="fixed inset-0 bg-black/30 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
+    <div className="min-h-screen bg-[#0d0d1a] flex">
+      {/* Mobile overlay */}
+      {sidebarOpen && <div className="fixed inset-0 bg-black/60 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
       {/* Sidebar */}
-      <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-56 bg-white border-r border-gray-200 flex flex-col transform transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-        <div className="px-6 py-5 border-b border-gray-100">
-          <span className="text-gray-900 font-bold text-lg tracking-tight">Chefinvest</span>
+      <aside className={`fixed lg:static inset-y-0 left-0 z-40 w-64 bg-[#11111f] border-r border-white/5 flex flex-col transform transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        {/* Logo */}
+        <div className="p-6 border-b border-white/5">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-[#D4522A] to-[#E8744F] rounded-lg flex items-center justify-center text-white text-sm font-bold">A</div>
+            <div>
+              <div className="text-white font-bold text-sm">ChefNet</div>
+              <div className="text-white/40 text-xs">Admin Panel</div>
+            </div>
+          </div>
         </div>
 
-        <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-          {NAV.map(item => {
-            const active = section === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => { setSection(item.id); setSidebarOpen(false); }}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                  active
-                    ? 'bg-gray-100 text-orange-500'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
-              >
-                <span className={active ? 'text-orange-500' : 'text-gray-400'}>
-                  <Icon name={item.icon} />
-                </span>
-                {item.label}
-              </button>
-            );
-          })}
+        {/* Nav */}
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
+          {NAV.map(item => (
+            <button
+              key={item.id}
+              onClick={() => { setSection(item.id); setSidebarOpen(false); }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
+                section === item.id
+                  ? 'bg-[#D4522A]/20 text-[#E8744F]'
+                  : 'text-white/50 hover:bg-white/5 hover:text-white'
+              }`}
+            >
+              <span className="text-base">{item.icon}</span>
+              {item.label}
+            </button>
+          ))}
         </nav>
 
-        <div className="px-4 py-4 border-t border-gray-100">
-          <div className="text-gray-400 text-xs mb-2 truncate">{session?.email}</div>
+        {/* User */}
+        <div className="p-4 border-t border-white/5">
+          <div className="text-white/40 text-xs mb-1 truncate">{session?.email}</div>
           <div className="flex gap-2">
-            <button onClick={onExit} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs py-1.5 rounded-lg transition">← Сайт</button>
-            <button onClick={handleSignOut} className="flex-1 bg-gray-100 hover:bg-red-50 hover:text-red-500 text-gray-600 text-xs py-1.5 rounded-lg transition">Выйти</button>
+            <button onClick={onExit} className="flex-1 bg-white/5 hover:bg-white/10 text-white/60 text-xs py-1.5 rounded-lg transition">← Сайт</button>
+            <button onClick={handleSignOut} className="flex-1 bg-white/5 hover:bg-red-500/20 hover:text-red-400 text-white/60 text-xs py-1.5 rounded-lg transition">Выйти</button>
           </div>
         </div>
       </aside>
@@ -282,28 +294,19 @@ export default function AdminPanel({ onExit }: Props) {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar */}
-        <header className="bg-white border-b border-gray-200 px-6 h-14 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-gray-400 hover:text-gray-700">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-gray-900 flex items-center justify-center text-white text-xs font-semibold">
-              {(session?.email?.[0] ?? 'A').toUpperCase()}
-            </div>
+        <header className="bg-[#11111f] border-b border-white/5 px-6 py-4 flex items-center gap-4">
+          <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-white/60 hover:text-white">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+          </button>
+          <div className="flex items-center gap-2 text-white/40 text-sm">
+            <span>Admin</span>
+            <span>/</span>
+            <span className="text-white">{NAV.find(n => n.id === section)?.label}</span>
           </div>
         </header>
 
         {/* Content */}
         <main className="flex-1 p-6 overflow-y-auto">
-          {/* Breadcrumbs */}
-          <div className="flex items-center gap-1.5 text-sm text-gray-400 mb-3">
-            <span>{activeNav?.label ?? 'Dashboard'}</span>
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/></svg>
-            <span className="text-gray-600 font-medium">List</span>
-          </div>
-
           <SectionComponent />
         </main>
       </div>

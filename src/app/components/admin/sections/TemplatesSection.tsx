@@ -6,14 +6,6 @@ interface Template {
   subject_en: string; subject_ru: string; body_en: string; body_ru: string; sort_order: number;
 }
 
-function Toggle({ value, onChange }: { value: boolean; onChange: () => void }) {
-  return (
-    <button onClick={onChange} className={`w-10 h-6 rounded-full transition relative ${value ? 'bg-amber-500' : 'bg-gray-200'}`}>
-      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${value ? 'left-5' : 'left-1'}`} />
-    </button>
-  );
-}
-
 export default function TemplatesSection() {
   const [items, setItems] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,8 +22,11 @@ export default function TemplatesSection() {
   const toggleField = async (item: Template, field: 'email_enabled' | 'account_enabled') => {
     const updated = { ...item, [field]: !item[field] };
     setItems(prev => prev.map(i => i.id === item.id ? updated : i));
-    try { await adminApi.templates.update(item.id, updated); }
-    catch { setItems(prev => prev.map(i => i.id === item.id ? item : i)); }
+    try {
+      await adminApi.templates.update(item.id, updated);
+    } catch {
+      setItems(prev => prev.map(i => i.id === item.id ? item : i));
+    }
   };
 
   const save = async () => {
@@ -46,99 +41,87 @@ export default function TemplatesSection() {
 
   return (
     <div>
-      <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
-        <h1 className="text-2xl font-bold text-gray-900">Templates</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-white">Шаблоны уведомлений</h2>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-[3px] border-amber-500 border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[600px]">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Event</th>
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Email</th>
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">In-app</th>
-                  <th className="px-5 py-3" />
+      {loading ? (
+        <div className="flex justify-center p-8"><div className="w-8 h-8 border-4 border-[#D4522A] border-t-transparent rounded-full animate-spin" /></div>
+      ) : (
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+          <table className="w-full">
+            <thead><tr className="border-b border-white/10">
+              <th className="text-left px-4 py-3 text-white/50 text-xs font-medium">Шаблон (событие)</th>
+              <th className="text-left px-4 py-3 text-white/50 text-xs font-medium">Email-уведомление</th>
+              <th className="text-left px-4 py-3 text-white/50 text-xs font-medium">Уведомление в аккаунте</th>
+              <th className="px-4 py-3" />
+            </tr></thead>
+            <tbody>
+              {items.map(t => (
+                <tr key={t.id} className="border-b border-white/5 hover:bg-white/5">
+                  <td className="px-4 py-3 text-white text-sm">{t.event}</td>
+                  <td className="px-4 py-3">
+                    <button onClick={() => toggleField(t, 'email_enabled')} className="text-lg">
+                      {t.email_enabled ? <span className="text-green-400">✓</span> : <span className="text-red-400">✕</span>}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3">
+                    <button onClick={() => toggleField(t, 'account_enabled')} className="text-lg">
+                      {t.account_enabled ? <span className="text-green-400">✓</span> : <span className="text-red-400">✕</span>}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button onClick={() => { setEditing({ ...t }); setBodyLang('en'); }} className="text-white/50 hover:text-white text-xs px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition">Изменить</button>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {items.map(t => (
-                  <tr key={t.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-4 text-sm font-medium text-gray-900">{t.event}</td>
-                    <td className="px-5 py-4">
-                      <Toggle value={t.email_enabled} onChange={() => toggleField(t, 'email_enabled')} />
-                    </td>
-                    <td className="px-5 py-4">
-                      <Toggle value={t.account_enabled} onChange={() => toggleField(t, 'account_enabled')} />
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <button onClick={() => { setEditing({ ...t }); setBodyLang('en'); }}
-                        className="text-xs text-gray-500 hover:text-gray-700 px-2.5 py-1 rounded-lg border border-gray-200 hover:border-gray-300 transition">
-                        Edit
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {items.length === 0 && (
-                  <tr><td colSpan={4}>
-                    <div className="flex flex-col items-center justify-center py-16 text-center">
-                      <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                      </div>
-                      <p className="text-sm text-gray-500">No templates</p>
-                    </div>
-                  </td></tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+              ))}
+              {items.length === 0 && (
+                <tr><td colSpan={4} className="text-center text-white/40 py-8">Нет шаблонов</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {editing && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setEditing(null)}>
-          <div className="bg-white border border-gray-200 rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-gray-900 mb-4">{editing.event}</h3>
-            <div className="flex gap-5 mb-5">
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={() => setEditing(null)}>
+          <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-bold text-white mb-4">{editing.event}</h3>
+            <div className="flex gap-4 mb-4">
               <label className="flex items-center gap-2 cursor-pointer">
-                <Toggle value={editing.email_enabled} onChange={() => setEditing(v => v && ({ ...v, email_enabled: !v.email_enabled }))} />
-                <span className="text-sm text-gray-700">Email notification</span>
+                <div onClick={() => setEditing(v => v && ({ ...v, email_enabled: !v.email_enabled }))} className={`w-10 h-6 rounded-full transition ${editing.email_enabled ? 'bg-[#D4522A]' : 'bg-white/20'} relative`}>
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editing.email_enabled ? 'left-5' : 'left-1'}`} />
+                </div>
+                <span className="text-white text-sm">Email-уведомление</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <Toggle value={editing.account_enabled} onChange={() => setEditing(v => v && ({ ...v, account_enabled: !v.account_enabled }))} />
-                <span className="text-sm text-gray-700">In-app notification</span>
+                <div onClick={() => setEditing(v => v && ({ ...v, account_enabled: !v.account_enabled }))} className={`w-10 h-6 rounded-full transition ${editing.account_enabled ? 'bg-[#D4522A]' : 'bg-white/20'} relative`}>
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${editing.account_enabled ? 'left-5' : 'left-1'}`} />
+                </div>
+                <span className="text-white text-sm">Уведомление в аккаунте</span>
               </label>
             </div>
-            <div className="flex gap-1.5 mb-4">
-              {(['en', 'ru'] as const).map(l => (
-                <button key={l} onClick={() => setBodyLang(l)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${bodyLang === l ? 'bg-amber-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                  {l === 'en' ? 'English' : 'Русский'}
-                </button>
-              ))}
+            <div className="flex gap-2 mb-4">
+              <button onClick={() => setBodyLang('en')} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${bodyLang === 'en' ? 'bg-[#D4522A] text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'}`}>English</button>
+              <button onClick={() => setBodyLang('ru')} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${bodyLang === 'ru' ? 'bg-[#D4522A] text-white' : 'bg-white/10 text-white/60 hover:bg-white/20'}`}>Русский</button>
             </div>
             <div className="space-y-3">
               <div>
-                <label className="text-xs font-medium text-gray-500 mb-1.5 block">Subject</label>
+                <label className="text-white/50 text-xs mb-1 block">Тема письма</label>
                 <input value={bodyLang === 'en' ? editing.subject_en || '' : editing.subject_ru || ''}
                   onChange={e => setEditing(v => v && ({ ...v, [`subject_${bodyLang}`]: e.target.value }))}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm focus:outline-none focus:border-orange-400" />
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-[#D4522A]" />
               </div>
               <div>
-                <label className="text-xs font-medium text-gray-500 mb-1.5 block">Body</label>
+                <label className="text-white/50 text-xs mb-1 block">Тело письма</label>
                 <textarea rows={8} value={bodyLang === 'en' ? editing.body_en || '' : editing.body_ru || ''}
                   onChange={e => setEditing(v => v && ({ ...v, [`body_${bodyLang}`]: e.target.value }))}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-gray-900 text-sm resize-none focus:outline-none focus:border-orange-400 font-mono" />
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm resize-none focus:outline-none focus:border-[#D4522A] font-mono" />
               </div>
             </div>
-            <div className="flex gap-2 mt-5">
-              <button onClick={save} disabled={saving} className="flex-1 bg-amber-500 hover:bg-amber-600 text-white py-2.5 rounded-lg text-sm font-medium transition disabled:opacity-50">{saving ? 'Saving...' : 'Save'}</button>
-              <button onClick={() => setEditing(null)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 py-2.5 rounded-lg text-sm transition">Cancel</button>
+            <div className="flex gap-2 mt-4">
+              <button onClick={save} disabled={saving} className="flex-1 bg-[#D4522A] hover:bg-[#c04520] text-white py-2 rounded-xl text-sm font-medium transition disabled:opacity-50">{saving ? 'Сохранение...' : 'Сохранить'}</button>
+              <button onClick={() => setEditing(null)} className="flex-1 bg-white/10 hover:bg-white/20 text-white py-2 rounded-xl text-sm transition">Отмена</button>
             </div>
           </div>
         </div>

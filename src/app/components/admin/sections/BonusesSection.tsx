@@ -8,31 +8,20 @@ interface Bonus {
   level: number; status: string;
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  pending: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-  paid:    'bg-green-50 text-green-700 border-green-200',
-  cancelled: 'bg-red-50 text-red-600 border-red-200',
+const STATUS_COLORS: Record<string, string> = {
+  pending: 'bg-yellow-500/20 text-yellow-400',
+  paid: 'bg-green-500/20 text-green-400',
+  cancelled: 'bg-red-500/20 text-red-400',
 };
-
-function SortIcon() {
-  return (
-    <svg className="w-3.5 h-3.5 ml-1 text-gray-400 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"/>
-    </svg>
-  );
-}
 
 export default function BonusesSection() {
   const [items, setItems] = useState<Bonus[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
   const [search, setSearch] = useState('');
 
   const load = () => {
-    setLoading(true); setError(false);
-    adminApi.bonuses.list()
-      .then(d => { setItems(d); setLoading(false); })
-      .catch(() => { setError(true); setLoading(false); });
+    setLoading(true);
+    adminApi.bonuses.list().then(d => { setItems(d); setLoading(false); }).catch(() => setLoading(false));
   };
   useEffect(load, []);
 
@@ -42,15 +31,12 @@ export default function BonusesSection() {
   };
 
   const filtered = items.filter(b =>
-    (b.referrer_email + b.referral_email + b.referrer_name + b.referral_name)
-      .toLowerCase().includes(search.toLowerCase())
+    (b.referrer_email + b.referral_email + b.referrer_name + b.referral_name).toLowerCase().includes(search.toLowerCase())
   );
 
   const exportCSV = () => {
-    const rows = [
-      ['ID', 'Amount', 'Shares', 'Referrer', 'Referral', 'Status', 'Date'],
-      ...items.map(b => [b.id, b.amount, b.shares, b.referrer_email, b.referral_email, b.status, b.created_at]),
-    ];
+    const rows = [['ID', 'Amount', 'Shares', 'Referrer', 'Referral', 'Status', 'Date'],
+      ...items.map(b => [b.id, b.amount, b.shares, b.referrer_email, b.referral_email, b.status, b.created_at])];
     const csv = rows.map(r => r.join(',')).join('\n');
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
@@ -60,121 +46,53 @@ export default function BonusesSection() {
 
   return (
     <div>
-      {/* Page header */}
-      <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
-        <h1 className="text-2xl font-bold text-gray-900">Bonuses</h1>
-        <div className="flex items-center gap-2">
-          <button onClick={exportCSV}
-            className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-            Export to CSV
-          </button>
-          <button className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg>
-            New bonus
-          </button>
-        </div>
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <h2 className="text-2xl font-bold text-white">Бонусы</h2>
+        <button onClick={exportCSV} className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl text-sm font-medium transition">↓ Экспорт CSV</button>
+      </div>
+      <div className="mb-4">
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск по email..." className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white text-sm w-64 focus:outline-none focus:border-[#D4522A]" />
       </div>
 
-      {/* Card */}
-      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        {/* Card toolbar */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 gap-3 flex-wrap">
-          <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search"
-              className="pl-9 pr-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:border-orange-400 w-56"
-            />
-          </div>
-          <button className="p-2 border border-gray-200 rounded-lg text-gray-400 hover:text-gray-600 hover:border-gray-300 transition">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
-          </button>
-        </div>
-
-        {/* Loading */}
-        {loading && (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-[3px] border-amber-500 border-t-transparent rounded-full animate-spin" />
-          </div>
-        )}
-
-        {/* Error */}
-        {!loading && error && (
-          <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mb-3">
-              <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-            </div>
-            <p className="text-sm text-gray-500 mb-4">Failed to load bonuses</p>
-            <button onClick={load} className="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-1.5 rounded-lg transition">Try again</button>
-          </div>
-        )}
-
-        {/* Table */}
-        {!loading && !error && (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[700px]">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">ID</th>
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide cursor-pointer hover:text-gray-600 select-none">
-                    Amount <SortIcon />
-                  </th>
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide cursor-pointer hover:text-gray-600 select-none">
-                    Shares <SortIcon />
-                  </th>
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Referrer</th>
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Referral</th>
-                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-400 uppercase tracking-wide">Payment</th>
+      {loading ? (
+        <div className="flex justify-center p-8"><div className="w-8 h-8 border-4 border-[#D4522A] border-t-transparent rounded-full animate-spin" /></div>
+      ) : (
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden overflow-x-auto">
+          <table className="w-full min-w-[800px]">
+            <thead><tr className="border-b border-white/10">
+              <th className="text-left px-4 py-3 text-white/50 text-xs font-medium">ID</th>
+              <th className="text-left px-4 py-3 text-white/50 text-xs font-medium">Сумма</th>
+              <th className="text-left px-4 py-3 text-white/50 text-xs font-medium">Акции</th>
+              <th className="text-left px-4 py-3 text-white/50 text-xs font-medium">Реферер</th>
+              <th className="text-left px-4 py-3 text-white/50 text-xs font-medium">Реферал</th>
+              <th className="text-left px-4 py-3 text-white/50 text-xs font-medium">Статус</th>
+            </tr></thead>
+            <tbody>
+              {filtered.map(b => (
+                <tr key={b.id} className="border-b border-white/5 hover:bg-white/5">
+                  <td className="px-4 py-3 text-white/50 text-sm">{b.id}</td>
+                  <td className="px-4 py-3 text-white text-sm font-medium">${Number(b.amount || 0).toFixed(2)}</td>
+                  <td className="px-4 py-3 text-white/70 text-sm">{b.shares || 0}</td>
+                  <td className="px-4 py-3 text-white/70 text-sm">{b.referrer_email || '—'}</td>
+                  <td className="px-4 py-3 text-white/70 text-sm">{b.referral_email || '—'}</td>
+                  <td className="px-4 py-3">
+                    <select value={b.status || 'pending'} onChange={e => updateStatus(b.id, e.target.value)}
+                      className={`text-xs px-2 py-0.5 rounded-full border-0 ${STATUS_COLORS[b.status] || 'bg-white/10 text-white/50'} bg-transparent cursor-pointer`}>
+                      <option value="pending">pending</option>
+                      <option value="paid">paid</option>
+                      <option value="cancelled">cancelled</option>
+                    </select>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {filtered.map(b => (
-                  <tr key={b.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-3.5 text-xs text-gray-400">#{b.id}</td>
-                    <td className="px-5 py-3.5 text-sm font-semibold text-gray-900">${Number(b.amount || 0).toFixed(2)}</td>
-                    <td className="px-5 py-3.5 text-sm text-gray-600">{b.shares || 0}</td>
-                    <td className="px-5 py-3.5 text-sm text-gray-600">{b.referrer_email || '—'}</td>
-                    <td className="px-5 py-3.5 text-sm text-gray-600">{b.referral_email || '—'}</td>
-                    <td className="px-5 py-3.5">
-                      <select
-                        value={b.status || 'pending'}
-                        onChange={e => updateStatus(b.id, e.target.value)}
-                        className={`text-xs px-2.5 py-1 rounded-full border font-medium cursor-pointer focus:outline-none ${STATUS_STYLES[b.status] || 'bg-gray-50 text-gray-500 border-gray-200'}`}
-                      >
-                        <option value="pending">pending</option>
-                        <option value="paid">paid</option>
-                        <option value="cancelled">cancelled</option>
-                      </select>
-                    </td>
-                  </tr>
-                ))}
-
-                {filtered.length === 0 && (
-                  <tr>
-                    <td colSpan={6}>
-                      <div className="flex flex-col items-center justify-center py-16 text-center">
-                        <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-                          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        </div>
-                        <p className="text-sm text-gray-500">No bonuses</p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {!loading && !error && filtered.length > 0 && (
-          <div className="px-5 py-3 border-t border-gray-100 text-xs text-gray-400">
-            Showing {filtered.length} of {items.length} bonuses
-          </div>
-        )}
-      </div>
+              ))}
+              {filtered.length === 0 && (
+                <tr><td colSpan={6} className="text-center text-white/40 py-8">Нет бонусов</td></tr>
+              )}
+            </tbody>
+          </table>
+          {filtered.length > 0 && <div className="px-4 py-3 text-white/40 text-xs border-t border-white/10">Показано {filtered.length} из {items.length}</div>}
+        </div>
+      )}
     </div>
   );
 }
