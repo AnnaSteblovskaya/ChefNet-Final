@@ -14,6 +14,33 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL!;
 const SUPABASE_ANON_KEY = process.env.VITE_SUPABASE_ANON_KEY!;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
+const SUMSUB_APP_TOKEN = process.env.SUMSUB_APP_TOKEN || '';
+const SUMSUB_SECRET_KEY = process.env.SUMSUB_SECRET_KEY || '';
+const SUMSUB_BASE_URL = 'https://api.sumsub.com';
+const SUMSUB_LEVEL_NAME = process.env.SUMSUB_LEVEL_NAME || 'basic-kyc-level';
+
+function sumsubSign(method: string, path: string, body: string, ts: number): string {
+  const data = ts + method.toUpperCase() + path + body;
+  return crypto.createHmac('sha256', SUMSUB_SECRET_KEY).update(data).digest('hex');
+}
+
+async function sumsubRequest(method: string, path: string, body?: object): Promise<Response> {
+  const ts = Math.floor(Date.now() / 1000);
+  const bodyStr = body ? JSON.stringify(body) : '';
+  const sig = sumsubSign(method, path, bodyStr, ts);
+  return fetch(`${SUMSUB_BASE_URL}${path}`, {
+    method,
+    headers: {
+      'X-App-Token': SUMSUB_APP_TOKEN,
+      'X-App-Access-Ts': String(ts),
+      'X-App-Access-Sig': sig,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: bodyStr || undefined,
+  });
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -73,6 +100,7 @@ async function ensureDbSchema() {
     `ALTER TABLE referrals ADD COLUMN IF NOT EXISTS referred_user_id text`,
     `ALTER TABLE referrals ADD COLUMN IF NOT EXISTS email text`,
     `ALTER TABLE referrals ALTER COLUMN referred_user_id TYPE text USING referred_user_id::text`,
+    `ALTER TABLE kyc_submissions ADD COLUMN IF NOT EXISTS sumsub_applicant_id text`,
   ];
   for (const sql of migrations) {
     try {
@@ -535,6 +563,122 @@ app.put('/api/kyc', requireAuth, async (req, res) => {
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Error updating KYC:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Sumsub: generate SDK access token (creates applicant if needed)
+app.post('/api/kyc/access-token', requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  if (!SUMSUB_APP_TOKEN || !SUMSUB_SECRET_KEY) {
+    res.status(503).json({ error: 'Sumsub not configured' });
+    return;
+  }
+  try {
+    // Ensure profile exists
+    await pool.query(
+      `INSERT INTO profiles (id, email) VALUES ($1, '') ON CONFLICT (id) DO NOTHING`,
+      [userId]
+    );
+
+    // Check if applicant already exists
+    let row = await pool.query(
+      'SELECT sumsub_applicant_id FROM kyc_submissions WHERE user_id = $1',
+      [userId]
+    );
+    let applicantId: string | null = row.rows[0]?.sumsub_applicant_id || null;
+
+    if (!applicantId) {
+      // Create applicant in Sumsub
+      const createPath = `/resources/applicants?levelName=${encodeURIComponent(SUMSUB_LEVEL_NAME)}`;
+      const createRes = await sumsubRequest('POST', createPath, { externalUserId: userId });
+      if (!createRes.ok) {
+        const err = await createRes.text();
+        console.error('[sumsub] create applicant error:', err);
+        res.status(500).json({ error: 'Failed to create Sumsub applicant' });
+        return;
+      }
+      const applicant = await createRes.json();
+      applicantId = applicant.id;
+
+      // Upsert kyc_submissions with applicant ID
+      await pool.query(
+        `INSERT INTO kyc_submissions (user_id, status, sumsub_applicant_id, updated_at)
+         VALUES ($1, 'pending', $2, NOW())
+         ON CONFLICT (user_id) DO UPDATE SET
+           sumsub_applicant_id = EXCLUDED.sumsub_applicant_id,
+           status = CASE WHEN kyc_submissions.status = 'not_started' OR kyc_submissions.status IS NULL
+                         THEN 'pending' ELSE kyc_submissions.status END,
+           updated_at = NOW()`,
+        [userId, applicantId]
+      );
+    }
+
+    // Generate SDK access token
+    const tokenPath = `/resources/accessTokens?userId=${encodeURIComponent(userId)}&levelName=${encodeURIComponent(SUMSUB_LEVEL_NAME)}&ttlInSecs=1200`;
+    const tokenRes = await sumsubRequest('POST', tokenPath);
+    if (!tokenRes.ok) {
+      const err = await tokenRes.text();
+      console.error('[sumsub] access token error:', err);
+      res.status(500).json({ error: 'Failed to generate Sumsub access token' });
+      return;
+    }
+    const tokenData = await tokenRes.json();
+    res.json({ token: tokenData.token, userId });
+  } catch (err) {
+    console.error('[sumsub] access-token error:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Sumsub webhook — receives status updates (no auth required, verified by signature)
+app.post('/api/kyc/webhook', express.raw({ type: '*/*' }), async (req, res) => {
+  try {
+    const bodyBuf = req.body as Buffer;
+    const bodyStr = bodyBuf.toString('utf8');
+    // Verify signature
+    const digest = req.headers['x-payload-digest'] as string | undefined;
+    const alg = (req.headers['x-payload-digest-alg'] as string || '').toUpperCase();
+    if (SUMSUB_SECRET_KEY && digest) {
+      let expected = '';
+      if (alg.includes('SHA256')) {
+        expected = crypto.createHmac('sha256', SUMSUB_SECRET_KEY).update(bodyBuf).digest('hex');
+      } else {
+        expected = crypto.createHmac('sha1', SUMSUB_SECRET_KEY).update(bodyBuf).digest('hex');
+      }
+      if (expected.toLowerCase() !== digest.toLowerCase()) {
+        console.warn('[sumsub] webhook signature mismatch');
+        res.status(403).json({ error: 'Invalid signature' });
+        return;
+      }
+    }
+
+    const payload = JSON.parse(bodyStr);
+    const { externalUserId, reviewStatus, reviewResult } = payload;
+    if (!externalUserId) { res.json({ ok: true }); return; }
+
+    let status = 'pending';
+    if (reviewStatus === 'completed') {
+      const answer = reviewResult?.reviewAnswer;
+      const rejectType = reviewResult?.reviewRejectType;
+      if (answer === 'GREEN') status = 'verified';
+      else if (answer === 'RED' && rejectType === 'FINAL') status = 'rejected';
+      else status = 'pending'; // retry
+    }
+
+    await pool.query(
+      `INSERT INTO kyc_submissions (user_id, status, updated_at)
+       VALUES ($1, $2, NOW())
+       ON CONFLICT (user_id) DO UPDATE SET
+         status = $2,
+         verified_date = CASE WHEN $2 = 'verified' THEN NOW()::TEXT ELSE kyc_submissions.verified_date END,
+         updated_at = NOW()`,
+      [externalUserId, status]
+    );
+    console.log(`[sumsub] webhook: user ${externalUserId} → ${status}`);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[sumsub] webhook error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
