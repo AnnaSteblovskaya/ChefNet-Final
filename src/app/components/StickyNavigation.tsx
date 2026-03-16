@@ -12,9 +12,10 @@ interface StickyNavigationProps {
   onGoToDashboard: () => void;
   autoOpenRegister?: boolean;
   onAutoOpenHandled?: () => void;
+  pageReady?: boolean;
 }
 
-export default function StickyNavigation({ onGoToDashboard, autoOpenRegister, onAutoOpenHandled }: StickyNavigationProps) {
+export default function StickyNavigation({ onGoToDashboard, autoOpenRegister, onAutoOpenHandled, pageReady }: StickyNavigationProps) {
   const { language } = useLanguage();
   const { isAuthenticated } = useAuth();
   const t = translations[language];
@@ -25,10 +26,11 @@ export default function StickyNavigation({ onGoToDashboard, autoOpenRegister, on
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Use Intersection Observer to detect when hero section is out of view
+  // Re-runs when pageReady changes so it can find the hero section after loading
   useEffect(() => {
+    if (!pageReady) return;
     const heroSection = document.getElementById('home');
     if (!heroSection) {
-      console.log('❌ Hero section not found');
       return;
     }
 
@@ -50,7 +52,7 @@ export default function StickyNavigation({ onGoToDashboard, autoOpenRegister, on
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [pageReady]);
 
   // Auto-open register modal when coming from referral link.
   // We check a one-time flag in localStorage so the modal opens reliably

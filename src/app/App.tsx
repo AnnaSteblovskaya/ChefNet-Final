@@ -137,24 +137,24 @@ function AppContent() {
     return <AdminPanel onExit={() => { setShowAdmin(false); window.history.replaceState({}, '', '/'); }} />;
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--color-background)]">
-        <div className="w-8 h-8 border-4 border-[#D4522A] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   // Show dashboard if authenticated and user wants to see it
-  if (isAuthenticated && showDashboard) {
+  if (!loading && isAuthenticated && showDashboard) {
     return <Dashboard onBackToHome={() => setShowDashboard(false)} />;
   }
 
-  // Show main landing page
+  // Show main landing page (StickyNavigation is always mounted so referral modal
+  // can open reliably regardless of auth loading state)
   return (
     <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)] transition-colors duration-300 overflow-x-hidden w-full max-w-full">
       {(isPasswordRecovery) && <NewPasswordModal />}
       {resetToken && <NewPasswordModal resetToken={resetToken} onClose={() => setResetToken(null)} />}
+      {/* StickyNavigation always rendered — needed for referral link auto-open */}
+      <StickyNavigation onGoToDashboard={() => setShowDashboard(true)} autoOpenRegister={autoOpenRegister} onAutoOpenHandled={() => setAutoOpenRegister(false)} pageReady={!loading} />
+      {loading ? (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="w-8 h-8 border-4 border-[#D4522A] border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (<>
       {verifiedBanner && (
         <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] bg-green-600 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 max-w-[90vw]">
           <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
@@ -207,7 +207,6 @@ function AppContent() {
           </div>
         </div>
       )}
-      <StickyNavigation onGoToDashboard={() => setShowDashboard(true)} autoOpenRegister={autoOpenRegister} onAutoOpenHandled={() => setAutoOpenRegister(false)} />
       <HeroSection key={language} onGoToDashboard={() => setShowDashboard(true)} />
       <UniqueFeaturesSection />
       <OpportunitiesSection />
@@ -221,6 +220,7 @@ function AppContent() {
       <CTABanner />
       <TeamSection />
       <Footer />
+      </>)}
     </div>
   );
 }
