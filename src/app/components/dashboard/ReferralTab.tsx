@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { motion } from 'motion/react';
-import { Users, Copy, Share2, Bell, UserCheck, Network } from 'lucide-react';
+import { Users, Copy, Share2, Bell, UserCheck, Network, X } from 'lucide-react';
 import { ScrollIndicator } from '../ScrollIndicator';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { dashboardTranslations } from '@/utils/dashboardTranslations';
@@ -62,6 +62,27 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
   const [treeNodes, setTreeNodes] = useState<any[]>([]);
   const [loadingTree, setLoadingTree] = useState(true);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  // Selected partner in flat table → focus their subtree in the network section
+  const [selectedPartner, setSelectedPartner] = useState<{ id: string; name: string } | null>(null);
+  const networkSectionRef = useRef<HTMLDivElement>(null);
+
+  const handleSelectPartner = useCallback((id: string, name: string) => {
+    setSelectedPartner({ id, name });
+    setTimeout(() => {
+      networkSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 80);
+  }, []);
+
+  // Find a node by ID anywhere in the tree
+  const findNodeById = (nodes: any[], id: string): any | null => {
+    for (const node of nodes) {
+      if (node.id === id) return node;
+      const found = findNodeById(node.children || [], id);
+      if (found) return found;
+    }
+    return null;
+  };
 
   const toggleExpand = useCallback((id: string) => {
     setExpandedIds(prev => {
@@ -504,10 +525,24 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
                     {language === 'ru' ? 'Пока нет партнёров' : 'No partners yet'}
                   </td>
                 </tr>
-              ) : filteredInvestors.map((investor, idx) => (
-                <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+              ) : filteredInvestors.map((investor, idx) => {
+                const isSelected = selectedPartner?.id === investor.referred_user_id;
+                return (
+                <tr key={idx} className={`border-b border-gray-100 hover:bg-gray-50 ${isSelected ? 'bg-orange-50' : ''}`}>
                   <td className="py-3 lg:py-4 px-2 lg:px-4 text-xs lg:text-sm text-gray-900">{formatDate(investor.date)}</td>
-                  <td className="py-3 lg:py-4 px-2 lg:px-4 text-xs lg:text-sm text-gray-900">{investor.name}</td>
+                  <td className="py-3 lg:py-4 px-2 lg:px-4 text-xs lg:text-sm">
+                    <button
+                      onClick={() => investor.referred_user_id && handleSelectPartner(investor.referred_user_id, investor.name)}
+                      className={`font-medium text-left transition-colors ${
+                        investor.referred_user_id
+                          ? 'text-[#D4522A] hover:text-[#B8441F] hover:underline cursor-pointer'
+                          : 'text-gray-900 cursor-default'
+                      }`}
+                      title={investor.referred_user_id ? (language === 'ru' ? 'Посмотреть сеть партнёра' : "View partner's network") : undefined}
+                    >
+                      {investor.name}
+                    </button>
+                  </td>
                   <td className="py-3 lg:py-4 px-2 lg:px-4 text-xs lg:text-sm text-gray-500">{investor.email || '—'}</td>
                   <td className="py-3 lg:py-4 px-2 lg:px-4">
                     <span
@@ -524,7 +559,8 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
                   <td className="py-3 lg:py-4 px-2 lg:px-4 text-xs lg:text-sm text-gray-900">{investor.amount}</td>
                   <td className="py-3 lg:py-4 px-2 lg:px-4 text-xs lg:text-sm font-semibold text-green-600">{Math.floor((investor.shares || 0) * 0.1)}</td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </ScrollIndicator>
@@ -532,21 +568,40 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
 
       {/* Referral Network Tree */}
       <motion.div
+        ref={networkSectionRef}
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
         className="bg-white rounded-2xl p-4 lg:p-6 shadow-sm border border-gray-100 overflow-visible mt-6"
       >
-        <div className="flex items-center gap-2 mb-3 lg:mb-4">
-          <Network className="w-5 h-5 text-gray-700" />
-          <h3 className="text-lg lg:text-xl font-bold text-gray-900">
-            {language === 'ru' ? 'Реферальная сеть' : 'Referral Network'}
-          </h3>
+        <div className="flex items-center justify-between mb-3 lg:mb-4">
+          <div className="flex items-center gap-2">
+            <Network className="w-5 h-5 text-gray-700" />
+            <h3 className="text-lg lg:text-xl font-bold text-gray-900">
+              {language === 'ru' ? 'Реферальная сеть' : 'Referral Network'}
+              {selectedPartner && (
+                <span className="text-[#D4522A]"> — {selectedPartner.name}</span>
+              )}
+            </h3>
+          </div>
+          {selectedPartner && (
+            <button
+              onClick={() => setSelectedPartner(null)}
+              className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 border border-gray-200 hover:border-gray-400 rounded-lg px-3 py-1.5 transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+              {language === 'ru' ? 'Показать всю сеть' : 'Show full network'}
+            </button>
+          )}
         </div>
         <p className="text-sm text-gray-600 mb-4 lg:mb-5">
-          {language === 'ru'
-            ? 'Многоуровневая структура вашей команды. Нажмите на кнопку +N чтобы раскрыть подпартнёров. Комиссия 10% начисляется только с первой линии.'
-            : 'Multi-level team structure. Click +N to expand sub-partners. 10% commission applies to first line only.'}
+          {selectedPartner
+            ? (language === 'ru'
+                ? `Сеть партнёра ${selectedPartner.name}. Нажмите +N чтобы раскрыть подпартнёров.`
+                : `Network of ${selectedPartner.name}. Click +N to expand.`)
+            : (language === 'ru'
+                ? 'Нажмите на имя партнёра выше чтобы увидеть его сеть. Комиссия 10% начисляется только с первой линии.'
+                : 'Click a partner name above to view their network. 10% commission applies to first line only.')}
         </p>
         <ScrollIndicator className="-mx-4 lg:mx-0 px-4 lg:px-0">
           <table className="w-full min-w-[1000px]">
@@ -570,10 +625,29 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
                     {language === 'ru' ? 'Загрузка...' : 'Loading...'}
                   </td>
                 </tr>
-              ) : treeNodes.length === 0 ? (
+              ) : selectedPartner ? (() => {
+                  const partnerNode = findNodeById(treeNodes, selectedPartner.id);
+                  if (!partnerNode) return (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-sm text-gray-400">
+                        {language === 'ru' ? 'У этого партнёра пока нет приглашённых.' : 'This partner has no referrals yet.'}
+                      </td>
+                    </tr>
+                  );
+                  const subNodes = partnerNode.children || [];
+                  if (subNodes.length === 0) return (
+                    <tr>
+                      <td colSpan={7} className="py-8 text-center text-sm text-gray-400">
+                        {language === 'ru' ? 'У этого партнёра пока нет приглашённых.' : 'This partner has no referrals yet.'}
+                      </td>
+                    </tr>
+                  );
+                  return renderTreeRows(subNodes, 0);
+                })()
+              : treeNodes.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-8 text-center text-sm text-gray-400">
-                    {language === 'ru' ? 'Сеть пуста. Пригласите первых партнёров по реферальной ссылке.' : 'No network yet. Invite partners using your referral link.'}
+                    {language === 'ru' ? 'Нажмите на имя партнёра в таблице выше, чтобы увидеть его сеть.' : 'Click a partner name in the table above to view their network.'}
                   </td>
                 </tr>
               ) : (
