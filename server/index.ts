@@ -56,17 +56,48 @@ async function requireAuth(req: express.Request, res: express.Response, next: ex
   next();
 }
 
+async function ensureDbSchema() {
+  const migrations = [
+    `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS verification_token text`,
+    `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS verification_token_expires timestamptz`,
+    `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS email_verified boolean DEFAULT false`,
+    `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS referred_by text`,
+    `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_admin boolean DEFAULT false`,
+    `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS full_name text`,
+    `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS phone text`,
+    `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS country text`,
+    `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS address text`,
+    `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS date_of_birth text`,
+    `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS nationality text`,
+    `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS zip_code text`,
+  ];
+  for (const sql of migrations) {
+    try {
+      await pool.query(sql);
+    } catch (err: any) {
+      if (!err.message?.includes('already exists')) {
+        console.error('[db-init] Migration failed:', sql, err.message);
+      }
+    }
+  }
+  console.log('[db-init] Schema check complete');
+}
+
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
 app.post('/api/register', async (req, res) => {
-  const { email, password, firstName, lastName, lang } = req.body;
+  const { email, password, firstName, lastName, lang, referralCode } = req.body;
 
   if (!email || !password) {
     res.status(400).json({ error: 'Email and password are required' });
     return;
   }
+
+  const cleanReferralCode = typeof referralCode === 'string' && /^CHEF-[A-Z0-9]{6}$/i.test(referralCode.trim())
+    ? referralCode.trim().toUpperCase()
+    : null;
 
   try {
     const createRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
@@ -102,6 +133,18 @@ app.post('/api/register', async (req, res) => {
     const verifyResult = await sendVerificationForUser(userId, email, firstName || '', lang || 'ru');
     if (!verifyResult.success) {
       console.error('Verification email failed after registration:', verifyResult.error);
+    }
+
+    if (cleanReferralCode) {
+      try {
+        await pool.query(
+          `UPDATE profiles SET referred_by = $1, full_name = COALESCE(full_name, $2) WHERE id = $3`,
+          [cleanReferralCode, `${firstName || ''} ${lastName || ''}`.trim(), userId]
+        );
+        console.log(`[register] Referral code ${cleanReferralCode} saved for user ${userId}`);
+      } catch (refErr) {
+        console.error('[register] Failed to save referral code:', refErr);
+      }
     }
 
     res.json({ success: true, userId });
@@ -653,6 +696,34 @@ async function handleVerifyEmail(req: express.Request, res: express.Response) {
     );
 
     console.log(`[verify-email] Successfully verified ${row.email}`);
+
+    // Create referral record if this user was referred
+    try {
+      const profileRow = await pool.query(
+        'SELECT referred_by, full_name FROM profiles WHERE id = $1',
+        [row.id]
+      );
+      const referralCode = profileRow.rows[0]?.referred_by;
+      const newUserName = profileRow.rows[0]?.full_name || row.email;
+      if (referralCode && /^CHEF-[A-Z0-9]{6}$/i.test(referralCode)) {
+        const referrerRow = await pool.query(
+          `SELECT id FROM profiles WHERE 'CHEF-' || UPPER(SUBSTRING(REPLACE(id, '-', ''), 1, 6)) = $1 LIMIT 1`,
+          [referralCode.toUpperCase()]
+        );
+        if (referrerRow.rows.length > 0) {
+          const referrerId = referrerRow.rows[0].id;
+          await pool.query(
+            `INSERT INTO referrals (user_id, name, status, amount, shares, commission, date)
+             VALUES ($1, $2, 'registered', '$0', 0, '$0', CURRENT_DATE)`,
+            [referrerId, newUserName]
+          );
+          console.log(`[verify-email] Referral record created: ${referrerId} referred ${row.email}`);
+        }
+      }
+    } catch (refErr) {
+      console.error('[verify-email] Failed to create referral record:', refErr);
+    }
+
     res.redirect(`${siteUrl}/?verified=true`);
   } catch (err) {
     console.error('Error verifying email:', err);
@@ -720,5 +791,6 @@ if (isProduction) {
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`API server running on port ${PORT}${isProduction ? ' (production)' : ''}`);
   console.log(`[site-url] ${getSiteUrlServer()} (REPLIT_DEPLOYMENT=${process.env.REPLIT_DEPLOYMENT}, REPLIT_DOMAINS=${process.env.REPLIT_DOMAINS || 'not set'})`);
+  await ensureDbSchema();
   await verifySmtpConnection();
 });

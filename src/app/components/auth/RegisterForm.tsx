@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Mail, Lock, User, AlertCircle, CheckCircle, Eye, EyeOff, MailCheck, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -23,8 +23,16 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
   const [confirmationSent, setConfirmationSent] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSuccess, setResendSuccess] = useState(false);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
   const { register, resendConfirmationEmail, authError } = useAuth();
   const { language } = useLanguage();
+
+  useEffect(() => {
+    const storedCode = localStorage.getItem('chefnet_referral_code');
+    if (storedCode && /^CHEF-[A-Z0-9]{6}$/i.test(storedCode)) {
+      setReferralCode(storedCode.toUpperCase());
+    }
+  }, []);
 
   const texts = {
     en: {
@@ -204,7 +212,7 @@ export default function RegisterForm({ onSuccess, onSwitchToLogin }: RegisterFor
     }
 
     setLoading(true);
-    const result = await register(email, password, firstName, lastName, language);
+    const result = await register(email, password, firstName, lastName, language, referralCode || undefined);
     setLoading(false);
 
     if (result === 'success') {

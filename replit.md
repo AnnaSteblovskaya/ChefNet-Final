@@ -44,10 +44,19 @@ A multilingual investor landing page for ChefNet, an AI-powered restaurant/food 
 2. Email contains verification link with unique token (24h expiry)
 3. User clicks link → `/verify-email?token=xxx` → backend marks profile as verified → redirects to `/?verified=true`
 4. Frontend shows green success banner on the landing page
-5. Resend button available on the "check your email" screen
+5. Resend button available on the "check your email" screen AND in the error banner (invalid/expired tokens)
 - Emails sent from: connected Gmail account via Replit Gmail integration
 - Multilingual templates: RU, EN, DE, ES, TR
 - DB columns: `profiles.email_verified`, `profiles.verification_token`, `profiles.verification_token_expires`
+
+### Referral Flow
+1. Referrer shares link: `/?ref=CHEF-XXXXXX` (code = `CHEF-` + first 6 chars of userId, uppercased)
+2. Visitor lands on site → `?ref=` code stored in `localStorage('chefnet_referral_code')`
+3. Visitor registers → RegisterForm reads code from localStorage → sent to `POST /api/register`
+4. Server validates code (CHEF-[A-Z0-9]{6}), saves to `profiles.referred_by`
+5. Visitor verifies email → `handleVerifyEmail` finds `referred_by`, looks up referrer, creates record in `referrals` table
+- `referrals` table: `user_id` = referrer's ID, `name` = referred user's full name, `status = 'registered'`
+- Auto-DB schema migration (`ensureDbSchema()`) runs on startup to add any missing columns safely
 
 ### Frontend Data Layer
 - `src/utils/api.ts` — Authenticated fetch helpers (apiGet, apiPost, apiPut)

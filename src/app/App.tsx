@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ThemeProvider } from '@/app/components/ThemeProvider';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
@@ -66,10 +66,19 @@ function AppContent() {
   const [showAdmin, setShowAdmin] = useState(window.location.pathname === '/admin');
   const [verifiedBanner, setVerifiedBanner] = useState(false);
   const [verifyErrorBanner, setVerifyErrorBanner] = useState<string | null>(null);
+  const [resendEmail, setResendEmail] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
+  const [showResendInput, setShowResendInput] = useState(false);
   const [resetToken, setResetToken] = useState<string | null>(null);
+  const resendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const ref = params.get('ref');
+    if (ref && /^CHEF-[A-Z0-9]{6}$/i.test(ref)) {
+      localStorage.setItem('chefnet_referral_code', ref.toUpperCase());
+    }
     if (params.get('verified') === 'true') {
       setVerifiedBanner(true);
       window.history.replaceState({}, '', window.location.pathname);
@@ -78,15 +87,44 @@ function AppContent() {
     const verifyError = params.get('verify_error');
     if (verifyError) {
       setVerifyErrorBanner(verifyError);
+      const emailParam = params.get('email');
+      if (emailParam) {
+        setResendEmail(emailParam);
+      }
       window.history.replaceState({}, '', window.location.pathname);
-      setTimeout(() => setVerifyErrorBanner(null), 10000);
     }
     const token = params.get('reset_token');
     if (token) {
       setResetToken(token);
       window.history.replaceState({}, '', window.location.pathname);
     }
+    return () => {
+      if (resendTimerRef.current) clearTimeout(resendTimerRef.current);
+    };
   }, []);
+
+  const handleResendVerification = async () => {
+    if (!resendEmail) return;
+    setResendLoading(true);
+    try {
+      const res = await fetch('/api/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: resendEmail, firstName: '', lang: language }),
+      });
+      if (res.ok) {
+        setResendSent(true);
+        setShowResendInput(false);
+        resendTimerRef.current = setTimeout(() => {
+          setVerifyErrorBanner(null);
+          setResendSent(false);
+        }, 8000);
+      }
+    } catch (_e) {
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   // Admin panel — independent of loading state, has its own auth check
   if (showAdmin) {
@@ -119,10 +157,48 @@ function AppContent() {
         </div>
       )}
       {verifyErrorBanner && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] bg-red-600 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 max-w-[90vw]">
-          <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-          <span className="font-medium text-sm">{(verifyErrorTexts[verifyErrorBanner] || verifyErrorTexts.invalid)[language] || (verifyErrorTexts[verifyErrorBanner] || verifyErrorTexts.invalid).ru}</span>
-          <button onClick={() => setVerifyErrorBanner(null)} className="ml-2 text-white/80 hover:text-white">×</button>
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] bg-red-600 text-white rounded-xl shadow-2xl animate-in fade-in slide-in-from-top-4 max-w-[92vw] w-full sm:max-w-md">
+          <div className="px-4 py-3 flex items-start gap-3">
+            <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-sm">
+                {resendSent
+                  ? (language === 'ru' ? 'Письмо отправлено! Проверьте почту.' : language === 'de' ? 'E-Mail gesendet!' : language === 'es' ? '¡Correo enviado!' : language === 'tr' ? 'E-posta gönderildi!' : 'Email sent! Check your inbox.')
+                  : (verifyErrorTexts[verifyErrorBanner] || verifyErrorTexts.invalid)[language] || (verifyErrorTexts[verifyErrorBanner] || verifyErrorTexts.invalid).ru
+                }
+              </p>
+              {!resendSent && (verifyErrorBanner === 'invalid' || verifyErrorBanner === 'expired') && (
+                <div className="mt-2">
+                  {!showResendInput ? (
+                    <button
+                      onClick={() => setShowResendInput(true)}
+                      className="text-xs underline text-white/90 hover:text-white"
+                    >
+                      {language === 'ru' ? 'Запросить новую ссылку' : language === 'de' ? 'Neuen Link anfordern' : language === 'es' ? 'Solicitar nuevo enlace' : language === 'tr' ? 'Yeni bağlantı iste' : 'Request a new link'}
+                    </button>
+                  ) : (
+                    <div className="flex gap-2 mt-1">
+                      <input
+                        type="email"
+                        value={resendEmail}
+                        onChange={(e) => setResendEmail(e.target.value)}
+                        placeholder="Email"
+                        className="flex-1 px-2 py-1 text-xs rounded text-gray-900 min-w-0"
+                      />
+                      <button
+                        onClick={handleResendVerification}
+                        disabled={resendLoading || !resendEmail}
+                        className="px-3 py-1 text-xs bg-white text-red-600 rounded font-semibold hover:bg-red-50 disabled:opacity-50 whitespace-nowrap"
+                      >
+                        {resendLoading ? '...' : (language === 'ru' ? 'Отправить' : 'Send')}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <button onClick={() => { setVerifyErrorBanner(null); setShowResendInput(false); setResendSent(false); }} className="text-white/80 hover:text-white flex-shrink-0">×</button>
+          </div>
         </div>
       )}
       <StickyNavigation onGoToDashboard={() => setShowDashboard(true)} />

@@ -19,7 +19,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   loading: boolean;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<boolean>;
-  register: (email: string, password: string, firstName: string, lastName: string, lang?: string) => Promise<RegisterResult>;
+  register: (email: string, password: string, firstName: string, lastName: string, lang?: string, referralCode?: string) => Promise<RegisterResult>;
   logout: () => void;
   loginWithGoogle: () => Promise<void>;
   resetPassword: (email: string, newPassword: string, lang?: string) => Promise<boolean>;
@@ -140,7 +140,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const register = async (email: string, password: string, firstName: string, lastName: string, lang?: string): Promise<RegisterResult> => {
+  const register = async (email: string, password: string, firstName: string, lastName: string, lang?: string, referralCode?: string): Promise<RegisterResult> => {
     try {
       setAuthError(null);
       isRegistering.current = true;
@@ -148,7 +148,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const res = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, firstName, lastName, lang: lang || 'ru' }),
+        body: JSON.stringify({ email, password, firstName, lastName, lang: lang || 'ru', referralCode: referralCode || null }),
       });
 
       if (!res.ok) {
