@@ -163,6 +163,43 @@ export default function InvestmentsTab({ setActiveTab }: InvestmentsTabProps) {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch fresh rounds from server on mount so admin changes are reflected immediately
+  useEffect(() => {
+    const roundNameMap: Record<string, string> = {
+      seed: 'Seed', seriesA: 'Private', marketing: 'Marketing', ipo: 'Public/IPO',
+    };
+    const roundDisplayNameMap: Record<string, string> = {
+      seed: 'Раунд посева', seriesA: 'Серия A', marketing: 'Серия B', ipo: 'Серия C / IPO',
+    };
+    fetch('/api/rounds')
+      .then(r => r.json())
+      .then((rounds: any[]) => {
+        if (!Array.isArray(rounds) || rounds.length === 0) return;
+        setRoundsData(prev => {
+          const next = { ...prev };
+          rounds.forEach((round: any) => {
+            const key = roundNameMap[round.id] || round.id;
+            const existing = prev[key as keyof typeof prev];
+            next[key as keyof typeof prev] = {
+              ...existing,
+              id: round.id,
+              name: roundDisplayNameMap[round.id] || round.name,
+              price: parseFloat(round.price) || 0,
+              minInvestment: parseFloat(round.min_investment) || 0,
+              totalShares: round.total_shares || 0,
+              soldShares: round.sold_shares || 0,
+              status: round.status === 'active' ? 'Активный' : round.status === 'upcoming' ? 'Вскоре' : 'Распроданный',
+              amount: round.amount || '',
+              highlight: !!round.highlight,
+            };
+          });
+          localStorage.setItem('chefnet_rounds_data', JSON.stringify(next));
+          return next;
+        });
+      })
+      .catch(() => {});
+  }, []);
+
   // Load referrals data to calculate team shares
   const [referralsData, setReferralsData] = useState(() => {
     const saved = localStorage.getItem('chefnet_referrals_data');
