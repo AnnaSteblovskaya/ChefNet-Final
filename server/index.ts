@@ -563,7 +563,27 @@ app.put('/api/profile', requireAuth, async (req, res) => {
 app.get('/api/rounds', async (_req, res) => {
   try {
     const result = await pool.query('SELECT * FROM rounds ORDER BY sort_order');
-    res.json(result.rows);
+    const rows = result.rows.map((r: any) => {
+      const sharePrice = parseFloat(r.share_price) || parseFloat(r.price) || 0;
+      const targetSum = parseFloat(r.target_sum) || 0;
+      const minOrder = parseFloat(r.min_order) || 0;
+      const totalShares = sharePrice > 0 ? Math.round(targetSum / sharePrice) : (r.total_shares || 0);
+      const isActive = r.active === true || r.active === 'true';
+      const formattedAmount = targetSum > 0
+        ? '$' + targetSum.toLocaleString('en-US')
+        : (r.amount || '');
+      return {
+        ...r,
+        price: sharePrice,
+        min_investment: minOrder,
+        total_shares: totalShares,
+        sold_shares: r.sold_shares || 0,
+        status: isActive ? 'active' : 'upcoming',
+        amount: formattedAmount,
+        highlight: isActive,
+      };
+    });
+    res.json(rows);
   } catch (err) {
     console.error('Error fetching rounds:', err);
     res.status(500).json({ error: 'Internal server error' });
