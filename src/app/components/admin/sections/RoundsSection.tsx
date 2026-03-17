@@ -1,15 +1,14 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '../api';
 
-const LANGS = ['en', 'ru', 'de', 'es', 'tr'] as const;
+const LANGS = ['en', 'de', 'ru', 'es', 'tr'] as const;
 type Lang = typeof LANGS[number];
-const LANG_LABELS: Record<Lang, string> = { en: 'EN', ru: 'RU', de: 'DE', es: 'ES', tr: 'TR' };
+const LANG_LABELS: Record<Lang, string> = { en: 'English', de: 'Deutsch', ru: 'Русский', es: 'Español', tr: 'Türkçe' };
 
 interface Round {
   id: string; name: string;
   target_sum: number; market_cap: number; share_price: number; min_order: number;
-  active: boolean; sort_order: number;
-  sold_shares?: number;
+  active: boolean; sort_order: number; sold_shares?: number;
   description_en: string; description_ru: string; description_de: string; description_es: string; description_tr: string;
   tasks_en: string; tasks_ru: string; tasks_de: string; tasks_es: string; tasks_tr: string;
 }
@@ -21,218 +20,298 @@ const emptyRound: Round = {
   tasks_en: '', tasks_ru: '', tasks_de: '', tasks_es: '', tasks_tr: '',
 };
 
-function calcTotalShares(r: Round) {
-  return r.share_price > 0 ? Math.round(r.target_sum / r.share_price) : 0;
-}
+type View = { type: 'list' } | { type: 'edit'; round: Round; isNew: boolean };
 
-function fmtMln(n: number) {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + ' млн';
-  if (n >= 1_000) return (n / 1_000).toFixed(0) + ' тыс';
-  return n.toLocaleString();
-}
-
-function fmtUSD(n: number) {
-  return '$' + Number(n).toLocaleString('en-US');
-}
-
-function Input({ label, value, onChange, type = 'text', step, small }: {
-  label: string; value: string | number; onChange: (v: string) => void;
-  type?: string; step?: string; small?: boolean;
-}) {
+function LangTabs({ active, onChange }: { active: Lang; onChange: (l: Lang) => void }) {
   return (
-    <div>
-      <label className="text-white/50 text-xs mb-1 block">{label}</label>
-      <input
-        type={type}
-        step={step}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        className={`bg-[#0d0d1a] border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-[#D4522A] transition ${small ? 'w-24' : 'w-full'}`}
-      />
+    <div className="flex gap-0 border-b border-white/10">
+      {LANGS.map(l => (
+        <button
+          key={l}
+          onClick={() => onChange(l)}
+          className={`px-4 py-2 text-sm transition border-b-2 -mb-px ${
+            active === l
+              ? 'border-[#D4522A] text-white font-medium'
+              : 'border-transparent text-white/40 hover:text-white/70'
+          }`}
+        >
+          {LANG_LABELS[l]}
+        </button>
+      ))}
     </div>
   );
 }
 
-function RoundCard({ round, onEdit, onDelete }: {
-  round: Round;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  const totalShares = calcTotalShares(round);
-  const sold = round.sold_shares || 0;
-  const progress = totalShares > 0 ? Math.min(100, (sold / totalShares) * 100) : 0;
-
-  return (
-    <div className={`relative bg-[#0d0d1a] border rounded-2xl p-5 flex flex-col gap-3 ${round.active ? 'border-[#D4522A]/60' : 'border-white/10'}`}>
-      {round.active && (
-        <div className="absolute -top-px left-0 right-0 h-0.5 bg-[#D4522A] rounded-t-2xl" />
-      )}
-
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <div className="text-white/50 text-xs font-medium uppercase tracking-wide">{round.name || round.id}:</div>
-          <div className="text-2xl font-bold text-white mt-0.5">{fmtUSD(round.target_sum)}</div>
-        </div>
-        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold shrink-0 ${round.active ? 'bg-green-500 text-white' : 'bg-[#1e6fe0] text-white'}`}>
-          {round.active ? 'Активный' : 'Скоро'}
-        </span>
-      </div>
-
-      <div className="flex flex-col gap-1.5 text-sm">
-        <div className="flex justify-between">
-          <span className="text-white/50">Цена за долю</span>
-          <span className="text-[#D4522A] font-medium">${round.share_price}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-white/50">Минимум</span>
-          <span className="text-white">{Number(round.min_order).toLocaleString()} долей</span>
-        </div>
-        {round.market_cap > 0 && (
-          <div className="flex justify-between">
-            <span className="text-white/50">Рыночная кап.</span>
-            <span className="text-white">{fmtUSD(round.market_cap)}</span>
-          </div>
-        )}
-      </div>
-
-      <div>
-        <div className="flex justify-between text-xs text-white/40 mb-1">
-          <span>{fmtMln(sold)} продано</span>
-          <span>{fmtMln(totalShares)} всего</span>
-        </div>
-        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-          <div className="h-full bg-[#D4522A] rounded-full transition-all" style={{ width: `${progress}%` }} />
-        </div>
-      </div>
-
-      <div className="flex gap-2 pt-1">
-        <button
-          onClick={onEdit}
-          className="flex-1 text-xs py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition"
-        >
-          Изменить
-        </button>
-        <button
-          onClick={onDelete}
-          className="text-xs px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition"
-        >
-          Удалить
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function RoundEditor({ round, isNew, onSave, onCancel, saving }: {
-  round: Round;
-  isNew: boolean;
+function EditView({
+  initial, isNew, onSave, onCancel, onDelete, saving,
+}: {
+  initial: Round; isNew: boolean;
   onSave: (r: Round) => void;
   onCancel: () => void;
+  onDelete: (id: string) => void;
   saving: boolean;
 }) {
-  const [form, setForm] = useState<Round>({ ...round });
-  const [lang, setLang] = useState<Lang>('ru');
+  const [form, setForm] = useState<Round>({ ...initial });
+  const [descLang, setDescLang] = useState<Lang>('en');
+  const [tasksLang, setTasksLang] = useState<Lang>('en');
 
   const set = (field: keyof Round, val: any) => setForm(p => ({ ...p, [field]: val }));
 
-  const totalShares = calcTotalShares(form);
-
   return (
-    <div className="bg-[#0d0d1a] border border-[#D4522A]/40 rounded-2xl p-5 flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-white font-semibold text-base">
-          {isNew ? '+ Новый раунд' : `Редактирование: ${form.name || form.id}`}
-        </h3>
-        <button onClick={onCancel} className="text-white/40 hover:text-white text-lg leading-none transition">×</button>
-      </div>
-
-      {isNew && (
-        <Input label="ID раунда (slug, напр. «seed»)" value={form.id} onChange={v => set('id', v)} />
-      )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Input label="Название" value={form.name} onChange={v => set('name', v)} />
-        <Input label="Целевая сумма ($)" type="number" value={form.target_sum || ''} onChange={v => set('target_sum', +v)} />
-        <Input label="Цена акции ($)" type="number" step="0.001" value={form.share_price || ''} onChange={v => set('share_price', +v)} />
-        <Input label="Мин. заказ (долей)" type="number" value={form.min_order || ''} onChange={v => set('min_order', +v)} />
-        <Input label="Рыночная капитализация ($)" type="number" value={form.market_cap || ''} onChange={v => set('market_cap', +v)} />
+    <div className="flex flex-col gap-0">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <label className="text-white/50 text-xs mb-1 block">Порядок сортировки</label>
-          <input
-            type="number"
-            value={form.sort_order || 0}
-            onChange={e => set('sort_order', +e.target.value)}
-            className="w-24 bg-[#0d0d1a] border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-[#D4522A] transition"
-          />
+          <nav className="flex items-center gap-1.5 text-xs text-white/40 mb-2">
+            <span>Раунды</span>
+            <span>›</span>
+            <span>{isNew ? 'Новый раунд' : (form.name || form.id)}</span>
+            <span>›</span>
+            <span className="text-white/70">{isNew ? 'Создать' : 'Изменить'}</span>
+          </nav>
+          <h2 className="text-2xl font-bold text-white">{isNew ? 'Новый раунд' : 'Изменить раунд'}</h2>
         </div>
-      </div>
-
-      <div className="flex items-center gap-4">
-        <button
-          type="button"
-          onClick={() => set('active', !form.active)}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-sm font-medium transition ${form.active ? 'border-green-500 bg-green-500/10 text-green-400' : 'border-white/10 bg-white/5 text-white/50'}`}
-        >
-          <div className={`w-8 h-5 rounded-full relative transition-colors ${form.active ? 'bg-green-500' : 'bg-white/20'}`}>
-            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${form.active ? 'left-3.5' : 'left-0.5'}`} />
-          </div>
-          {form.active ? 'Активный' : 'Скоро'}
-        </button>
-        {totalShares > 0 && (
-          <span className="text-white/30 text-xs">Долей: {totalShares.toLocaleString()}</span>
+        {!isNew && (
+          <button
+            onClick={() => {
+              if (confirm('Удалить раунд?')) onDelete(form.id);
+            }}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-xl transition"
+          >
+            Удалить
+          </button>
         )}
       </div>
 
-      <div className="border border-white/10 rounded-xl p-4 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
-          <span className="text-white/50 text-xs font-medium uppercase tracking-wide">Описание и задачи</span>
-          <div className="flex gap-1">
-            {LANGS.map(l => (
-              <button
-                key={l}
-                onClick={() => setLang(l)}
-                className={`px-2 py-0.5 rounded text-xs font-medium transition ${lang === l ? 'bg-[#D4522A] text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
-              >
-                {LANG_LABELS[l]}
-              </button>
-            ))}
+      <div className="flex flex-col gap-5">
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col gap-4">
+          <div>
+            <label className="text-white/50 text-xs mb-1.5 block">
+              Название <span className="text-[#D4522A]">*</span>
+            </label>
+            <input
+              value={form.name}
+              onChange={e => set('name', e.target.value)}
+              placeholder="Pre-Seed"
+              className="w-full bg-[#0d0d1a] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#D4522A] transition"
+            />
+          </div>
+          {isNew && (
+            <div>
+              <label className="text-white/50 text-xs mb-1.5 block">
+                ID раунда (slug) <span className="text-[#D4522A]">*</span>
+              </label>
+              <input
+                value={form.id}
+                onChange={e => set('id', e.target.value)}
+                placeholder="seed"
+                className="w-full bg-[#0d0d1a] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#D4522A] transition"
+              />
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+          <div className="px-5 pt-4 pb-0">
+            <LangTabs active={descLang} onChange={setDescLang} />
+          </div>
+          <div className="p-5 pt-4">
+            <label className="text-white/50 text-xs mb-1.5 block">Описание</label>
+            <textarea
+              rows={4}
+              value={(form as any)[`description_${descLang}`] || ''}
+              onChange={e => set(`description_${descLang}` as keyof Round, e.target.value)}
+              className="w-full bg-[#0d0d1a] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm resize-none focus:outline-none focus:border-[#D4522A] transition"
+            />
           </div>
         </div>
-        <div>
-          <label className="text-white/40 text-xs mb-1 block">Описание ({LANG_LABELS[lang]})</label>
-          <textarea
-            rows={3}
-            value={(form as any)[`description_${lang}`] || ''}
-            onChange={e => set(`description_${lang}` as keyof Round, e.target.value)}
-            className="w-full bg-[#070712] border border-white/10 rounded-xl px-3 py-2 text-white text-sm resize-none focus:outline-none focus:border-[#D4522A] transition"
-          />
+
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+          <div className="px-5 pt-4 pb-0">
+            <LangTabs active={tasksLang} onChange={setTasksLang} />
+          </div>
+          <div className="p-5 pt-4">
+            <label className="text-white/50 text-xs mb-1.5 block">Задачи</label>
+            <textarea
+              rows={4}
+              value={(form as any)[`tasks_${tasksLang}`] || ''}
+              onChange={e => set(`tasks_${tasksLang}` as keyof Round, e.target.value)}
+              className="w-full bg-[#0d0d1a] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm resize-none focus:outline-none focus:border-[#D4522A] transition"
+            />
+          </div>
         </div>
-        <div>
-          <label className="text-white/40 text-xs mb-1 block">Задачи ({LANG_LABELS[lang]})</label>
-          <textarea
-            rows={3}
-            value={(form as any)[`tasks_${lang}`] || ''}
-            onChange={e => set(`tasks_${lang}` as keyof Round, e.target.value)}
-            className="w-full bg-[#070712] border border-white/10 rounded-xl px-3 py-2 text-white text-sm resize-none focus:outline-none focus:border-[#D4522A] transition"
-          />
+
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="text-white/50 text-xs mb-1.5 block">
+              Целевая сумма ($) <span className="text-[#D4522A]">*</span>
+            </label>
+            <input
+              type="number"
+              value={form.target_sum || ''}
+              onChange={e => set('target_sum', +e.target.value)}
+              placeholder="150000"
+              className="w-full bg-[#0d0d1a] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#D4522A] transition"
+            />
+          </div>
+          <div>
+            <label className="text-white/50 text-xs mb-1.5 block">
+              Рыночная капитализация ($) <span className="text-[#D4522A]">*</span>
+            </label>
+            <input
+              type="number"
+              value={form.market_cap || ''}
+              onChange={e => set('market_cap', +e.target.value)}
+              placeholder="150000"
+              className="w-full bg-[#0d0d1a] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#D4522A] transition"
+            />
+          </div>
+          <div>
+            <label className="text-white/50 text-xs mb-1.5 block">
+              Цена акции ($) <span className="text-[#D4522A]">*</span>
+            </label>
+            <input
+              type="number"
+              step="0.001"
+              value={form.share_price || ''}
+              onChange={e => set('share_price', +e.target.value)}
+              placeholder="0,075"
+              className="w-full bg-[#0d0d1a] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#D4522A] transition"
+            />
+          </div>
+          <div>
+            <label className="text-white/50 text-xs mb-1.5 block">
+              Мин. заказ (долей) <span className="text-[#D4522A]">*</span>
+            </label>
+            <input
+              type="number"
+              value={form.min_order || ''}
+              onChange={e => set('min_order', +e.target.value)}
+              placeholder="150"
+              className="w-full bg-[#0d0d1a] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-[#D4522A] transition"
+            />
+          </div>
         </div>
+
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => set('active', !form.active)}
+            className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${form.active ? 'bg-[#D4522A]' : 'bg-white/20'}`}
+          >
+            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all ${form.active ? 'left-6' : 'left-1'}`} />
+          </button>
+          <span className="text-white text-sm">
+            Активный <span className="text-[#D4522A]">*</span>
+          </span>
+          <span className="text-white/30 text-xs ml-auto">
+            {form.active ? 'Отображается как «Активный» на сайте' : 'Отображается как «Скоро» на сайте'}
+          </span>
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={() => onSave(form)}
+            disabled={saving || !form.name || (isNew && !form.id)}
+            className="px-6 py-2.5 bg-[#D4522A] hover:bg-[#c04520] text-white text-sm font-semibold rounded-xl transition disabled:opacity-50"
+          >
+            {saving ? 'Сохранение...' : 'Сохранить изменения'}
+          </button>
+          <button
+            onClick={onCancel}
+            className="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white text-sm rounded-xl transition"
+          >
+            Отмена
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ListView({
+  items, loading, onNew, onEdit,
+}: {
+  items: Round[]; loading: boolean;
+  onNew: () => void;
+  onEdit: (r: Round) => void;
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <nav className="flex items-center gap-1.5 text-xs text-white/40 mb-2">
+            <span>Раунды</span>
+            <span>›</span>
+            <span className="text-white/70">Список</span>
+          </nav>
+          <h2 className="text-2xl font-bold text-white">Раунды</h2>
+        </div>
+        <button
+          onClick={onNew}
+          className="px-4 py-2 bg-[#D4522A] hover:bg-[#c04520] text-white text-sm font-medium rounded-xl transition"
+        >
+          + Новый раунд
+        </button>
       </div>
 
-      <div className="flex gap-2">
-        <button
-          onClick={() => onSave(form)}
-          disabled={saving || !form.name}
-          className="flex-1 bg-[#D4522A] hover:bg-[#c04520] text-white py-2.5 rounded-xl text-sm font-semibold transition disabled:opacity-50"
-        >
-          {saving ? 'Сохранение...' : 'Сохранить'}
-        </button>
-        <button
-          onClick={onCancel}
-          className="px-5 bg-white/10 hover:bg-white/20 text-white py-2.5 rounded-xl text-sm transition"
-        >
-          Отмена
-        </button>
-      </div>
+      {loading ? (
+        <div className="flex justify-center py-16">
+          <div className="w-8 h-8 border-4 border-[#D4522A] border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden overflow-x-auto">
+          <table className="w-full min-w-[680px]">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="text-left px-5 py-3 text-white/50 text-xs font-medium">Название</th>
+                <th className="text-left px-5 py-3 text-white/50 text-xs font-medium">Целевая сумма</th>
+                <th className="text-left px-5 py-3 text-white/50 text-xs font-medium">Рыночная кап.</th>
+                <th className="text-left px-5 py-3 text-white/50 text-xs font-medium">Цена акции</th>
+                <th className="text-left px-5 py-3 text-white/50 text-xs font-medium">Мин. заказ</th>
+                <th className="text-left px-5 py-3 text-white/50 text-xs font-medium">Активный</th>
+                <th className="px-5 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {items.map(r => (
+                <tr key={r.id} className="border-b border-white/5 hover:bg-white/5 transition">
+                  <td className="px-5 py-3 text-white text-sm font-medium">{r.name}</td>
+                  <td className="px-5 py-3 text-white/70 text-sm">{Number(r.target_sum || 0).toLocaleString()}</td>
+                  <td className="px-5 py-3 text-white/70 text-sm">{Number(r.market_cap || 0).toLocaleString()}</td>
+                  <td className="px-5 py-3 text-white/70 text-sm">{Number(r.share_price || 0)}</td>
+                  <td className="px-5 py-3 text-white/70 text-sm">{Number(r.min_order || 0).toLocaleString()}</td>
+                  <td className="px-5 py-3">
+                    {r.active
+                      ? <span className="inline-flex w-5 h-5 items-center justify-center rounded-full bg-green-500/20 text-green-400 text-xs">✓</span>
+                      : <span className="inline-flex w-5 h-5 items-center justify-center rounded-full bg-red-500/20 text-red-400 text-xs">✕</span>
+                    }
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    <button
+                      onClick={() => onEdit(r)}
+                      className="text-[#D4522A] hover:text-[#e05530] text-sm font-medium transition flex items-center gap-1 ml-auto"
+                    >
+                      ✎ Изменить
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {items.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="text-center text-white/30 py-12 text-sm">
+                    Нет раундов. Нажмите «+ Новый раунд» чтобы создать первый.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          {items.length > 0 && (
+            <div className="px-5 py-3 border-t border-white/5 text-xs text-white/30">
+              Показано {items.length} {items.length === 1 ? 'запись' : items.length < 5 ? 'записи' : 'записей'}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -240,8 +319,7 @@ function RoundEditor({ round, isNew, onSave, onCancel, saving }: {
 export default function RoundsSection() {
   const [items, setItems] = useState<Round[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [showNewForm, setShowNewForm] = useState(false);
+  const [view, setView] = useState<View>({ type: 'list' });
   const [saving, setSaving] = useState(false);
 
   const load = () => {
@@ -255,13 +333,9 @@ export default function RoundsSection() {
   const handleSave = async (form: Round, isNew: boolean) => {
     setSaving(true);
     try {
-      if (isNew) {
-        await adminApi.rounds.create(form);
-        setShowNewForm(false);
-      } else {
-        await adminApi.rounds.update(form.id, form);
-        setEditingId(null);
-      }
+      if (isNew) await adminApi.rounds.create(form);
+      else await adminApi.rounds.update(form.id, form);
+      setView({ type: 'list' });
       load();
     } finally {
       setSaving(false);
@@ -269,77 +343,30 @@ export default function RoundsSection() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Удалить раунд?')) return;
     await adminApi.rounds.remove(id);
-    setItems(i => i.filter(x => x.id !== id));
-    if (editingId === id) setEditingId(null);
+    setView({ type: 'list' });
+    load();
   };
 
+  if (view.type === 'edit') {
+    return (
+      <EditView
+        initial={view.round}
+        isNew={view.isNew}
+        saving={saving}
+        onSave={form => handleSave(form, view.isNew)}
+        onCancel={() => setView({ type: 'list' })}
+        onDelete={handleDelete}
+      />
+    );
+  }
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Раунды инвестирования</h2>
-          <p className="text-white/40 text-sm mt-1">Управление разделами "Мой портфель" → карточки раундов и покупка долей</p>
-        </div>
-        {!showNewForm && (
-          <button
-            onClick={() => { setShowNewForm(true); setEditingId(null); }}
-            className="bg-[#D4522A] hover:bg-[#c04520] text-white px-4 py-2 rounded-xl text-sm font-medium transition"
-          >
-            + Новый раунд
-          </button>
-        )}
-      </div>
-
-      {showNewForm && (
-        <RoundEditor
-          round={emptyRound}
-          isNew={true}
-          saving={saving}
-          onSave={form => handleSave(form, true)}
-          onCancel={() => setShowNewForm(false)}
-        />
-      )}
-
-      {loading ? (
-        <div className="flex justify-center p-12">
-          <div className="w-8 h-8 border-4 border-[#D4522A] border-t-transparent rounded-full animate-spin" />
-        </div>
-      ) : items.length === 0 && !showNewForm ? (
-        <div className="text-center py-16 text-white/30 border border-white/10 rounded-2xl">
-          <div className="text-4xl mb-3">🏷</div>
-          <div className="text-sm">Нет раундов. Создайте первый раунд нажав «+ Новый раунд»</div>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {items.map(round => (
-            <div key={round.id} className="flex flex-col gap-0">
-              {editingId === round.id ? (
-                <RoundEditor
-                  round={round}
-                  isNew={false}
-                  saving={saving}
-                  onSave={form => handleSave(form, false)}
-                  onCancel={() => setEditingId(null)}
-                />
-              ) : (
-                <RoundCard
-                  round={round}
-                  onEdit={() => { setEditingId(round.id); setShowNewForm(false); }}
-                  onDelete={() => handleDelete(round.id)}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div className="bg-[#0d0d1a] border border-white/5 rounded-2xl p-4 text-xs text-white/30">
-        <span className="font-medium text-white/50">Как это работает:</span>{' '}
-        Изменения, сохранённые здесь, немедленно отображаются в разделе «Мой портфель» на сайте —
-        в карточках раундов и в разделе «Покупка долей». Пользователи увидят актуальные цены, статусы и количество доступных долей.
-      </div>
-    </div>
+    <ListView
+      items={items}
+      loading={loading}
+      onNew={() => setView({ type: 'edit', round: emptyRound, isNew: true })}
+      onEdit={r => setView({ type: 'edit', round: r, isNew: false })}
+    />
   );
 }
