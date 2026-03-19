@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { translations } from "@/locales/translations";
+import { useSiteContent } from "@/contexts/SiteContentContext";
 import IconBox from '@/app/components/IconBox';
 import { ChevronRight } from "lucide-react";
 const seedImage = "/assets/40643aa7ed76fac14e3c79e765216b03f0ac9e11.png";
@@ -13,6 +14,8 @@ const growthIcon = "/assets/083753dd7f4e6a69680ef415c0f1e7edf472f77b.png";
 export default function InvestmentsSection() {
   const { language } = useLanguage();
   const t = translations[language];
+  const { get } = useSiteContent();
+  const lang = language as 'ru'|'en'|'de'|'es'|'tr';
   const [flippedCard, setFlippedCard] = useState<number | null>(null);
 
   // Editable Growth Stages Data
@@ -21,29 +24,29 @@ export default function InvestmentsSection() {
       title: "Seed:",
       amount: "$150,000",
       image: seedImage,
-      backTitle: t.seedBackTitle,
-      backDesc: t.seedBackDesc,
+      backTitle: get('inv_seed_back_title', lang, t.seedBackTitle),
+      backDesc: get('inv_seed_back_desc', lang, t.seedBackDesc),
     },
     {
       title: "Private:",
       amount: "$350,000",
       image: privateImage,
-      backTitle: t.privateBackTitle,
-      backDesc: t.privateBackDesc,
+      backTitle: get('inv_private_back_title', lang, t.privateBackTitle),
+      backDesc: get('inv_private_back_desc', lang, t.privateBackDesc),
     },
     {
       title: "Marketing:",
       amount: "$500,000",
       image: marketingImage,
-      backTitle: t.marketingBackTitle,
-      backDesc: t.marketingBackDesc,
+      backTitle: get('inv_marketing_back_title', lang, t.marketingBackTitle),
+      backDesc: get('inv_marketing_back_desc', lang, t.marketingBackDesc),
     },
     {
       title: "Public/IPO:",
       amount: "$1,000,000",
       image: publicImage,
-      backTitle: t.publicBackTitle,
-      backDesc: t.publicBackDesc,
+      backTitle: get('inv_public_back_title', lang, t.publicBackTitle),
+      backDesc: get('inv_public_back_desc', lang, t.publicBackDesc),
     },
   ];
 
@@ -85,7 +88,7 @@ export default function InvestmentsSection() {
             />
           </IconBox>
           <h2 className="text-[26px] sm:text-[48px] font-bold text-[#4A3F35] px-4 mt-6 sm:mt-8">
-            {t.investmentsTitle}
+            {get('inv_title', lang, t.investmentsTitle)}
           </h2>
         </div>
 

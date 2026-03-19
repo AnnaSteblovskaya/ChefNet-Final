@@ -664,7 +664,7 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
         LEFT JOIN (
           SELECT user_id,
             COALESCE(SUM(shares), 0) AS total_shares,
-            COALESCE(SUM(REPLACE(REPLACE(amount, '$', ''), ',', '')::numeric), 0) AS total_amount,
+            COALESCE(SUM(REPLACE(REPLACE(amount::text, '$', ''), ',', '')::numeric), 0) AS total_amount,
             COUNT(*) FILTER (WHERE status = 'pending') AS pending_count,
             COUNT(*) FILTER (WHERE status = 'confirmed') AS confirmed_count
           FROM investments

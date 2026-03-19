@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useSiteContent } from '@/contexts/SiteContentContext';
 import { useState, useEffect, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Network, Users, ChefHat, Cpu, Lightbulb, Bot } from 'lucide-react';
 import IconBox from '@/app/components/IconBox';
@@ -29,6 +30,7 @@ const screen20 = '/assets/2e50fa26a1cfd605840824e117173d05b0780545.png';
 
 export default function AdvantagesSection() {
   const { language } = useLanguage();
+  const { get } = useSiteContent();
   
   // All 20 phone screens - reordered so screen1 (Get Started) is in the middle
   const phoneScreens = [
@@ -490,7 +492,7 @@ export default function AdvantagesSection() {
 
           {/* Headline */}
           <h2 className="text-[48px] font-bold text-[#292524] text-center mt-6 sm:mt-8">
-            {currentContent.advantagesTitlePart1} <span className="text-[#FF6B35]">{currentContent.advantagesTitlePart2}</span>?
+            {get('adv_title', language as 'ru'|'en'|'de'|'es'|'tr', `${currentContent.advantagesTitlePart1} ${currentContent.advantagesTitlePart2}?`)}
           </h2>
           
           {/* Gradient fade to hide icon shadow below - creates seamless transition */}

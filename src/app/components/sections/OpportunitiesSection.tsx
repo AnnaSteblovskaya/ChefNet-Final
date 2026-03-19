@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { TrendingUp, Smile, FileCheck } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/locales/translations';
+import { useSiteContent } from '@/contexts/SiteContentContext';
 import IconBox from '@/app/components/IconBox';
 const phonesImage = '/assets/ad45e5be0abc212cf72a9e6020318ae8020f76b3.png';
 const chefIconImage = '/assets/c29a2d0856811702b56beb1ca88355bbc47e8ae0.png';
@@ -10,6 +11,8 @@ import { useState, useEffect } from 'react';
 export default function OpportunitiesSection() {
   const { language } = useLanguage();
   const t = translations[language];
+  const { get } = useSiteContent();
+  const lang = language as 'ru'|'en'|'de'|'es'|'tr';
   const [rotatingIcons, setRotatingIcons] = useState<{ [key: number]: boolean }>({});
   const [activeCard, setActiveCard] = useState<number | null>(null);
   const [isMobile, setIsMobile] = useState(false);
@@ -67,9 +70,9 @@ export default function OpportunitiesSection() {
           </IconBox>
           
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-[var(--color-text)] mt-6 sm:mt-8">
-            {t.chefnetAppTitle1}
-            <span className="text-[#FB7F43]">{t.chefnetAppTitle2}</span>
-            {t.chefnetAppTitle3}
+            {get('opp_title', lang, '') || (
+              <>{t.chefnetAppTitle1}<span className="text-[#FB7F43]">{t.chefnetAppTitle2}</span>{t.chefnetAppTitle3}</>
+            )}
           </h2>
         </motion.div>
 

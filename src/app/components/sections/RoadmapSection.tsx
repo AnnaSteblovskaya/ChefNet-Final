@@ -2,12 +2,15 @@ import { motion } from 'motion/react';
 import { Check, Circle, MapPin } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/locales/translations';
+import { useSiteContent } from '@/contexts/SiteContentContext';
 import IconBox from '@/app/components/IconBox';
 import { useState } from 'react';
 
 export default function RoadmapSection() {
   const { language } = useLanguage();
   const t = translations[language];
+  const { get } = useSiteContent();
+  const lang = language as 'ru'|'en'|'de'|'es'|'tr';
   const [activeCard, setActiveCard] = useState<number | null>(null);
 
   const getRoadmapData = () => {
@@ -570,7 +573,7 @@ export default function RoadmapSection() {
             <MapPin className="w-12 h-12 text-[#FF6B35] mx-auto relative z-10 drop-shadow-lg" />
           </IconBox>
           <h2 className="text-4xl sm:text-5xl font-bold mb-6 mt-6 sm:mt-8">
-            {language === 'ru' ? 'Дорожная карта' : t.roadmapTitle}
+            {get('roadmap_title', lang, language === 'ru' ? 'Дорожная карта' : t.roadmapTitle)}
           </h2>
           <p className="text-lg sm:text-xl text-[var(--color-text-secondary)]">
             {t.roadmapSubtitle}

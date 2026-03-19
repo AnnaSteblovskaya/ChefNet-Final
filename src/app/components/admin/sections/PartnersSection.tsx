@@ -198,7 +198,10 @@ export default function PartnersSection() {
     adminApi.partnerUsers.list().then((data: PartnerUser[]) => {
       setAllUsers(data);
       setLoading(false);
-    }).catch(() => setLoading(false));
+    }).catch((err: Error) => {
+      console.error('[Partners] API error:', err?.message || err);
+      setLoading(false);
+    });
   }, []);
 
   useEffect(() => { load(); }, [load]);

@@ -188,6 +188,27 @@ export default function PartnershipSection() {
           <h2 className="text-4xl md:text-5xl font-bold text-[#3E3E3E] mt-6 sm:mt-8">
             {get('partner_title', language, t.partnersTitle)}
           </h2>
+          {get('partner_desc', language, '') && (
+            <p className="mt-4 text-base sm:text-lg text-[#5A5A5A] max-w-2xl mx-auto leading-relaxed">
+              {get('partner_desc', language, '')}
+            </p>
+          )}
+          {(get('partner_stat1_value', language, '') || get('partner_stat2_value', language, '') || get('partner_stat3_value', language, '')) && (
+            <div className="flex flex-wrap justify-center gap-8 mt-6">
+              {[
+                { key: 'partner_stat1', defaultLabel: '', defaultValue: '' },
+                { key: 'partner_stat2', defaultLabel: '', defaultValue: '' },
+                { key: 'partner_stat3', defaultLabel: '', defaultValue: '' },
+              ].filter(s => get(`${s.key}_value`, language, '')).map((stat) => (
+                <div key={stat.key} className="text-center">
+                  <div className="text-2xl font-bold text-[#FF6B35]">{get(`${stat.key}_value`, language, '')}</div>
+                  {get(`${stat.key}_label`, language, '') && (
+                    <div className="text-sm text-[#5A5A5A] mt-1">{get(`${stat.key}_label`, language, '')}</div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </motion.div>
 
         {/* Carousel Container */}
