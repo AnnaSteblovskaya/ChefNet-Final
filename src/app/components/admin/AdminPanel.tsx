@@ -154,7 +154,6 @@ export default function AdminPanel({ onExit }: Props) {
   const [checking, setChecking] = useState(true);
   const [checkError, setCheckError] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [secretConfirmed, setSecretConfirmed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const checkAdmin = async () => {
@@ -250,16 +249,13 @@ export default function AdminPanel({ onExit }: Props) {
     return <AdminLoginForm onSuccess={checkAdmin} onExit={onExit} />;
   }
 
-  // Always require secret key confirmation — even for already-admin users (second factor)
-  if (!secretConfirmed) {
+  // Non-admin users must enter the secret key to gain access
+  if (!isAdmin) {
     return (
       <BootstrapScreen
         email={session.email}
-        isAlreadyAdmin={isAdmin}
-        onSuccess={() => {
-          setSecretConfirmed(true);
-          if (!isAdmin) setIsAdmin(true);
-        }}
+        isAlreadyAdmin={false}
+        onSuccess={() => setIsAdmin(true)}
         onExit={onExit}
       />
     );
