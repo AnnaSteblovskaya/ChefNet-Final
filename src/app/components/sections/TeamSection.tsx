@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import IconBox from '@/app/components/IconBox';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/locales/translations';
+import { useSiteContent } from '@/contexts/SiteContentContext';
 const alexeyPhoto = '/assets/5161dcbea8f660508ae7dab63631acefabe12971.png';
 const dmitryPhoto = '/assets/4a68720d7087b9ff89ce0e0efb17d5c8e247bd8e.png';
 const vladimirPhoto = '/assets/da745cecc8434d3bd83de9d68ada3703476ca78e.png';
@@ -11,8 +12,10 @@ const teamIcon = '/assets/a598161e6a3a78bc81c07fa776406dfb88d60efe.png';
 export default function TeamSection() {
   const { language } = useLanguage();
   const t = translations[language];
+  const { get } = useSiteContent();
+  const lang = language as 'ru'|'en'|'de'|'es'|'tr';
 
-  const teamMembers = [
+  const rawMembers = [
     {
       id: 1,
       name: language === 'en' ? 'Alexey Steblovsky' : language === 'de' ? 'Alexey Steblovsky' : language === 'tr' ? 'Alexey Steblovsky' : language === 'es' ? 'Alexey Steblovsky' : 'Алексей Стебловский',
@@ -116,6 +119,17 @@ export default function TeamSection() {
     }
   ];
 
+  const teamMembers = rawMembers.map((m, idx) => {
+    const n = idx + 1;
+    return {
+      ...m,
+      name: get(`member${n}_name`, lang, m.name),
+      position: get(`member${n}_position`, lang, m.position),
+      summary: get(`member${n}_summary`, lang, m.summary),
+      points: m.points.map((p: string, pi: number) => get(`member${n}_p${pi + 1}`, lang, p)).filter(Boolean),
+    };
+  });
+
   return (
     <section id="team" className="py-12 bg-[#F5EAE1] relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -140,7 +154,7 @@ export default function TeamSection() {
           </IconBox>
 
           <h2 className="text-4xl md:text-5xl font-bold text-[#3E3E3E] mb-4 mt-6 sm:mt-8">
-            {t.team}
+            {get('team_section_title', lang, t.team)}
           </h2>
         </motion.div>
 

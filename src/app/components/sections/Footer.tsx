@@ -2,11 +2,14 @@ import { motion } from 'motion/react';
 import { Facebook, Send, Music, Instagram, Mail, Phone, MapPin, ArrowRight, ChefHat } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/locales/translations';
+import { useSiteContent } from '@/contexts/SiteContentContext';
 import { useState } from 'react';
 
 export default function Footer() {
   const { language } = useLanguage();
   const t = translations[language];
+  const { get } = useSiteContent();
+  const lang = language as 'ru'|'en'|'de'|'es'|'tr';
   const [email, setEmail] = useState('');
   const [isRotating, setIsRotating] = useState(false);
 
@@ -50,7 +53,7 @@ export default function Footer() {
               </span>
             </motion.div>
             <p className="text-[#6B4423] mb-8 leading-relaxed whitespace-pre-line">
-              {t.footerTagline}
+              {get('footer_tagline', lang, t.footerTagline)}
             </p>
             
             {/* Social Links with glassmorphism effect */}
@@ -164,10 +167,10 @@ export default function Footer() {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <h3 className="text-xl font-bold text-[#2C1810] mb-8 relative before:content-[''] before:hidden">{t.footerContacts}</h3>
+            <h3 className="text-xl font-bold text-[#2C1810] mb-8 relative before:content-[''] before:hidden">{get('footer_contacts_title', lang, t.footerContacts)}</h3>
             <div className="space-y-5">
               <motion.a
-                href={`mailto:${t.footerEmail}`}
+                href={`mailto:${get('footer_email', lang, t.footerEmail)}`}
                 whileHover={{ x: 5 }}
                 className="flex items-center gap-4 text-[#6B4423] hover:text-[#FF6B35] transition-all duration-300 group"
               >
@@ -178,11 +181,11 @@ export default function Footer() {
                 >
                   <Mail className="w-5 h-5" />
                 </motion.div>
-                <span className="text-sm font-medium">{t.footerEmail}</span>
+                <span className="text-sm font-medium">{get('footer_email', lang, t.footerEmail)}</span>
               </motion.a>
 
               <motion.a
-                href={`tel:${t.footerPhone.replace(/\s/g, '')}`}
+                href={`tel:${get('footer_phone', lang, t.footerPhone).replace(/\s/g, '')}`}
                 whileHover={{ x: 5 }}
                 className="flex items-center gap-4 text-[#6B4423] hover:text-[#FF6B35] transition-all duration-300 group"
               >
@@ -193,7 +196,7 @@ export default function Footer() {
                 >
                   <Phone className="w-5 h-5" />
                 </motion.div>
-                <span className="text-sm font-medium">{t.footerPhone}</span>
+                <span className="text-sm font-medium">{get('footer_phone', lang, t.footerPhone)}</span>
               </motion.a>
 
               <motion.a 
@@ -210,7 +213,7 @@ export default function Footer() {
                 >
                   <MapPin className="w-5 h-5" />
                 </motion.div>
-                <div className="whitespace-pre-line text-sm leading-relaxed pt-1 font-medium">{t.footerAddress}</div>
+                <div className="whitespace-pre-line text-sm leading-relaxed pt-1 font-medium">{get('footer_address', lang, t.footerAddress)}</div>
               </motion.a>
             </div>
           </motion.div>
@@ -222,9 +225,9 @@ export default function Footer() {
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <h3 className="text-xl font-bold text-[#2C1810] mb-6 before:content-[''] before:hidden">{t.footerNewsletter}</h3>
+            <h3 className="text-xl font-bold text-[#2C1810] mb-6 before:content-[''] before:hidden">{get('footer_newsletter_title', lang, t.footerNewsletter)}</h3>
             <p className="text-[#6B4423] mb-8 leading-relaxed">
-              {t.footerNewsletterDesc}
+              {get('footer_newsletter_desc', lang, t.footerNewsletterDesc)}
             </p>
             <form onSubmit={handleNewsletterSubmit} className="relative">
               <input
@@ -257,7 +260,7 @@ export default function Footer() {
           className="pt-6 pb-8 border-t border-[#FFE5DE]"
         >
           <p className="text-center text-[#6B4423] text-sm">
-            {t.footerCopyright}
+            {get('footer_copyright', lang, t.footerCopyright)}
           </p>
         </motion.div>
       </div>

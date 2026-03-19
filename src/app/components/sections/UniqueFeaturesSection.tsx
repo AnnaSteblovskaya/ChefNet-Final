@@ -2,6 +2,7 @@ import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/locales/translations';
+import { useSiteContent } from '@/contexts/SiteContentContext';
 import IconBox from '@/app/components/IconBox';
 import { 
   Sparkles, 
@@ -33,6 +34,8 @@ const iconComponents = [
 export default function UniqueFeaturesSection() {
   const { language } = useLanguage();
   const t = translations[language];
+  const { get } = useSiteContent();
+  const lang = language as 'ru'|'en'|'de'|'es'|'tr';
   const [currentIndex, setCurrentIndex] = useState(0);
   const [visibleCards, setVisibleCards] = useState(3);
   const [lastClicked, setLastClicked] = useState<'prev' | 'next' | null>(null);
@@ -73,15 +76,15 @@ export default function UniqueFeaturesSection() {
   }, []);
 
   const features = [
-    { title: t.feature1Title, subtitle: t.feature1Subtitle || '', desc: t.feature1Desc, icon: iconComponents[0] },
-    { title: t.feature2Title, subtitle: t.feature2Subtitle || '', desc: t.feature2Desc, icon: iconComponents[1] },
-    { title: t.feature3Title, subtitle: t.feature3Subtitle || '', desc: t.feature3Desc, icon: iconComponents[2] },
-    { title: t.feature4Title, subtitle: t.feature4Subtitle || '', desc: t.feature4Desc, icon: iconComponents[3] },
-    { title: t.feature5Title, subtitle: t.feature5Subtitle || '', desc: t.feature5Desc, icon: iconComponents[4] },
-    { title: t.feature6Title, subtitle: t.feature6Subtitle || '', desc: t.feature6Desc, icon: iconComponents[5] },
-    { title: t.feature7Title, subtitle: t.feature7Subtitle || '', desc: t.feature7Desc, icon: iconComponents[6] },
-    { title: t.feature8Title, subtitle: t.feature8Subtitle || '', desc: t.feature8Desc, icon: iconComponents[7] },
-    { title: t.feature9Title, subtitle: t.feature9Subtitle || '', desc: t.feature9Desc, icon: iconComponents[8] },
+    { title: get('feature1_title', lang, t.feature1Title), subtitle: get('feature1_subtitle', lang, (t as any).feature1Subtitle || ''), desc: get('feature1_desc', lang, t.feature1Desc), icon: iconComponents[0] },
+    { title: get('feature2_title', lang, t.feature2Title), subtitle: get('feature2_subtitle', lang, (t as any).feature2Subtitle || ''), desc: get('feature2_desc', lang, t.feature2Desc), icon: iconComponents[1] },
+    { title: get('feature3_title', lang, t.feature3Title), subtitle: get('feature3_subtitle', lang, (t as any).feature3Subtitle || ''), desc: get('feature3_desc', lang, t.feature3Desc), icon: iconComponents[2] },
+    { title: get('feature4_title', lang, t.feature4Title), subtitle: get('feature4_subtitle', lang, (t as any).feature4Subtitle || ''), desc: get('feature4_desc', lang, t.feature4Desc), icon: iconComponents[3] },
+    { title: get('feature5_title', lang, t.feature5Title), subtitle: get('feature5_subtitle', lang, (t as any).feature5Subtitle || ''), desc: get('feature5_desc', lang, t.feature5Desc), icon: iconComponents[4] },
+    { title: get('feature6_title', lang, t.feature6Title), subtitle: get('feature6_subtitle', lang, (t as any).feature6Subtitle || ''), desc: get('feature6_desc', lang, t.feature6Desc), icon: iconComponents[5] },
+    { title: get('feature7_title', lang, t.feature7Title), subtitle: get('feature7_subtitle', lang, (t as any).feature7Subtitle || ''), desc: get('feature7_desc', lang, t.feature7Desc), icon: iconComponents[6] },
+    { title: get('feature8_title', lang, t.feature8Title), subtitle: get('feature8_subtitle', lang, (t as any).feature8Subtitle || ''), desc: get('feature8_desc', lang, t.feature8Desc), icon: iconComponents[7] },
+    { title: get('feature9_title', lang, t.feature9Title), subtitle: get('feature9_subtitle', lang, (t as any).feature9Subtitle || ''), desc: get('feature9_desc', lang, t.feature9Desc), icon: iconComponents[8] },
   ];
 
   const maxIndex = features.length - visibleCards;
@@ -164,7 +167,9 @@ export default function UniqueFeaturesSection() {
             <img src={fireIcon} alt="Fire icon" className="w-16 h-16 relative z-10 drop-shadow-lg" />
           </IconBox>
           <h2 className="text-4xl md:text-5xl font-bold mb-4 mt-6 sm:mt-8">
-            {language === 'tr' ? (
+            {get('features_section_title', lang, '') ? (
+              <span className="text-[#292524]">{get('features_section_title', lang, '')}</span>
+            ) : language === 'tr' ? (
               <>
                 <span className="text-[#FF6B35]">ChefNet</span>
                 <span className="text-[#292524]"> benzersiz Özellikleri</span>
@@ -174,11 +179,6 @@ export default function UniqueFeaturesSection() {
                 <span className="text-[#FF6B35]">{t.uniqueFeaturesChefNet}</span>
                 <span className="text-[#292524]"> {t.uniqueFeaturesTitle}</span>
               </>
-            ) : (language === 'de') ? (
-              <>
-                <span className="text-[#292524]">{t.uniqueFeaturesTitle}</span>
-                <span className="text-[#FF6B35]"> {t.uniqueFeaturesChefNet}</span>
-              </>
             ) : (
               <>
                 <span className="text-[#292524]">{t.uniqueFeaturesTitle}</span>
@@ -187,7 +187,7 @@ export default function UniqueFeaturesSection() {
             )}
           </h2>
           <p className="text-xl text-[var(--color-text-secondary)] max-w-3xl mx-auto">
-            {t.uniqueFeaturesSubtitle}
+            {get('features_section_subtitle', lang, t.uniqueFeaturesSubtitle)}
           </p>
         </motion.div>
 
