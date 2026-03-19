@@ -1038,51 +1038,9 @@ app.post('/api/kyc/webhook', express.raw({ type: '*/*' }), async (req, res) => {
   }
 });
 
-app.post('/api/seed-demo-data', requireAuth, async (req, res) => {
-  const userId = (req as any).userId;
-  const client = await pool.connect();
-  try {
-    await client.query('BEGIN');
-
-    const existing = await client.query('SELECT COUNT(*) FROM referrals WHERE user_id = $1', [userId]);
-    if (parseInt(existing.rows[0].count) > 0) {
-      await client.query('COMMIT');
-      res.json({ success: true, message: 'Demo data already exists' });
-      return;
-    }
-
-    await client.query(
-      `INSERT INTO referrals (user_id, name, status, amount, shares, commission, date, round) VALUES
-        ($1, 'John Doe', 'invested', '$150', 2000, '$15', '2026-01-15', 'seed'),
-        ($1, 'Jane Smith', 'registered', '$0', 0, '$0', '2026-01-20', NULL),
-        ($1, 'Peter Jones', 'invested', '$300', 4000, '$30', '2026-01-22', 'seed'),
-        ($1, 'Alice Williams', 'invested', '$75', 1000, '$7.50', '2026-01-28', 'seed'),
-        ($1, 'John Doe', 'invested', '$7500', 100000, '$750', '2026-02-09', 'seed')`,
-      [userId]
-    );
-
-    await client.query(
-      `INSERT INTO investments (user_id, round, shares, amount, date, status) VALUES
-        ($1, 'seed', 2000, '$150', '2026-01-15', 'completed'),
-        ($1, 'seed', 4000, '$300', '2026-01-22', 'completed')`,
-      [userId]
-    );
-
-    await client.query(
-      `INSERT INTO user_rounds (user_id, round_id, my_shares) VALUES ($1, 'seed', 6000)
-       ON CONFLICT (user_id, round_id) DO UPDATE SET my_shares = 6000`,
-      [userId]
-    );
-
-    await client.query('COMMIT');
-    res.json({ success: true });
-  } catch (err) {
-    await client.query('ROLLBACK');
-    console.error('Error seeding demo data:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  } finally {
-    client.release();
-  }
+// Seed demo data endpoint — disabled (was inserting fake referrals)
+app.post('/api/seed-demo-data', requireAuth, async (_req, res) => {
+  res.json({ success: true, message: 'Demo seeding is disabled' });
 });
 
 function getSiteUrlServer(): string {

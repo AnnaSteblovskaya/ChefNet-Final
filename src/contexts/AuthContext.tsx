@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useRef } from 'react';
 import { getSupabaseClient } from '@/utils/supabase/client';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
-import { loadDataFromServer, saveDataToServer, seedDemoData, clearLocalDashboardData } from '@/utils/dataSync';
+import { loadDataFromServer, saveDataToServer, clearLocalDashboardData } from '@/utils/dataSync';
 import { getSiteUrl } from '@/utils/siteUrl';
 
 export interface User {
@@ -107,7 +107,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (!dataSynced.current) {
             dataSynced.current = true;
             try {
-              await seedDemoData();
               await loadDataFromServer();
             } catch (syncErr) {
               console.warn('[auth] Data sync failed (non-critical):', syncErr);
@@ -165,7 +164,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (!dataSynced.current) {
             dataSynced.current = true;
             try {
-              await seedDemoData();
               await loadDataFromServer();
             } catch (syncErr) {
               console.warn('[auth] Data sync failed (non-critical):', syncErr);

@@ -27,25 +27,11 @@ export default function Dashboard({ onBackToHome }: DashboardProps) {
   const [showChartDemo, setShowChartDemo] = useState(false);
   const mainContentRef = useRef<HTMLElement>(null);
 
-  // Initialize referrals data on mount to ensure it's available for Overview tab
+  // Clear any legacy fake referral data that may have been stored in localStorage
   useEffect(() => {
-    const currentVersion = '1.0';
-    const savedVersion = localStorage.getItem('chefnet_referrals_version');
-    const savedData = localStorage.getItem('chefnet_referrals_data');
-
-    // Only initialize if no data exists or version mismatch
-    if (!savedData || savedVersion !== currentVersion) {
-      const defaultData = [
-        { name: 'John Doe', status: 'invested', amount: '$150', shares: 2000, commission: '$15', date: '2026-01-15', round: 'seed' },
-        { name: 'Jane Smith', status: 'registered', amount: '$0', shares: 0, commission: '$0', date: '2026-01-20', round: null },
-        { name: 'Peter Jones', status: 'invested', amount: '$300', shares: 4000, commission: '$30', date: '2026-01-22', round: 'seed' },
-        { name: 'Alice Williams', status: 'invested', amount: '$75', shares: 1000, commission: '$7.50', date: '2026-01-28', round: 'seed' },
-        { name: 'John Doe', status: 'invested', amount: '$7500', shares: 100000, commission: '$750', date: '2026-02-09', round: 'seed' },
-      ];
-      localStorage.setItem('chefnet_referrals_data', JSON.stringify(defaultData));
-      localStorage.setItem('chefnet_referrals_version', currentVersion);
-    }
-  }, []); // Run only once on mount
+    localStorage.removeItem('chefnet_referrals_data');
+    localStorage.removeItem('chefnet_referrals_version');
+  }, []);
 
   // Scroll to top when activeTab changes
   useEffect(() => {
