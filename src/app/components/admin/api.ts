@@ -44,7 +44,36 @@ export const adminApi = {
   kyc: { list: () => req('GET', '/kyc'), update: (id: number, d: unknown) => req('PUT', `/kyc/${id}`, d) },
   partners: { list: () => req('GET', '/partners'), create: (d: unknown) => req('POST', '/partners', d), update: (id: number, d: unknown) => req('PUT', `/partners/${id}`, d), remove: (id: number) => req('DELETE', `/partners/${id}`) },
   news: { list: () => req('GET', '/news'), create: (d: unknown) => req('POST', '/news', d), update: (id: number, d: unknown) => req('PUT', `/news/${id}`, d), remove: (id: number) => req('DELETE', `/news/${id}`) },
-  documents: { list: () => req('GET', '/documents'), create: (d: unknown) => req('POST', '/documents', d), update: (id: number, d: unknown) => req('PUT', `/documents/${id}`, d), remove: (id: number) => req('DELETE', `/documents/${id}`) },
+  documents: {
+    list: () => req('GET', '/documents'),
+    create: (d: unknown) => req('POST', '/documents', d),
+    update: (id: number, d: unknown) => req('PUT', `/documents/${id}`, d),
+    remove: (id: number) => req('DELETE', `/documents/${id}`),
+    upload: async (file: File, onProgress?: (pct: number) => void): Promise<{ file_url: string; file_name: string; size: number }> => {
+      const token = getToken();
+      return new Promise((resolve, reject) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${BASE}/documents/upload`);
+        if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+        };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try { resolve(JSON.parse(xhr.responseText)); }
+            catch { reject(new Error('Invalid server response')); }
+          } else {
+            try { reject(new Error(JSON.parse(xhr.responseText).error || 'Upload failed')); }
+            catch { reject(new Error('Upload failed')); }
+          }
+        };
+        xhr.onerror = () => reject(new Error('Network error'));
+        xhr.send(formData);
+      });
+    },
+  },
   content: { list: () => req('GET', '/content'), save: (key: string, d: unknown) => req('PUT', `/content/${key}`, d) },
   faq: { list: () => req('GET', '/faq'), create: (d: unknown) => req('POST', '/faq', d), update: (id: number, d: unknown) => req('PUT', `/faq/${id}`, d), remove: (id: number) => req('DELETE', `/faq/${id}`) },
   payments: { list: () => req('GET', '/payments'), create: (d: unknown) => req('POST', '/payments', d), update: (id: number, d: unknown) => req('PUT', `/payments/${id}`, d), remove: (id: number) => req('DELETE', `/payments/${id}`) },

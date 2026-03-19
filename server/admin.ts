@@ -1,7 +1,27 @@
 import express from 'express';
 import { Pool } from 'pg';
 import crypto from 'crypto';
+import path from 'path';
+import fs from 'fs';
+import multer from 'multer';
+import { fileURLToPath } from 'url';
 import { sendVerificationEmail } from './email.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const uploadsDir = path.resolve(__dirname, '..', 'public', 'uploads', 'documents');
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadsDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const base = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_\-\.]/g, '_').slice(0, 80);
+    cb(null, `${Date.now()}_${base}${ext}`);
+  },
+});
+const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
 
 function getAdminSiteUrl(): string {
   const domains = process.env.REPLIT_DOMAINS;
@@ -365,6 +385,23 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
   });
 
   // ─── DOCUMENTS ────────────────────────────────────────────────────────────
+  // Upload document file from disk (multipart/form-data)
+  router.post('/documents/upload', ...auth, (req, res, next) => {
+    upload.single('file')(req, res, (err) => {
+      if (err) {
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({ error: 'Файл слишком большой. Максимум 50 МБ.' });
+        }
+        return res.status(400).json({ error: err.message });
+      }
+      next();
+    });
+  }, async (req: any, res) => {
+    if (!req.file) return res.status(400).json({ error: 'Файл не загружен' });
+    const fileUrl = `/uploads/documents/${req.file.filename}`;
+    res.json({ file_url: fileUrl, file_name: req.file.originalname, size: req.file.size });
+  });
+
   router.get('/documents', ...auth, async (_req, res) => {
     try {
       const result = await pool.query('SELECT * FROM documents ORDER BY created_at DESC');
@@ -376,11 +413,11 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
   });
 
   router.post('/documents', ...auth, async (req, res) => {
-    const { title_en, title_ru, title_de, title_es, title_tr, file_url, category, visible } = req.body;
+    const { title_en, title_ru, title_de, title_es, title_tr, file_url, file_name, category, visible } = req.body;
     try {
       const result = await pool.query(
-        'INSERT INTO documents (title_en,title_ru,title_de,title_es,title_tr,file_url,category,visible) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *',
-        [title_en||'', title_ru||'', title_de||'', title_es||'', title_tr||'', file_url||'', category||'general', visible !== false]
+        'INSERT INTO documents (title_en,title_ru,title_de,title_es,title_tr,file_url,file_name,category,visible) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *',
+        [title_en||'', title_ru||'', title_de||'', title_es||'', title_tr||'', file_url||'', file_name||'', category||'general', visible !== false]
       );
       res.json(result.rows[0]);
     } catch (err) {
@@ -390,11 +427,11 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
   });
 
   router.put('/documents/:id', ...auth, async (req, res) => {
-    const { title_en, title_ru, title_de, title_es, title_tr, file_url, category, visible } = req.body;
+    const { title_en, title_ru, title_de, title_es, title_tr, file_url, file_name, category, visible } = req.body;
     try {
       await pool.query(
-        'UPDATE documents SET title_en=$1,title_ru=$2,title_de=$3,title_es=$4,title_tr=$5,file_url=$6,category=$7,visible=$8 WHERE id=$9',
-        [title_en||'', title_ru||'', title_de||'', title_es||'', title_tr||'', file_url||'', category||'general', visible !== false, req.params.id]
+        'UPDATE documents SET title_en=$1,title_ru=$2,title_de=$3,title_es=$4,title_tr=$5,file_url=$6,file_name=$7,category=$8,visible=$9 WHERE id=$10',
+        [title_en||'', title_ru||'', title_de||'', title_es||'', title_tr||'', file_url||'', file_name||'', category||'general', visible !== false, req.params.id]
       );
       res.json({ success: true });
     } catch (err) {
@@ -405,6 +442,12 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
 
   router.delete('/documents/:id', ...auth, async (req, res) => {
     try {
+      // If it was an uploaded file, delete it from disk too
+      const doc = await pool.query('SELECT file_url FROM documents WHERE id=$1', [req.params.id]);
+      if (doc.rows[0]?.file_url?.startsWith('/uploads/')) {
+        const filePath = path.resolve(__dirname, '..', 'public', doc.rows[0].file_url);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
       await pool.query('DELETE FROM documents WHERE id = $1', [req.params.id]);
       res.json({ success: true });
     } catch (err) {

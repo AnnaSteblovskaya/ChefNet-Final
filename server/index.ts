@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import crypto from 'crypto';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import pool from './db.js';
 import { sendVerificationEmail, sendPasswordResetEmail, verifySmtpConnection, sendReferralNotificationEmail } from './email.js';
@@ -232,6 +233,7 @@ async function ensureDbSchema() {
   }
 
   const migrations = [
+    `ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_name text DEFAULT ''`,
     `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS min_investment numeric DEFAULT 0`,
     `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS amount text DEFAULT ''`,
     `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS highlight boolean DEFAULT false`,
@@ -1494,6 +1496,11 @@ app.post('/api/admin-bootstrap', requireAuth, async (req, res) => {
 
 const isProduction = process.env.NODE_ENV === 'production';
 const PORT = isProduction ? 5000 : parseInt(process.env.API_PORT || '3001');
+
+// Serve uploaded documents in both dev and production
+const uploadsPath = path.resolve(__dirname, '..', 'public', 'uploads');
+if (!fs.existsSync(uploadsPath)) fs.mkdirSync(uploadsPath, { recursive: true });
+app.use('/uploads', express.static(uploadsPath));
 
 if (isProduction) {
   const distPath = path.resolve(__dirname, '..', 'dist');
