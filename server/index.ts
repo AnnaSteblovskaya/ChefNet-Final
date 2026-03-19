@@ -249,6 +249,7 @@ async function ensureDbSchema() {
     `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS tasks_tr text`,
     `ALTER TABLE site_content ADD COLUMN IF NOT EXISTS type text DEFAULT 'text'`,
     `ALTER TABLE site_content ADD COLUMN IF NOT EXISTS section text DEFAULT ''`,
+    `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS status text DEFAULT 'active'`,
     `ALTER TABLE referrals ADD COLUMN IF NOT EXISTS status text DEFAULT 'pending'`,
     `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS verification_token text`,
     `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS verification_token_expires timestamptz`,

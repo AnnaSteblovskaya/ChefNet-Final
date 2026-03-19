@@ -552,7 +552,7 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
   // ─── NOTIFICATIONS ────────────────────────────────────────────────────────
   router.get('/notifications', ...auth, async (_req, res) => {
     try {
-      const result = await pool.query('SELECT * FROM notifications ORDER BY created_at DESC LIMIT 500');
+      const result = await pool.query('SELECT * FROM notifications ORDER BY created_at DESC LIMIT 1000');
       res.json(result.rows);
     } catch (err) {
       console.error(err);
@@ -568,6 +568,44 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
         [user_email||'', type||'', message||'']
       );
       res.json(result.rows[0]);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  router.put('/notifications/:id/status', ...auth, async (req, res) => {
+    const { status } = req.body;
+    try {
+      await pool.query('UPDATE notifications SET status=$1 WHERE id=$2', [status || 'active', req.params.id]);
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  router.put('/notifications/bulk-status', ...auth, async (req, res) => {
+    const { ids, status } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) return res.json({ success: true });
+    try {
+      await pool.query(
+        `UPDATE notifications SET status=$1 WHERE id = ANY($2::int[])`,
+        [status || 'active', ids]
+      );
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  router.delete('/notifications/bulk', ...auth, async (req, res) => {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) return res.json({ success: true });
+    try {
+      await pool.query('DELETE FROM notifications WHERE id = ANY($1::int[])', [ids]);
+      res.json({ success: true });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Internal server error' });
