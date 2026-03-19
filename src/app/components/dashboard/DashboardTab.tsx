@@ -20,134 +20,64 @@ export default function DashboardTab() {
   // KYC Verification Status
   const [kycStatus, setKycStatus] = useState<'verified' | 'not_verified'>('not_verified');
 
-  // Load roundsData from localStorage or use defaults
-  const [roundsData, setRoundsData] = useState(() => {
-    const saved = localStorage.getItem('chefnet_rounds_data');
-    if (saved) {
-      const data = JSON.parse(saved);
-      // Reset Private round to initial state
-      if (data.Private) {
-        data.Private.soldShares = 0;
-        data.Private.myShares = 0;
-      }
-      // Save the reset data back to localStorage
-      localStorage.setItem('chefnet_rounds_data', JSON.stringify(data));
-      return data;
-    }
-    return {
-      Seed: { 
-        id: 'seed',
-        name: 'Раунд посева',
-        price: 0.075,
-        minInvestment: 2000,
-        totalShares: 2000000,
-        soldShares: 0,
-        myShares: 0,
-        status: 'Активный',
-        amount: '$150,000',
-        highlight: true,
-      },
-      Private: { 
-        id: 'seriesA',
-        name: 'Серия A',
-        price: 0.175,
-        minInvestment: 2000,
-        totalShares: 2000000,
-        soldShares: 0,
-        myShares: 0,
-        status: 'Вскоре',
-        amount: '$350,000',
-        highlight: false,
-      },
-      Marketing: { 
-        id: 'seriesB',
-        name: 'Серия B',
-        price: 0.50,
-        minInvestment: 1000,
-        totalShares: 1000000,
-        soldShares: 0,
-        myShares: 0,
-        status: 'Вскоре',
-        amount: '$500,000',
-        highlight: false,
-      },
-      'Public/IPO': { 
-        id: 'seriesC',
-        name: 'Серия C / IPO',
-        price: 1.00,
-        minInvestment: 1000,
-        totalShares: 1000000,
-        soldShares: 0,
-        myShares: 0,
-        status: 'Вскоре',
-        amount: '$1,000,000',
-        highlight: false,
-      }
-    };
-  });
+  // Rounds and user data from API
+  const [roundsData, setRoundsData] = useState<Record<string, {
+    id: string; name: string; price: number; minInvestment: number;
+    totalShares: number; soldShares: number; myShares: number;
+    status: string; amount: string; highlight: boolean;
+  }>>({});
 
-  // Listen for changes in localStorage to sync data
+  // Listen for KYC status from localStorage
   useEffect(() => {
-    const handleStorageChange = () => {
-      const savedRounds = localStorage.getItem('chefnet_rounds_data');
-      
-      if (savedRounds) {
-        setRoundsData(JSON.parse(savedRounds));
-      }
-      
-      // Check KYC status
+    const check = () => {
       const kycStatusSaved = localStorage.getItem('chefnet_kyc_status');
-      if (kycStatusSaved === 'verified') {
-        setKycStatus('verified');
-      } else {
-        setKycStatus('not_verified');
-      }
+      setKycStatus(kycStatusSaved === 'verified' ? 'verified' : 'not_verified');
     };
-
-    // Initial check
-    handleStorageChange();
-
-    // Check for updates every second to sync between tabs
-    const interval = setInterval(handleStorageChange, 1000);
-    
+    check();
+    const interval = setInterval(check, 2000);
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch fresh rounds from server on mount so admin changes are reflected immediately
+  // Fetch rounds + user investments from API
   useEffect(() => {
-    const roundNameMap: Record<string, string> = {
-      seed: 'Seed', seriesA: 'Private', marketing: 'Marketing', ipo: 'Public/IPO',
-    };
-    const roundDisplayNameMap: Record<string, string> = {
-      seed: 'Раунд посева', seriesA: 'Серия A', marketing: 'Серия B', ipo: 'Серия C / IPO',
-    };
-    fetch('/api/rounds')
-      .then(r => r.json())
-      .then((rounds: any[]) => {
+    const loadData = async () => {
+      try {
+        const [roundsRes, invRes] = await Promise.all([
+          fetch('/api/rounds'),
+          (() => {
+            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || '';
+            return fetch('/api/investments', {
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+              credentials: 'include',
+            });
+          })(),
+        ]);
+        const rounds: any[] = await roundsRes.json().catch(() => []);
+        const invData = invRes.ok ? await invRes.json().catch(() => ({})) : {};
+        const userRounds: any[] = invData.userRounds || [];
+        const mySharesMap: Record<string, number> = {};
+        userRounds.forEach((ur: any) => { mySharesMap[ur.round_id] = ur.my_shares || 0; });
         if (!Array.isArray(rounds) || rounds.length === 0) return;
-        setRoundsData(prev => {
-          const next = { ...prev };
-          rounds.forEach((round: any) => {
-            const key = roundNameMap[round.id] || round.id;
-            const existing = prev[key as keyof typeof prev];
-            next[key as keyof typeof prev] = {
-              ...existing,
-              id: round.id,
-              name: roundDisplayNameMap[round.id] || round.name,
-              price: parseFloat(round.price) || 0,
-              minInvestment: parseFloat(round.min_investment) || 0,
-              totalShares: round.total_shares || 0,
-              soldShares: round.sold_shares || 0,
-              status: round.status === 'active' ? 'Активный' : round.status === 'upcoming' ? 'Вскоре' : 'Распроданный',
-              amount: round.amount || '',
-              highlight: !!round.highlight,
-            };
-          });
-          localStorage.setItem('chefnet_rounds_data', JSON.stringify(next));
-          return next;
+        const next: typeof roundsData = {};
+        rounds.forEach((round: any) => {
+          const key = round.id;
+          next[key] = {
+            id: round.id,
+            name: round.label || round.name,
+            price: parseFloat(round.price) || 0,
+            minInvestment: parseFloat(round.min_investment) || 0,
+            totalShares: round.total_shares || 0,
+            soldShares: round.sold_shares || 0,
+            myShares: mySharesMap[round.id] || 0,
+            status: round.status === 'active' ? 'Активный' : round.status === 'upcoming' ? 'Вскоре' : 'Распроданный',
+            amount: round.amount || '',
+            highlight: !!round.highlight,
+          };
         });
-      })
-      .catch(() => {});
+        setRoundsData(next);
+      } catch (e) {}
+    };
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -251,7 +181,7 @@ export default function DashboardTab() {
   const totalTeamShares = referralsData.reduce((sum: number, ref: any) => sum + (ref.shares || 0), 0);
   
   // Team can only buy from Seed round (Pre-Seed) - same as user
-  const seedRound = roundsData.Seed;
+  const seedRound = Object.values(roundsData).find(r => r.status === 'Активный') || Object.values(roundsData)[0];
   const totalTeamSpent = totalTeamShares * (seedRound?.price || 0.075);
 
   // Calculate potential profit based on IPO price ($1.00)

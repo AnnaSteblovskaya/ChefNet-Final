@@ -247,6 +247,7 @@ async function ensureDbSchema() {
     `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS tasks_de text`,
     `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS tasks_es text`,
     `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS tasks_tr text`,
+    `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS label text DEFAULT ''`,
     `ALTER TABLE site_content ADD COLUMN IF NOT EXISTS type text DEFAULT 'text'`,
     `ALTER TABLE site_content ADD COLUMN IF NOT EXISTS section text DEFAULT ''`,
     `ALTER TABLE notifications ADD COLUMN IF NOT EXISTS status text DEFAULT 'active'`,
@@ -579,9 +580,11 @@ app.get('/api/rounds', async (_req, res) => {
     const rows = result.rows.map((r: any) => {
       const sharePrice = parseFloat(r.share_price) || parseFloat(r.price) || 0;
       const targetSum = parseFloat(r.target_sum) || 0;
-      const minOrder = parseFloat(r.min_order) || 0;
-      const totalShares = sharePrice > 0 ? Math.round(targetSum / sharePrice) : (r.total_shares || 0);
-      const isActive = r.active === true || r.active === 'true';
+      const minOrder = parseFloat(r.min_order) || parseFloat(r.min_investment) || 0;
+      const computedTotalShares = sharePrice > 0 && targetSum > 0
+        ? Math.round(targetSum / sharePrice)
+        : (r.total_shares || 0);
+      const isActive = r.active === true || r.active === 'true' || r.status === 'active';
       const formattedAmount = targetSum > 0
         ? '$' + targetSum.toLocaleString('en-US')
         : (r.amount || '');
@@ -589,11 +592,12 @@ app.get('/api/rounds', async (_req, res) => {
         ...r,
         price: sharePrice,
         min_investment: minOrder,
-        total_shares: totalShares,
+        total_shares: computedTotalShares,
         sold_shares: r.sold_shares || 0,
         status: isActive ? 'active' : 'upcoming',
         amount: formattedAmount,
         highlight: isActive,
+        label: r.label || r.name || r.id,
       };
     });
     res.json(rows);

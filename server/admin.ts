@@ -180,16 +180,16 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
   });
 
   router.post('/rounds', ...auth, async (req, res) => {
-    const { id, name, target_sum, market_cap, share_price, min_order, active, sort_order,
+    const { id, name, label, target_sum, market_cap, share_price, min_order, active, sort_order,
       description_en, description_ru, description_de, description_es, description_tr,
       tasks_en, tasks_ru, tasks_de, tasks_es, tasks_tr } = req.body;
     try {
       const result = await pool.query(
-        `INSERT INTO rounds (id, name, target_sum, market_cap, share_price, min_order, active, sort_order,
+        `INSERT INTO rounds (id, name, label, target_sum, market_cap, share_price, min_order, active, sort_order,
           description_en, description_ru, description_de, description_es, description_tr,
           tasks_en, tasks_ru, tasks_de, tasks_es, tasks_tr)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
-        [id, name, target_sum||0, market_cap||0, share_price||0, min_order||0, active !== false, sort_order||0,
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,
+        [id, name, label||name||id, target_sum||0, market_cap||0, share_price||0, min_order||0, active !== false, sort_order||0,
           description_en||'', description_ru||'', description_de||'', description_es||'', description_tr||'',
           tasks_en||'', tasks_ru||'', tasks_de||'', tasks_es||'', tasks_tr||'']
       );
@@ -201,19 +201,26 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
   });
 
   router.put('/rounds/:id', ...auth, async (req, res) => {
-    const { name, target_sum, market_cap, share_price, min_order, active, sort_order,
+    const { name, label, target_sum, market_cap, share_price, min_order, active, sort_order,
       description_en, description_ru, description_de, description_es, description_tr,
       tasks_en, tasks_ru, tasks_de, tasks_es, tasks_tr } = req.body;
+    const sp = parseFloat(share_price) || 0;
+    const ts = parseFloat(target_sum) || 0;
+    const computedTotalShares = sp > 0 && ts > 0 ? Math.round(ts / sp) : 0;
+    const formattedAmount = ts > 0 ? '$' + ts.toLocaleString('en-US') : '';
     try {
       await pool.query(
-        `UPDATE rounds SET name=$1, target_sum=$2, market_cap=$3, share_price=$4, min_order=$5,
-          active=$6, sort_order=$7,
-          description_en=$8, description_ru=$9, description_de=$10, description_es=$11, description_tr=$12,
-          tasks_en=$13, tasks_ru=$14, tasks_de=$15, tasks_es=$16, tasks_tr=$17
-         WHERE id=$18`,
-        [name, target_sum||0, market_cap||0, share_price||0, min_order||0, active !== false, sort_order||0,
+        `UPDATE rounds SET name=$1, label=$2, target_sum=$3, market_cap=$4, share_price=$5, min_order=$6,
+          active=$7, sort_order=$8,
+          description_en=$9, description_ru=$10, description_de=$11, description_es=$12, description_tr=$13,
+          tasks_en=$14, tasks_ru=$15, tasks_de=$16, tasks_es=$17, tasks_tr=$18,
+          price=$5, total_shares=$19, amount=COALESCE(NULLIF($20,''), amount),
+          min_investment=$6, highlight=$7
+         WHERE id=$21`,
+        [name, label||name, ts, market_cap||0, sp, parseFloat(min_order)||0, active !== false, sort_order||0,
           description_en||'', description_ru||'', description_de||'', description_es||'', description_tr||'',
-          tasks_en||'', tasks_ru||'', tasks_de||'', tasks_es||'', tasks_tr||'', req.params.id]
+          tasks_en||'', tasks_ru||'', tasks_de||'', tasks_es||'', tasks_tr||'',
+          computedTotalShares, formattedAmount, req.params.id]
       );
       res.json({ success: true });
     } catch (err) {
