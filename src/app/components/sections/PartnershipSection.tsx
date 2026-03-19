@@ -14,11 +14,13 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/locales/translations';
+import { useSiteContent } from '@/contexts/SiteContentContext';
 const partnerIcon = '/assets/85a04790adadc69f1d0380e9066216a493e83d6b.png';
 
 export default function PartnershipSection() {
   const { language } = useLanguage();
   const t = translations[language];
+  const { get } = useSiteContent();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [visibleCards, setVisibleCards] = useState(3);
   const [lastClicked, setLastClicked] = useState<'prev' | 'next' | null>(null);
@@ -184,7 +186,7 @@ export default function PartnershipSection() {
             <img src={partnerIcon} alt="Partner Icon" className="w-16 h-16 relative z-10 drop-shadow-lg -mt-2" />
           </IconBox>
           <h2 className="text-4xl md:text-5xl font-bold text-[#3E3E3E] mt-6 sm:mt-8">
-            {t.partnersTitle}
+            {get('partner_title', language, t.partnersTitle)}
           </h2>
         </motion.div>
 

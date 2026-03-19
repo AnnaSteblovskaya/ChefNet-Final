@@ -41,7 +41,8 @@ interface ModalState {
 }
 
 const TABS = [
-  { id: 'tree', label: '🌳 Дерево пользователей' },
+  { id: 'list', label: '📋 Список партнёров' },
+  { id: 'tree', label: '🌳 Дерево сети' },
   { id: 'payments', label: '💳 Платежи' },
 ] as const;
 
@@ -175,7 +176,8 @@ function TreeRow({
 export default function PartnersSection() {
   const [allUsers, setAllUsers] = useState<PartnerUser[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'tree' | 'payments'>('tree');
+  const [activeTab, setActiveTab] = useState<'list' | 'tree' | 'payments'>('list');
+  const [listSearch, setListSearch] = useState('');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
   const [modal, setModal] = useState<ModalState>({ type: null, user: null });
@@ -223,6 +225,17 @@ export default function PartnersSection() {
     );
     return rootUsers.filter(u => matchingIds.has(u.id));
   }, [rootUsers, allUsers, search]);
+
+  const partnersList = useMemo(() => {
+    const partners = allUsers.filter(u => u.referred_by || u.source === 'referral');
+    if (!listSearch.trim()) return partners;
+    const s = listSearch.toLowerCase();
+    return partners.filter(u =>
+      u.full_name?.toLowerCase().includes(s) ||
+      u.email?.toLowerCase().includes(s) ||
+      u.referrer_name?.toLowerCase().includes(s)
+    );
+  }, [allUsers, listSearch]);
 
   const toggleExpand = useCallback((id: string) => {
     setExpandedIds(prev => {
@@ -319,10 +332,11 @@ export default function PartnersSection() {
     }
   };
 
-  const totalUsers = allUsers.length;
-  const totalInvested = allUsers.reduce((s, u) => s + +u.total_amount, 0);
-  const totalPending = allUsers.reduce((s, u) => s + +u.pending_investments, 0);
-  const totalShares = allUsers.reduce((s, u) => s + +u.total_shares, 0);
+  const allPartners = useMemo(() => allUsers.filter(u => u.referred_by || u.source === 'referral'), [allUsers]);
+  const totalUsers = allPartners.length;
+  const totalInvested = allPartners.reduce((s, u) => s + +u.total_amount, 0);
+  const totalPending = allPartners.reduce((s, u) => s + +u.pending_investments, 0);
+  const totalShares = allPartners.reduce((s, u) => s + +u.total_shares, 0);
 
   return (
     <div className="flex flex-col gap-6">
@@ -361,6 +375,110 @@ export default function PartnersSection() {
           </button>
         ))}
       </div>
+
+      {/* ─── TAB: List ─── */}
+      {activeTab === 'list' && (
+        <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+          <div className="p-4 border-b border-white/10 flex items-center gap-3">
+            <input
+              type="text"
+              placeholder="Поиск по имени, email или спонсору..."
+              value={listSearch}
+              onChange={e => setListSearch(e.target.value)}
+              className="flex-1 bg-[#0d0d1a] border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-[#D4522A] transition"
+            />
+            <span className="text-white/30 text-xs whitespace-nowrap">
+              {loading ? '...' : `${partnersList.length} партнёров`}
+            </span>
+          </div>
+          {loading ? (
+            <div className="flex justify-center py-16"><div className="w-8 h-8 border-4 border-[#D4522A] border-t-transparent rounded-full animate-spin" /></div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[1000px]">
+                <thead>
+                  <tr className="border-b border-white/10 bg-white/3">
+                    <th className="text-left py-3 px-3 text-xs text-white/40 font-semibold">Дата</th>
+                    <th className="text-left py-3 px-3 text-xs text-white/40 font-semibold">Имя партнёра</th>
+                    <th className="text-left py-3 px-3 text-xs text-white/40 font-semibold">Email</th>
+                    <th className="text-left py-3 px-3 text-xs text-white/40 font-semibold">Статус</th>
+                    <th className="text-left py-3 px-3 text-xs text-white/40 font-semibold">Спонсор</th>
+                    <th className="text-center py-3 px-3 text-xs text-white/40 font-semibold">Доли</th>
+                    <th className="text-center py-3 px-3 text-xs text-white/40 font-semibold">Сумма</th>
+                    <th className="text-center py-3 px-3 text-xs text-white/40 font-semibold">Комиссия (10%)</th>
+                    <th className="text-left py-3 px-3 text-xs text-white/40 font-semibold">Действия</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {partnersList.length === 0 ? (
+                    <tr><td colSpan={9} className="py-12 text-center text-white/30">Нет партнёров</td></tr>
+                  ) : partnersList.map(u => {
+                    const isLegacy = u.source === 'referral';
+                    const shares = +u.total_shares || 0;
+                    const amount = +u.total_amount || 0;
+                    const commission = Math.floor(shares * 0.1);
+                    const date = u.created_at ? new Date(u.created_at).toLocaleDateString('ru-RU') : '—';
+                    const isInvested = shares > 0;
+                    return (
+                      <tr key={u.id} className="border-b border-white/5 hover:bg-white/3 group transition">
+                        <td className="py-2.5 px-3 text-xs text-white/40 whitespace-nowrap">{date}</td>
+                        <td className="py-2.5 px-3">
+                          <div className="text-white text-sm font-medium">{u.full_name || '—'}</div>
+                          {isLegacy && <div className="text-purple-400/60 text-[10px]">legacy</div>}
+                        </td>
+                        <td className="py-2.5 px-3 text-white/50 text-xs font-mono">{u.email || '—'}</td>
+                        <td className="py-2.5 px-3">
+                          <span className={`px-2 py-0.5 text-[10px] rounded-full border ${
+                            isInvested
+                              ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                              : 'bg-white/10 text-white/40 border-white/10'
+                          }`}>
+                            {isInvested ? 'Инвестор' : 'Зарегистрирован'}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-xs">
+                          {u.referrer_name
+                            ? <div>
+                                <div className="text-white/70">{u.referrer_name}</div>
+                                <div className="text-white/30 font-mono text-[10px]">{u.referred_by}</div>
+                              </div>
+                            : <span className="text-white/20">—</span>
+                          }
+                        </td>
+                        <td className="py-2.5 px-3 text-center text-white/80 text-sm font-semibold">{shares || '—'}</td>
+                        <td className="py-2.5 px-3 text-center text-white/60 text-sm">{amount > 0 ? `$${amount.toFixed(0)}` : '—'}</td>
+                        <td className="py-2.5 px-3 text-center">
+                          <span className={`text-sm font-semibold ${commission > 0 ? 'text-green-400' : 'text-white/20'}`}>
+                            {commission > 0 ? commission : '—'}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
+                            {!isLegacy && (
+                              <button onClick={() => openModal('investments', u)} title="Платежи"
+                                className="p-1.5 rounded-lg text-xs bg-white/5 text-white/40 hover:bg-white/10 transition">💳</button>
+                            )}
+                            {!isLegacy && (
+                              <button onClick={() => openModal('email', u)} title="Изменить email"
+                                className="p-1.5 rounded-lg text-xs bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition">✉️</button>
+                            )}
+                            {!isLegacy && (
+                              <button onClick={() => openModal('sponsor', u)} title="Изменить спонсора"
+                                className="p-1.5 rounded-lg text-xs bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition">🔗</button>
+                            )}
+                            <button onClick={() => openModal('delete', u)} title="Удалить"
+                              className="p-1.5 rounded-lg text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 transition">🗑️</button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ─── TAB: Tree ─── */}
       {activeTab === 'tree' && (
