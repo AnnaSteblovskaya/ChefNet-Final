@@ -380,6 +380,58 @@ async function ensureDbSchema() {
     console.error('[db-init] Round seeding failed:', err.message);
   }
 
+  // One-time cleanup: remove fake referrals and investments inserted by legacy seedDemoData()
+  // These had hardcoded names and specific dates that cannot be real user data
+  try {
+    const fakeRefResult = await pool.query(
+      `DELETE FROM referrals
+       WHERE name IN ('John Doe', 'Jane Smith', 'Peter Jones', 'Alice Williams')
+         AND date IN ('2026-01-15', '2026-01-20', '2026-01-22', '2026-01-28', '2026-02-09')
+         AND amount IN ('$0', '$75', '$150', '$300', '$7500', '$7.50')
+       RETURNING id`
+    );
+    if (fakeRefResult.rowCount && fakeRefResult.rowCount > 0) {
+      console.log(`[db-cleanup] Removed ${fakeRefResult.rowCount} fake seeded referral(s)`);
+    }
+
+    const fakeInvResult = await pool.query(
+      `DELETE FROM investments
+       WHERE date IN ('2026-01-15', '2026-01-22')
+         AND amount IN ('$150', '$300')
+         AND round = 'seed'
+         AND shares IN (2000, 4000)
+       RETURNING id`
+    );
+    if (fakeInvResult.rowCount && fakeInvResult.rowCount > 0) {
+      console.log(`[db-cleanup] Removed ${fakeInvResult.rowCount} fake seeded investment(s)`);
+    }
+
+    const fakeUrResult = await pool.query(
+      `DELETE FROM user_rounds
+       WHERE round_id = 'seed' AND my_shares = 6000
+         AND user_id IN (
+           SELECT DISTINCT user_id FROM referrals
+           WHERE name IN ('John Doe', 'Jane Smith', 'Peter Jones', 'Alice Williams')
+         )
+       RETURNING id`
+    );
+    if (fakeUrResult.rowCount && fakeUrResult.rowCount > 0) {
+      console.log(`[db-cleanup] Removed ${fakeUrResult.rowCount} fake seeded user_round(s)`);
+    }
+
+    // Safer fallback: remove user_rounds with exactly 6000 seed shares if no real investments back them
+    await pool.query(
+      `DELETE FROM user_rounds ur
+       WHERE ur.round_id = 'seed' AND ur.my_shares = 6000
+         AND NOT EXISTS (
+           SELECT 1 FROM investments i
+           WHERE i.user_id = ur.user_id AND i.round = 'seed'
+         )`
+    );
+  } catch (err: any) {
+    console.error('[db-cleanup] Fake data cleanup failed (non-critical):', err.message);
+  }
+
   console.log('[db-init] Schema check complete');
 }
 
