@@ -68,7 +68,7 @@ function AdminLoginForm({ onSuccess, onExit }: { onSuccess: () => void; onExit: 
   );
 }
 
-function BootstrapScreen({ email, onSuccess, onExit }: { email: string; onSuccess: () => void; onExit: () => void }) {
+function BootstrapScreen({ email, isAlreadyAdmin, onSuccess, onExit }: { email: string; isAlreadyAdmin?: boolean; onSuccess: () => void; onExit: () => void }) {
   const [secret, setSecret] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -76,14 +76,15 @@ function BootstrapScreen({ email, onSuccess, onExit }: { email: string; onSucces
   const submit = async () => {
     setLoading(true); setError('');
     try {
-      const token = (window as any).__supabaseSession?.access_token;
+      const token = (window as any).__supabaseSession?.access_token ||
+        (() => { try { const r = localStorage.getItem('sb-sdwlngwkeipgwelzxfai-auth-token'); return r ? JSON.parse(r)?.access_token : null; } catch { return null; } })();
       const res = await fetch('/api/admin-bootstrap', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ secret }),
       });
       if (res.ok) { onSuccess(); }
-      else { const d = await res.json(); setError(d.error || 'Неверный секрет'); }
+      else { const d = await res.json(); setError(d.error || 'Неверный секретный ключ'); }
     } catch { setError('Ошибка соединения'); }
     finally { setLoading(false); }
   };
@@ -91,12 +92,27 @@ function BootstrapScreen({ email, onSuccess, onExit }: { email: string; onSucces
   return (
     <div className="min-h-screen bg-[#0d0d1a] flex items-center justify-center p-4">
       <div className="bg-[#11111f] border border-white/10 rounded-2xl p-8 w-full max-w-sm text-center">
-        <div className="text-5xl mb-4">🔑</div>
-        <h2 className="text-white text-xl font-bold mb-1">Нет прав администратора</h2>
-        <p className="text-white/40 text-sm mb-6">Аккаунт: {email}<br />Введите секретный ключ администратора</p>
-        <input type="password" value={secret} onChange={e => setSecret(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} placeholder="Секретный ключ..." className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-[#D4522A] mb-3" />
+        <div className="text-5xl mb-4">🔐</div>
+        <h2 className="text-white text-xl font-bold mb-1">
+          {isAlreadyAdmin ? 'Подтверждение доступа' : 'Нет прав администратора'}
+        </h2>
+        <p className="text-white/40 text-sm mb-6">
+          Аккаунт: <span className="text-white/60">{email}</span><br />
+          {isAlreadyAdmin ? 'Введите секретный ключ для входа в панель' : 'Введите секретный ключ администратора'}
+        </p>
+        <input
+          type="password"
+          value={secret}
+          onChange={e => setSecret(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && submit()}
+          placeholder="Секретный ключ..."
+          autoFocus
+          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-[#D4522A] mb-3"
+        />
         {error && <p className="text-red-400 text-sm mb-3">{error}</p>}
-        <button onClick={submit} disabled={loading || !secret} className="w-full bg-[#D4522A] hover:bg-[#c04520] disabled:opacity-50 text-white py-3 rounded-xl text-sm font-medium transition mb-2">{loading ? 'Проверка...' : 'Получить доступ'}</button>
+        <button onClick={submit} disabled={loading || !secret} className="w-full bg-[#D4522A] hover:bg-[#c04520] disabled:opacity-50 text-white py-3 rounded-xl text-sm font-medium transition mb-2">
+          {loading ? 'Проверка...' : isAlreadyAdmin ? 'Войти в панель' : 'Получить доступ'}
+        </button>
         <button onClick={onExit} className="w-full bg-white/5 hover:bg-white/10 text-white/50 py-2 rounded-xl text-sm transition">← Вернуться на сайт</button>
       </div>
     </div>
@@ -138,6 +154,7 @@ export default function AdminPanel({ onExit }: Props) {
   const [checking, setChecking] = useState(true);
   const [checkError, setCheckError] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [secretConfirmed, setSecretConfirmed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const checkAdmin = async () => {
@@ -233,8 +250,19 @@ export default function AdminPanel({ onExit }: Props) {
     return <AdminLoginForm onSuccess={checkAdmin} onExit={onExit} />;
   }
 
-  if (!isAdmin) {
-    return <BootstrapScreen email={session?.email || ''} onSuccess={() => setIsAdmin(true)} onExit={onExit} />;
+  // Always require secret key confirmation — even for already-admin users (second factor)
+  if (!secretConfirmed) {
+    return (
+      <BootstrapScreen
+        email={session.email}
+        isAlreadyAdmin={isAdmin}
+        onSuccess={() => {
+          setSecretConfirmed(true);
+          if (!isAdmin) setIsAdmin(true);
+        }}
+        onExit={onExit}
+      />
+    );
   }
 
   const SectionComponent = {
