@@ -73,3 +73,18 @@
 .react-datepicker__navigation:hover .react-datepicker__navigation-icon::before {
   border-color: #111827;
 }
+/* Admin panel dark select options fix */
+.admin-dark-select option,
+select.admin-select option {
+  background-color: #1a1f2e !important;
+  color: #ffffff !important;
+}
+
+/* Admin panel: fix select option visibility in dark theme */
+#admin-panel select option {
+  background-color: #1a1f2e !important;
+  color: #ffffff !important;
+}
+#admin-panel select {
+  color-scheme: dark;
+}

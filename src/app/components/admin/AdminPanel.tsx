@@ -246,7 +246,7 @@ export default function AdminPanel({ onExit }: Props) {
   }[section];
 
   return (
-    <div className="min-h-screen bg-[#0d0d1a] flex">
+    <div id="admin-panel" className="min-h-screen bg-[#0d0d1a] flex">
       {/* Mobile overlay */}
       {sidebarOpen && <div className="fixed inset-0 bg-black/60 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
