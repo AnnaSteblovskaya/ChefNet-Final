@@ -52,6 +52,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const dataSynced = useRef(false);
   const isRegistering = useRef(false);
   const isCheckingLogin = useRef(false);
+  const confirmedVerified = useRef(false);
 
   async function checkEmailVerified(accessToken: string): Promise<boolean> {
     try {
@@ -138,7 +139,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         if (session?.user) {
-          if (event === 'SIGNED_IN' && session.user.email_confirmed_at) {
+          if (event === 'SIGNED_IN' && session.user.email_confirmed_at && !confirmedVerified.current) {
+            confirmedVerified.current = true;
             try {
               await fetch('/api/confirm-supabase-verified', {
                 method: 'POST',

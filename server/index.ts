@@ -1332,12 +1332,15 @@ app.post('/api/confirm-supabase-verified', async (req, res) => {
       return;
     }
 
-    await pool.query(
+    const updateResult = await pool.query(
       `UPDATE profiles SET email_verified = true, verification_token = NULL, verification_token_expires = NULL
        WHERE id = $1 AND email_verified = false`,
       [user.id]
     );
-    pool.query('INSERT INTO notifications (user_email, type) VALUES ($1, $2)', [user.email || '', 'Email verified']).catch(() => {});
+    // Only create notification if user was JUST marked verified (not already verified)
+    if ((updateResult.rowCount ?? 0) > 0) {
+      pool.query('INSERT INTO notifications (user_email, type) VALUES ($1, $2)', [user.email || '', 'Email verified']).catch(() => {});
+    }
     res.json({ success: true });
   } catch (err) {
     console.error('Error confirming supabase verified:', err);
