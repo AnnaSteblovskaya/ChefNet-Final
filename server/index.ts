@@ -232,6 +232,9 @@ async function ensureDbSchema() {
   }
 
   const migrations = [
+    `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS min_investment numeric DEFAULT 0`,
+    `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS amount text DEFAULT ''`,
+    `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS highlight boolean DEFAULT false`,
     `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS target_sum numeric DEFAULT 0`,
     `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS market_cap numeric DEFAULT 0`,
     `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS share_price numeric DEFAULT 0`,
@@ -349,6 +352,30 @@ async function ensureDbSchema() {
         [t.event, t.sort_order]
       );
     } catch { /* skip */ }
+  }
+
+  // Seed default rounds if table is empty
+  try {
+    const roundCount = await pool.query('SELECT COUNT(*) FROM rounds');
+    if (parseInt(roundCount.rows[0].count) === 0) {
+      const defaultRounds = [
+        { id: 'seed',      name: 'Seed Round',      label: 'Seed',        price: 0.075, total_shares: 2000000, min_investment: 2000, target_sum: 150000,  share_price: 0.075, min_order: 2000, status: 'active',   active: true,  sort_order: 1, amount: '$150,000'    },
+        { id: 'seriesA',   name: 'Private Round',    label: 'Private',     price: 0.175, total_shares: 2000000, min_investment: 2000, target_sum: 350000,  share_price: 0.175, min_order: 2000, status: 'upcoming', active: false, sort_order: 2, amount: '$350,000'    },
+        { id: 'marketing', name: 'Marketing Round',  label: 'Marketing',   price: 0.5,   total_shares: 1000000, min_investment: 1000, target_sum: 500000,  share_price: 0.5,   min_order: 1000, status: 'upcoming', active: false, sort_order: 3, amount: '$500,000'    },
+        { id: 'ipo',       name: 'Public / IPO',     label: 'Public/IPO',  price: 1.0,   total_shares: 1000000, min_investment: 1000, target_sum: 1000000, share_price: 1.0,   min_order: 1000, status: 'upcoming', active: false, sort_order: 4, amount: '$1,000,000'  },
+      ];
+      for (const r of defaultRounds) {
+        await pool.query(
+          `INSERT INTO rounds (id, name, label, price, total_shares, sold_shares, status, sort_order, target_sum, share_price, min_order, active, min_investment, amount)
+           VALUES ($1,$2,$3,$4,$5,0,$6,$7,$8,$9,$10,$11,$4,$12)
+           ON CONFLICT (id) DO NOTHING`,
+          [r.id, r.name, r.label, r.price, r.total_shares, r.status, r.sort_order, r.target_sum, r.share_price, r.min_order, r.active, r.amount]
+        );
+      }
+      console.log('[db-init] Default rounds seeded');
+    }
+  } catch (err: any) {
+    console.error('[db-init] Round seeding failed:', err.message);
   }
 
   console.log('[db-init] Schema check complete');
