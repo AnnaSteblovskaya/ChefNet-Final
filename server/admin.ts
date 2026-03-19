@@ -1,5 +1,14 @@
 import express from 'express';
 import { Pool } from 'pg';
+import crypto from 'crypto';
+import { sendVerificationEmail } from './email.js';
+
+function getAdminSiteUrl(): string {
+  const domains = process.env.REPLIT_DOMAINS;
+  if (domains) return `https://${domains.split(',')[0].trim()}`;
+  if (process.env.REPLIT_DEV_DOMAIN) return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  return 'http://localhost:3001';
+}
 
 export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandler) {
   const router = express.Router();
@@ -621,6 +630,152 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
       res.json({ success: true });
     } catch (err) {
       console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // ─── PARTNER USERS (referral network management) ─────────────────────────
+  router.get('/partner-users', ...auth, async (_req, res) => {
+    try {
+      const result = await pool.query(`
+        SELECT
+          p.id,
+          p.email,
+          p.full_name,
+          p.created_at,
+          p.email_verified,
+          p.referred_by,
+          CONCAT('CHEF-', UPPER(SUBSTRING(REPLACE(p.id::text, '-', ''), 1, 6))) AS own_ref_code,
+          ref.id AS referrer_id,
+          ref.email AS referrer_email,
+          ref.full_name AS referrer_name,
+          CONCAT('CHEF-', UPPER(SUBSTRING(REPLACE(ref.id::text, '-', ''), 1, 6))) AS referrer_ref_code,
+          COALESCE(inv_agg.total_shares, 0) AS total_shares,
+          COALESCE(inv_agg.total_amount, 0) AS total_amount,
+          COALESCE(inv_agg.pending_count, 0) AS pending_investments,
+          COALESCE(inv_agg.confirmed_count, 0) AS confirmed_investments,
+          COALESCE(direct_agg.direct_count, 0) AS direct_referrals_count
+        FROM profiles p
+        LEFT JOIN profiles ref
+          ON p.referred_by IS NOT NULL
+          AND UPPER(CONCAT('CHEF-', SUBSTRING(UPPER(REPLACE(ref.id::text, '-', '')), 1, 6))) = UPPER(p.referred_by)
+        LEFT JOIN (
+          SELECT user_id,
+            COALESCE(SUM(shares), 0) AS total_shares,
+            COALESCE(SUM(CAST(amount AS numeric)), 0) AS total_amount,
+            COUNT(*) FILTER (WHERE status = 'pending') AS pending_count,
+            COUNT(*) FILTER (WHERE status = 'confirmed') AS confirmed_count
+          FROM investments
+          GROUP BY user_id
+        ) inv_agg ON inv_agg.user_id = p.id
+        LEFT JOIN (
+          SELECT referred_by, COUNT(*) AS direct_count
+          FROM profiles
+          WHERE referred_by IS NOT NULL
+          GROUP BY referred_by
+        ) direct_agg ON UPPER(direct_agg.referred_by) = UPPER(CONCAT('CHEF-', SUBSTRING(UPPER(REPLACE(p.id::text, '-', '')), 1, 6)))
+        WHERE p.is_admin IS NULL OR p.is_admin = false
+        ORDER BY p.created_at ASC
+      `);
+      res.json(result.rows);
+    } catch (err) {
+      console.error('[admin] partner-users error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Change user email + send verification email
+  router.put('/users/:id/change-email', ...auth, async (req, res) => {
+    const { id } = req.params;
+    const { email } = req.body;
+    if (!email || !email.includes('@')) {
+      res.status(400).json({ error: 'Valid email required' });
+      return;
+    }
+    try {
+      const profileResult = await pool.query('SELECT full_name FROM profiles WHERE id = $1', [id]);
+      if (!profileResult.rows.length) { res.status(404).json({ error: 'User not found' }); return; }
+      const firstName = (profileResult.rows[0].full_name || '').split(' ')[0] || '';
+
+      const token = crypto.randomBytes(32).toString('hex');
+      const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      await pool.query(
+        `UPDATE profiles SET email = $1, email_verified = false, verification_token = $2, verification_token_expires = $3 WHERE id = $4`,
+        [email, token, expires, id]
+      );
+
+      const siteUrl = getAdminSiteUrl();
+      const verifyUrl = `${siteUrl}/verify-email?token=${token}`;
+      const sent = await sendVerificationEmail(email, firstName, verifyUrl, 'ru');
+
+      res.json({ success: true, emailSent: sent });
+    } catch (err) {
+      console.error('[admin] change-email error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Change user sponsor (referred_by code)
+  router.put('/users/:id/change-sponsor', ...auth, async (req, res) => {
+    const { id } = req.params;
+    const { sponsor_code } = req.body;
+    const cleanCode = sponsor_code ? String(sponsor_code).trim().toUpperCase() : null;
+    try {
+      if (cleanCode) {
+        const sponsorExists = await pool.query(
+          `SELECT id FROM profiles WHERE UPPER(CONCAT('CHEF-', SUBSTRING(UPPER(REPLACE(id::text, '-', '')), 1, 6))) = $1`,
+          [cleanCode]
+        );
+        if (!sponsorExists.rows.length) {
+          res.status(404).json({ error: 'Спонсор с таким кодом не найден' });
+          return;
+        }
+        const sponsorId = sponsorExists.rows[0].id;
+        if (sponsorId === id) {
+          res.status(400).json({ error: 'Нельзя назначить пользователя спонсором самого себя' });
+          return;
+        }
+      }
+      await pool.query('UPDATE profiles SET referred_by = $1 WHERE id = $2', [cleanCode, id]);
+      // Update referrals table: remove old referral record and create new one if sponsor set
+      await pool.query('DELETE FROM referrals WHERE referred_user_id = $1', [id]);
+      if (cleanCode) {
+        const sponsorResult = await pool.query(
+          `SELECT id FROM profiles WHERE UPPER(CONCAT('CHEF-', SUBSTRING(UPPER(REPLACE(id::text, '-', '')), 1, 6))) = $1`,
+          [cleanCode]
+        );
+        if (sponsorResult.rows.length) {
+          const sponsorId = sponsorResult.rows[0].id;
+          const userResult = await pool.query('SELECT full_name, email FROM profiles WHERE id = $1', [id]);
+          const user = userResult.rows[0] || {};
+          await pool.query(
+            `INSERT INTO referrals (user_id, referred_user_id, name, email, level, status)
+             VALUES ($1, $2, $3, $4, 1, 'registered')
+             ON CONFLICT DO NOTHING`,
+            [sponsorId, id, user.full_name || '', user.email || '']
+          );
+        }
+      }
+      res.json({ success: true });
+    } catch (err) {
+      console.error('[admin] change-sponsor error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Get investments for a specific user (for admin partner panel)
+  router.get('/users/:id/investments', ...auth, async (req, res) => {
+    try {
+      const result = await pool.query(
+        `SELECT i.*, r.name as round_name FROM investments i
+         LEFT JOIN rounds r ON r.id = i.round
+         WHERE i.user_id = $1 ORDER BY i.created_at DESC`,
+        [req.params.id]
+      );
+      res.json(result.rows);
+    } catch (err) {
+      console.error('[admin] user investments error:', err);
       res.status(500).json({ error: 'Internal server error' });
     }
   });

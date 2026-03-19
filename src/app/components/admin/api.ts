@@ -34,6 +34,12 @@ export const adminApi = {
   settings: { list: () => req('GET', '/settings'), save: (d: unknown) => req('PUT', '/settings', d) },
   templates: { list: () => req('GET', '/templates'), update: (id: number, d: unknown) => req('PUT', `/templates/${id}`, d) },
   bonuses: { list: () => req('GET', '/bonuses'), update: (id: number, d: unknown) => req('PUT', `/bonuses/${id}`, d) },
+  partnerUsers: {
+    list: () => req('GET', '/partner-users'),
+    changeEmail: (id: string, email: string) => req('PUT', `/users/${id}/change-email`, { email }),
+    changeSponsor: (id: string, sponsor_code: string | null) => req('PUT', `/users/${id}/change-sponsor`, { sponsor_code }),
+    getUserInvestments: (id: string) => req('GET', `/users/${id}/investments`),
+  },
 };
 
 export function injectToken(token: string) {
