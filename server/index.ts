@@ -1434,10 +1434,25 @@ app.post('/api/admin-bootstrap', requireAuth, async (req, res) => {
     return;
   }
   const userId = (req as any).userId;
+  // Extract email from JWT payload
+  let email = '';
   try {
-    await pool.query('UPDATE profiles SET is_admin = true WHERE id = $1', [userId]);
+    const token = (req.headers.authorization || '').split(' ')[1] || '';
+    const payload = decodeJwtPayload(token);
+    email = typeof payload?.email === 'string' ? payload.email : '';
+  } catch {}
+
+  try {
+    // Upsert profile: create if missing, then set is_admin=true
+    await pool.query(`
+      INSERT INTO profiles (id, email, is_admin, email_verified)
+      VALUES ($1, $2, true, true)
+      ON CONFLICT (id) DO UPDATE SET is_admin = true
+    `, [userId, email || `admin_${userId}@bootstrap.local`]);
+    console.log(`[bootstrap] Admin profile upserted: userId=${userId} email=${email}`);
     res.json({ success: true, message: 'You are now an admin!' });
   } catch (err) {
+    console.error('[bootstrap] Error:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

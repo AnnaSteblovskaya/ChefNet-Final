@@ -17,12 +17,15 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
     const userId = (req as any).userId;
     try {
       const result = await pool.query('SELECT is_admin FROM profiles WHERE id = $1', [userId]);
-      if (!result.rows[0]?.is_admin) {
+      const isAdmin = result.rows[0]?.is_admin;
+      console.log(`[requireAdmin] userId=${userId} rows=${result.rows.length} is_admin=${isAdmin} path=${req.path}`);
+      if (!isAdmin) {
         res.status(403).json({ error: 'Admin access required' });
         return;
       }
       next();
-    } catch {
+    } catch (err) {
+      console.error('[requireAdmin] DB error:', err);
       res.status(500).json({ error: 'Internal server error' });
     }
   };
