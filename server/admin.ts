@@ -635,8 +635,15 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
   });
 
   // ─── PARTNER USERS (referral network management) ─────────────────────────
-  router.get('/partner-users', ...auth, async (_req, res) => {
+  router.get('/partner-users', ...auth, async (req, res) => {
+    const userId = (req as any).userId;
+    console.log('[admin] partner-users called by userId:', userId);
     try {
+      // Quick sanity check
+      const profileCount = await pool.query('SELECT COUNT(*) FROM profiles');
+      const referralCount = await pool.query('SELECT COUNT(*) FROM referrals');
+      console.log('[admin] partner-users DB state: profiles=', profileCount.rows[0].count, 'referrals=', referralCount.rows[0].count);
+      
       const result = await pool.query(`
         SELECT
           'profile' AS source,
@@ -710,6 +717,7 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
 
         ORDER BY created_at ASC
       `);
+      console.log('[admin] partner-users result rows:', result.rows.length);
       res.json(result.rows);
     } catch (err) {
       console.error('[admin] partner-users error:', err);

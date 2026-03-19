@@ -192,14 +192,18 @@ export default function PartnersSection() {
   const [invLoading, setInvLoading] = useState(false);
 
   const [pendingInvestments, setPendingInvestments] = useState<any[]>([]);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
+    setApiError(null);
     adminApi.partnerUsers.list().then((data: PartnerUser[]) => {
       setAllUsers(data);
       setLoading(false);
     }).catch((err: Error) => {
-      console.error('[Partners] API error:', err?.message || err);
+      const msg = err?.message || String(err);
+      console.error('[Partners] API error:', msg);
+      setApiError(msg);
       setLoading(false);
     });
   }, []);
@@ -353,6 +357,17 @@ export default function PartnersSection() {
         </button>
       </div>
 
+      {/* API Error Banner */}
+      {apiError && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-red-400 text-sm flex items-start gap-3">
+          <span className="text-lg">⚠️</span>
+          <div>
+            <div className="font-semibold mb-1">Ошибка загрузки данных</div>
+            <div className="font-mono text-xs text-red-300">{apiError}</div>
+          </div>
+        </div>
+      )}
+
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
@@ -414,7 +429,19 @@ export default function PartnersSection() {
                 </thead>
                 <tbody>
                   {partnersList.length === 0 ? (
-                    <tr><td colSpan={9} className="py-12 text-center text-white/30">Нет партнёров</td></tr>
+                    <tr><td colSpan={9} className="py-12 text-center">
+                      <div className="text-white/30 text-sm">Нет партнёров</div>
+                      {allUsers.length > 0 && (
+                        <div className="text-white/20 text-xs mt-2">
+                          Загружено профилей: {allUsers.length} — ни один не пришёл по реферальной ссылке
+                        </div>
+                      )}
+                      {allUsers.length === 0 && !loading && (
+                        <div className="text-white/20 text-xs mt-2">
+                          В базе нет ни одного профиля
+                        </div>
+                      )}
+                    </td></tr>
                   ) : partnersList.map(u => {
                     const isLegacy = u.source === 'referral';
                     const shares = +u.total_shares || 0;
