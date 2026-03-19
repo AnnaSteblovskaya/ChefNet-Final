@@ -112,7 +112,7 @@ export default function DocumentsSection() {
     setItems(i => i.filter(x => x.id !== id));
   };
 
-  const isUploaded = (url?: string) => url?.startsWith('/uploads/');
+  const isUploaded = (url?: string) => url?.startsWith('/uploads/') || url?.includes('/storage/v1/object/public/');
 
   return (
     <div>
@@ -262,7 +262,7 @@ export default function DocumentsSection() {
                             />
                           </div>
                         </div>
-                      ) : editing.file_url?.startsWith('/uploads/') ? (
+                      ) : (editing.file_url?.startsWith('/uploads/') || editing.file_url?.includes('/storage/v1/object/public/')) ? (
                         <div>
                           <div className="text-3xl mb-1">{fileIcon(editing.file_url, editing.file_name)}</div>
                           <div className="text-white text-sm font-medium">{editing.file_name || 'Файл загружен'}</div>
@@ -285,7 +285,7 @@ export default function DocumentsSection() {
                     {uploadError && (
                       <div className="mt-2 text-red-400 text-xs bg-red-500/10 px-3 py-2 rounded-lg">{uploadError}</div>
                     )}
-                    {editing.file_url?.startsWith('/uploads/') && (
+                    {(editing.file_url?.startsWith('/uploads/') || editing.file_url?.includes('/storage/v1/object/public/')) && (
                       <div className="mt-2 flex items-center justify-between text-xs">
                         <span className="text-green-400">✓ Файл загружен на сервер</span>
                         <a

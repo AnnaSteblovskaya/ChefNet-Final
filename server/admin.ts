@@ -2,7 +2,6 @@ import express from 'express';
 import { Pool } from 'pg';
 import crypto from 'crypto';
 import path from 'path';
-import fs from 'fs';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { sendVerificationEmail } from './email.js';
@@ -10,18 +9,58 @@ import { sendVerificationEmail } from './email.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const uploadsDir = path.resolve(__dirname, '..', 'public', 'uploads', 'documents');
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+// Use memory storage — files are forwarded to Supabase Storage (persistent across deploys)
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadsDir),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const base = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_\-\.]/g, '_').slice(0, 80);
-    cb(null, `${Date.now()}_${base}${ext}`);
-  },
-});
-const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
+const SUPABASE_BUCKET = 'documents';
+
+async function ensureBucket(): Promise<void> {
+  const url = process.env.VITE_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return;
+  await fetch(`${url}/storage/v1/bucket`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, apikey: key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: SUPABASE_BUCKET, name: SUPABASE_BUCKET, public: true }),
+  });
+}
+ensureBucket().catch(console.error);
+
+async function uploadToSupabase(buffer: Buffer, originalName: string, mimetype: string): Promise<string> {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL!;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  const ext = path.extname(originalName);
+  const base = path.basename(originalName, ext).replace(/[^a-zA-Z0-9_\-\.]/g, '_').slice(0, 80);
+  const filename = `${Date.now()}_${base}${ext}`;
+  const res = await fetch(`${supabaseUrl}/storage/v1/object/${SUPABASE_BUCKET}/${filename}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${serviceKey}`,
+      apikey: serviceKey,
+      'Content-Type': mimetype || 'application/octet-stream',
+      'x-upsert': 'true',
+    },
+    body: buffer,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: 'Upload failed' }));
+    throw new Error((err as any).error || 'Upload to Supabase Storage failed');
+  }
+  return `${supabaseUrl}/storage/v1/object/public/${SUPABASE_BUCKET}/${filename}`;
+}
+
+async function deleteFromSupabase(fileUrl: string): Promise<void> {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL!;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  if (!fileUrl.includes('/storage/v1/object/public/')) return;
+  const pathPart = fileUrl.split(`/object/public/${SUPABASE_BUCKET}/`)[1];
+  if (!pathPart) return;
+  await fetch(`${supabaseUrl}/storage/v1/object/${SUPABASE_BUCKET}`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${serviceKey}`, apikey: serviceKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prefixes: [pathPart] }),
+  });
+}
 
 function getAdminSiteUrl(): string {
   const domains = process.env.REPLIT_DOMAINS;
@@ -385,7 +424,7 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
   });
 
   // ─── DOCUMENTS ────────────────────────────────────────────────────────────
-  // Upload document file from disk (multipart/form-data)
+  // Upload document file — stored in Supabase Storage (persistent across deploys)
   router.post('/documents/upload', ...auth, (req, res, next) => {
     upload.single('file')(req, res, (err) => {
       if (err) {
@@ -398,8 +437,13 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
     });
   }, async (req: any, res) => {
     if (!req.file) return res.status(400).json({ error: 'Файл не загружен' });
-    const fileUrl = `/uploads/documents/${req.file.filename}`;
-    res.json({ file_url: fileUrl, file_name: req.file.originalname, size: req.file.size });
+    try {
+      const fileUrl = await uploadToSupabase(req.file.buffer, req.file.originalname, req.file.mimetype);
+      res.json({ file_url: fileUrl, file_name: req.file.originalname, size: req.file.size });
+    } catch (err: any) {
+      console.error('Supabase upload error:', err);
+      res.status(500).json({ error: err.message || 'Ошибка загрузки файла' });
+    }
   });
 
   router.get('/documents', ...auth, async (_req, res) => {
@@ -442,11 +486,9 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
 
   router.delete('/documents/:id', ...auth, async (req, res) => {
     try {
-      // If it was an uploaded file, delete it from disk too
       const doc = await pool.query('SELECT file_url FROM documents WHERE id=$1', [req.params.id]);
-      if (doc.rows[0]?.file_url?.startsWith('/uploads/')) {
-        const filePath = path.resolve(__dirname, '..', 'public', doc.rows[0].file_url);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      if (doc.rows[0]?.file_url) {
+        await deleteFromSupabase(doc.rows[0].file_url).catch(console.error);
       }
       await pool.query('DELETE FROM documents WHERE id = $1', [req.params.id]);
       res.json({ success: true });

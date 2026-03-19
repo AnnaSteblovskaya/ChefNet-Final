@@ -42,7 +42,7 @@ function getTitle(doc: Doc, language: string): string {
 }
 
 function isUploadedFile(url: string): boolean {
-  return url?.startsWith('/uploads/');
+  return url?.startsWith('/uploads/') || url?.includes('/storage/v1/object/public/');
 }
 
 export default function DocumentsTab({ setActiveTab }: DocumentsTabProps) {
