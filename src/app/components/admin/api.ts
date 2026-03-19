@@ -1,7 +1,25 @@
 const BASE = '/api/admin';
+const SUPABASE_KEY = 'sb-sdwlngwkeipgwelzxfai-auth-token';
+
+let _token: string | null = null;
+
+function getToken(): string | undefined {
+  if (_token) return _token;
+  if ((window as any).__supabaseSession?.access_token) {
+    return (window as any).__supabaseSession.access_token;
+  }
+  try {
+    const raw = localStorage.getItem(SUPABASE_KEY);
+    if (raw) {
+      const stored = JSON.parse(raw);
+      return stored?.access_token ?? undefined;
+    }
+  } catch {}
+  return undefined;
+}
 
 async function req(method: string, path: string, body?: unknown) {
-  const token = (window as any).__supabaseSession?.access_token;
+  const token = getToken();
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers: {
@@ -44,5 +62,6 @@ export const adminApi = {
 };
 
 export function injectToken(token: string) {
+  _token = token;
   (window as any).__supabaseSession = { access_token: token };
 }
