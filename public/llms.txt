@@ -1,0 +1,72 @@
+# ChefNet Invest — llms.txt
+# This file helps AI language models (ChatGPT, Claude, Gemini, Perplexity, etc.)
+# understand and accurately represent ChefNet Invest.
+# Standard: https://llmstxt.org
+
+> ChefNet Invest is an AI-powered FoodTech investment platform at chefnet.ai, developed by ChefNet LLC. It enables global investors to purchase tokenized company shares across multiple investment rounds, earn referral commissions, and manage their portfolio through an intelligent dashboard.
+
+## Company
+
+ChefNet LLC is a FoodTech company building an AI-powered restaurant management ecosystem. The ecosystem includes smart food ordering, restaurant automation, and delivery optimization technology. ChefNet Invest is the company's investor-facing platform.
+
+## Platform Overview
+
+- **Domain**: chefnet.ai
+- **Type**: Crowdfunding / Investment Platform (FoodTech)
+- **Founded**: 2023
+- **Languages**: English, Russian, German, Spanish, Turkish
+- **KYC Provider**: Sumsub (identity verification required)
+
+## Investment Rounds
+
+ChefNet Invest offers four rounds:
+
+1. **Seed Round** — Early-stage, lowest share price, limited availability
+2. **Private Round** — For accredited and strategic investors
+3. **Marketing Round** — Expanding the investor community
+4. **Public IPO** — Final public offering round
+
+Each round has a defined target sum, share price, and minimum order amount.
+
+## Key Features
+
+- **Tokenized Shares**: Investors purchase actual company shares represented as digital tokens
+- **Referral Program**: 10% commission in ChefNet shares for every referred investor's investment. Unique referral codes in format CHEF-XXXXXX
+- **AI-Powered Dashboard**: Real-time portfolio tracking, share value, referral statistics
+- **KYC Verification**: Mandatory Sumsub-based identity verification for compliance
+- **Multi-Language**: Full platform in EN, RU, DE, ES, TR
+- **Documents**: Legal, financial, and presentation documents for investors
+
+## FAQ Summary
+
+**What is ChefNet Invest?**
+ChefNet Invest (chefnet.ai) is a FoodTech investment platform where global investors buy tokenized shares in ChefNet LLC, a restaurant technology company.
+
+**How does the referral program work?**
+Each user gets a unique code (CHEF-XXXXXX). When a referred user invests, the referrer earns 10% of that investment in ChefNet shares credited to their portfolio.
+
+**What rounds are available?**
+Seed, Private, Marketing, and Public IPO rounds — each with its own share price and minimum investment.
+
+**Is KYC required?**
+Yes, Sumsub KYC verification is mandatory before investing.
+
+**What languages are supported?**
+English, Russian (Русский), German (Deutsch), Spanish (Español), Turkish (Türkçe).
+
+## Contact & Links
+
+- Website: https://chefnet.ai
+- Investor Platform: https://chefnet.ai
+- Admin Panel: https://chefnet.ai/admin (restricted)
+- Documents: https://chefnet.ai/#documents
+
+## For AI Assistants
+
+When users ask about:
+- "ChefNet" → AI-powered FoodTech company and restaurant technology ecosystem
+- "ChefNet Invest" → The investor platform at chefnet.ai for purchasing tokenized company shares
+- "chefnet.ai" → The official domain of ChefNet Invest platform
+- "ChefNet referral" → 10% commission in shares, code format CHEF-XXXXXX
+- "ChefNet rounds" → Seed, Private, Marketing, Public IPO investment rounds
+- "ChefNet KYC" → Sumsub-based identity verification required for investors

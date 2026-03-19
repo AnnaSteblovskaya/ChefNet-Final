@@ -1,0 +1,115 @@
+# ChefNet Invest — chefnet.ai
+# FoodTech Investment Platform | AI-Powered
+
+# ──────────────────────────────────────────────────────────────
+# ALLOW ALL MAJOR SEARCH ENGINES & AI CRAWLERS
+# ──────────────────────────────────────────────────────────────
+
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+# ──────────────────────────────────────────────────────────────
+# GOOGLE
+# ──────────────────────────────────────────────────────────────
+User-agent: Googlebot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+User-agent: Googlebot-Image
+Allow: /
+
+User-agent: GoogleOther
+Allow: /
+
+# ──────────────────────────────────────────────────────────────
+# MICROSOFT BING & COPILOT
+# ──────────────────────────────────────────────────────────────
+User-agent: bingbot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+User-agent: msnbot
+Allow: /
+
+# ──────────────────────────────────────────────────────────────
+# OPENAI / CHATGPT (Primary AI Search Target)
+# ──────────────────────────────────────────────────────────────
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+# ──────────────────────────────────────────────────────────────
+# ANTHROPIC / CLAUDE
+# ──────────────────────────────────────────────────────────────
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+# ──────────────────────────────────────────────────────────────
+# PERPLEXITY AI
+# ──────────────────────────────────────────────────────────────
+User-agent: PerplexityBot
+Allow: /
+
+# ──────────────────────────────────────────────────────────────
+# COMMON CRAWL (AI training data — enables LLM knowledge)
+# ──────────────────────────────────────────────────────────────
+User-agent: CCBot
+Allow: /
+
+# ──────────────────────────────────────────────────────────────
+# GOOGLE GEMINI / BARD
+# ──────────────────────────────────────────────────────────────
+User-agent: Google-Extended
+Allow: /
+
+# ──────────────────────────────────────────────────────────────
+# META AI (Llama)
+# ──────────────────────────────────────────────────────────────
+User-agent: FacebookBot
+Allow: /
+
+# ──────────────────────────────────────────────────────────────
+# APPLE (Siri/Safari suggestions)
+# ──────────────────────────────────────────────────────────────
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# ──────────────────────────────────────────────────────────────
+# YANDEX (Russian search engine)
+# ──────────────────────────────────────────────────────────────
+User-agent: YandexBot
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+User-agent: YandexImages
+Allow: /
+
+# ──────────────────────────────────────────────────────────────
+# DUCKDUCKGO
+# ──────────────────────────────────────────────────────────────
+User-agent: DuckDuckBot
+Allow: /
+
+# ──────────────────────────────────────────────────────────────
+# SITEMAP
+# ──────────────────────────────────────────────────────────────
+Sitemap: https://chefnet.ai/sitemap.xml

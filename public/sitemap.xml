@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml"
+  xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+>
+
+  <!-- Main Landing Page -->
+  <url>
+    <loc>https://chefnet.ai/</loc>
+    <lastmod>2026-03-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://chefnet.ai/"/>
+    <xhtml:link rel="alternate" hreflang="ru" href="https://chefnet.ai/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://chefnet.ai/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://chefnet.ai/"/>
+    <xhtml:link rel="alternate" hreflang="tr" href="https://chefnet.ai/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://chefnet.ai/"/>
+  </url>
+
+  <!-- Investment Rounds Section -->
+  <url>
+    <loc>https://chefnet.ai/#invest</loc>
+    <lastmod>2026-03-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- About / Team -->
+  <url>
+    <loc>https://chefnet.ai/#about</loc>
+    <lastmod>2026-03-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Advantages / Features -->
+  <url>
+    <loc>https://chefnet.ai/#features</loc>
+    <lastmod>2026-03-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Partnership / Referral Program -->
+  <url>
+    <loc>https://chefnet.ai/#referral</loc>
+    <lastmod>2026-03-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Roadmap -->
+  <url>
+    <loc>https://chefnet.ai/#roadmap</loc>
+    <lastmod>2026-03-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- FAQ -->
+  <url>
+    <loc>https://chefnet.ai/#faq</loc>
+    <lastmod>2026-03-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Documents (public docs) -->
+  <url>
+    <loc>https://chefnet.ai/#documents</loc>
+    <lastmod>2026-03-19</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+</urlset>
