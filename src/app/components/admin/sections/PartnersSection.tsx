@@ -3,12 +3,14 @@ import { adminApi } from '../api';
 
 interface PartnerUser {
   id: string;
+  source: 'profile' | 'referral';
   email: string;
   full_name: string;
   created_at: string;
   email_verified: boolean;
+  is_admin: boolean;
   referred_by: string | null;
-  own_ref_code: string;
+  own_ref_code: string | null;
   referrer_id: string | null;
   referrer_email: string | null;
   referrer_name: string | null;
@@ -44,8 +46,8 @@ const TABS = [
 ] as const;
 
 function buildTree(users: PartnerUser[]): PartnerUser[] {
-  const byCode: Record<string, PartnerUser> = {};
-  users.forEach(u => { byCode[u.own_ref_code] = u; });
+  const byCode: Record<string, boolean> = {};
+  users.forEach(u => { if (u.own_ref_code) byCode[u.own_ref_code.toUpperCase()] = true; });
   return users.filter(u => !u.referred_by || !byCode[u.referred_by.toUpperCase()]);
 }
 
@@ -53,7 +55,9 @@ function getChildren(users: PartnerUser[], parentCode: string): PartnerUser[] {
   return users.filter(u => u.referred_by && u.referred_by.toUpperCase() === parentCode.toUpperCase());
 }
 
-function StatusBadge({ verified, shares }: { verified: boolean; shares: number }) {
+function StatusBadge({ source, verified, shares, isAdmin }: { source: string; verified: boolean; shares: number; isAdmin?: boolean }) {
+  if (source === 'referral') return <span className="px-2 py-0.5 text-[10px] rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">Реферал</span>;
+  if (isAdmin) return <span className="px-2 py-0.5 text-[10px] rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">Администратор</span>;
   if (shares > 0) return <span className="px-2 py-0.5 text-[10px] rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">Инвестор</span>;
   if (verified) return <span className="px-2 py-0.5 text-[10px] rounded-full bg-green-500/20 text-green-400 border border-green-500/30">Верифицирован</span>;
   return <span className="px-2 py-0.5 text-[10px] rounded-full bg-white/10 text-white/40 border border-white/10">Зарегистрирован</span>;
@@ -70,9 +74,10 @@ function TreeRow({
   onAction: (type: ModalType, user: PartnerUser) => void;
   pendingCount: number;
 }) {
-  const children = useMemo(() => getChildren(allUsers, user.own_ref_code), [allUsers, user.own_ref_code]);
+  const children = useMemo(() => user.own_ref_code ? getChildren(allUsers, user.own_ref_code) : [], [allUsers, user.own_ref_code]);
   const isExpanded = expandedIds.has(user.id);
   const hasChildren = children.length > 0;
+  const isLegacy = user.source === 'referral';
   const date = user.created_at ? new Date(user.created_at).toLocaleDateString('ru-RU') : '—';
 
   return (
@@ -101,7 +106,7 @@ function TreeRow({
           </div>
         </td>
         <td className="py-2.5 px-2">
-          <StatusBadge verified={user.email_verified} shares={+user.total_shares} />
+          <StatusBadge source={user.source} verified={user.email_verified} shares={+user.total_shares} isAdmin={user.is_admin} />
         </td>
         <td className="py-2.5 px-2 text-xs text-white/50">
           {user.referrer_name ? (
@@ -126,18 +131,24 @@ function TreeRow({
         </td>
         <td className="py-2.5 px-2">
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
-            <button onClick={() => onAction('investments', user)} title="Платежи"
-              className={`p-1.5 rounded-lg text-xs transition ${pendingCount > 0 ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>
-              💳
-            </button>
-            <button onClick={() => onAction('email', user)} title="Изменить email"
-              className="p-1.5 rounded-lg text-xs bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition">
-              ✉️
-            </button>
-            <button onClick={() => onAction('sponsor', user)} title="Изменить спонсора"
-              className="p-1.5 rounded-lg text-xs bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition">
-              🔗
-            </button>
+            {!isLegacy && (
+              <button onClick={() => onAction('investments', user)} title="Платежи"
+                className={`p-1.5 rounded-lg text-xs transition ${pendingCount > 0 ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>
+                💳
+              </button>
+            )}
+            {!isLegacy && (
+              <button onClick={() => onAction('email', user)} title="Изменить email"
+                className="p-1.5 rounded-lg text-xs bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition">
+                ✉️
+              </button>
+            )}
+            {!isLegacy && (
+              <button onClick={() => onAction('sponsor', user)} title="Изменить спонсора"
+                className="p-1.5 rounded-lg text-xs bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 transition">
+                🔗
+              </button>
+            )}
             <button onClick={() => onAction('delete', user)} title="Удалить"
               className="p-1.5 rounded-lg text-xs bg-red-500/10 text-red-400 hover:bg-red-500/20 transition">
               🗑️
@@ -198,11 +209,7 @@ export default function PartnersSection() {
     }
   }, [activeTab]);
 
-  const rootUsers = useMemo(() => {
-    const byCode: Record<string, PartnerUser> = {};
-    allUsers.forEach(u => { byCode[u.own_ref_code.toUpperCase()] = u; });
-    return allUsers.filter(u => !u.referred_by || !byCode[u.referred_by.toUpperCase()]);
-  }, [allUsers]);
+  const rootUsers = useMemo(() => buildTree(allUsers), [allUsers]);
 
   const filteredRoots = useMemo(() => {
     if (!search.trim()) return rootUsers;
@@ -280,7 +287,12 @@ export default function PartnersSection() {
     if (!modal.user) return;
     setModalLoading(true);
     try {
-      await adminApi.users.remove(modal.user.id);
+      if (modal.user.source === 'referral') {
+        const refId = parseInt(modal.user.id.replace('ref_', ''), 10);
+        await adminApi.partnerUsers.deleteReferral(refId);
+      } else {
+        await adminApi.users.remove(modal.user.id);
+      }
       setAllUsers(prev => prev.filter(u => u.id !== modal.user!.id));
       closeModal();
     } catch (e: any) {

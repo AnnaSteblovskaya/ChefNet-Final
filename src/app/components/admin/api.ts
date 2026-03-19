@@ -39,6 +39,7 @@ export const adminApi = {
     changeEmail: (id: string, email: string) => req('PUT', `/users/${id}/change-email`, { email }),
     changeSponsor: (id: string, sponsor_code: string | null) => req('PUT', `/users/${id}/change-sponsor`, { sponsor_code }),
     getUserInvestments: (id: string) => req('GET', `/users/${id}/investments`),
+    deleteReferral: (id: number) => req('DELETE', `/referrals/${id}`),
   },
 };
 

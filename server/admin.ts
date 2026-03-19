@@ -639,22 +639,24 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
     try {
       const result = await pool.query(`
         SELECT
+          'profile' AS source,
           p.id,
           p.email,
           p.full_name,
           p.created_at,
           p.email_verified,
+          p.is_admin,
           p.referred_by,
-          CONCAT('CHEF-', UPPER(SUBSTRING(REPLACE(p.id::text, '-', ''), 1, 6))) AS own_ref_code,
+          UPPER(CONCAT('CHEF-', SUBSTRING(UPPER(REPLACE(p.id::text, '-', '')), 1, 6))) AS own_ref_code,
           ref.id AS referrer_id,
           ref.email AS referrer_email,
           ref.full_name AS referrer_name,
-          CONCAT('CHEF-', UPPER(SUBSTRING(REPLACE(ref.id::text, '-', ''), 1, 6))) AS referrer_ref_code,
+          UPPER(CONCAT('CHEF-', SUBSTRING(UPPER(REPLACE(ref.id::text, '-', '')), 1, 6))) AS referrer_ref_code,
           COALESCE(inv_agg.total_shares, 0) AS total_shares,
           COALESCE(inv_agg.total_amount, 0) AS total_amount,
           COALESCE(inv_agg.pending_count, 0) AS pending_investments,
           COALESCE(inv_agg.confirmed_count, 0) AS confirmed_investments,
-          COALESCE(direct_agg.direct_count, 0) AS direct_referrals_count
+          COALESCE(direct_agg.direct_count, 0) + COALESCE(legacy_agg.legacy_count, 0) AS direct_referrals_count
         FROM profiles p
         LEFT JOIN profiles ref
           ON p.referred_by IS NOT NULL
@@ -674,8 +676,39 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
           WHERE referred_by IS NOT NULL
           GROUP BY referred_by
         ) direct_agg ON UPPER(direct_agg.referred_by) = UPPER(CONCAT('CHEF-', SUBSTRING(UPPER(REPLACE(p.id::text, '-', '')), 1, 6)))
-        WHERE p.is_admin IS NULL OR p.is_admin = false
-        ORDER BY p.created_at ASC
+        LEFT JOIN (
+          SELECT user_id::text, COUNT(*) AS legacy_count
+          FROM referrals
+          WHERE referred_user_id IS NULL
+          GROUP BY user_id
+        ) legacy_agg ON legacy_agg.user_id = p.id::text
+
+        UNION ALL
+
+        SELECT
+          'referral' AS source,
+          'ref_' || r.id::text AS id,
+          COALESCE(r.email, '') AS email,
+          r.name AS full_name,
+          r.created_at,
+          false AS email_verified,
+          false AS is_admin,
+          UPPER(CONCAT('CHEF-', SUBSTRING(UPPER(REPLACE(r.user_id::text, '-', '')), 1, 6))) AS referred_by,
+          NULL AS own_ref_code,
+          r.user_id::text AS referrer_id,
+          sponsor.email AS referrer_email,
+          sponsor.full_name AS referrer_name,
+          UPPER(CONCAT('CHEF-', SUBSTRING(UPPER(REPLACE(r.user_id::text, '-', '')), 1, 6))) AS referrer_ref_code,
+          COALESCE(r.shares, 0)::numeric AS total_shares,
+          0 AS total_amount,
+          0 AS pending_investments,
+          0 AS confirmed_investments,
+          0 AS direct_referrals_count
+        FROM referrals r
+        JOIN profiles sponsor ON sponsor.id::text = r.user_id::text
+        WHERE r.referred_user_id IS NULL
+
+        ORDER BY created_at ASC
       `);
       res.json(result.rows);
     } catch (err) {
@@ -776,6 +809,17 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
       res.json(result.rows);
     } catch (err) {
       console.error('[admin] user investments error:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // Delete a referral record (legacy partner without profile)
+  router.delete('/referrals/:id', ...auth, async (req, res) => {
+    try {
+      await pool.query('DELETE FROM referrals WHERE id = $1', [req.params.id]);
+      res.json({ success: true });
+    } catch (err) {
+      console.error('[admin] delete referral error:', err);
       res.status(500).json({ error: 'Internal server error' });
     }
   });
