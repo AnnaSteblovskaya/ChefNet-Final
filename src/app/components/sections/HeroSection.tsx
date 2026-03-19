@@ -1,11 +1,12 @@
 import { motion } from 'motion/react';
 import { useState, useMemo } from 'react';
 import { ChefHat, Menu } from 'lucide-react';
-const heroBg = '/assets/ea3684a8e6ad5b9f30bbc761f606c383abcbe400.png';
+const heroBgDefault = '/assets/ea3684a8e6ad5b9f30bbc761f606c383abcbe400.png';
 const mobileBg = '/assets/f6e6a7c1827ce38e56117c96836c20e4665523fd.png';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { translations } from '@/locales/translations';
+import { useSiteContent } from '@/contexts/SiteContentContext';
 import LanguageSwitcher from '@/app/components/LanguageSwitcher';
 import AuthModal from '@/app/components/auth/AuthModal';
 import MobileMenu from '@/app/components/MobileMenu';
@@ -18,9 +19,13 @@ export default function HeroSection({ onGoToDashboard }: HeroSectionProps) {
   const { language } = useLanguage();
   const { isAuthenticated } = useAuth();
   const t = useMemo(() => translations[language], [language]);
+  const { get: sc } = useSiteContent();
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const lang = language as 'en' | 'ru' | 'de' | 'es' | 'tr';
+  const heroBg = sc('hero_bg_image', 'en', '') || heroBgDefault;
 
   const handleLoginClick = () => {
     if (isAuthenticated) {
@@ -196,25 +201,31 @@ export default function HeroSection({ onGoToDashboard }: HeroSectionProps) {
                   }}
                 />
                 <span style={{ position: 'relative', zIndex: 1 }}>
-                  {language === 'ru' ? 'Интеллект,' : 
-                   language === 'en' ? 'Intelligence' :
-                   language === 'de' ? 'Intelligenz,' :
-                   language === 'es' ? 'Inteligencia' :
-                   'Seçimi'}
+                  {sc('hero_heading', lang, '') || (
+                    language === 'ru' ? 'Интеллект,' : 
+                    language === 'en' ? 'Intelligence' :
+                    language === 'de' ? 'Intelligenz,' :
+                    language === 'es' ? 'Inteligencia' :
+                    'Seçimi'
+                  )}
                 </span>
               </span>
-              <br />
-              {language === 'ru' ? 'превращающий' :
-               language === 'en' ? 'that turns' :
-               language === 'de' ? 'die Auswahl' :
-               language === 'es' ? 'que convierte' :
-               'değere çeviren'}
-              <br />
-              {language === 'ru' ? 'выбор в ценность.' :
-               language === 'en' ? 'choice into value.' :
-               language === 'de' ? 'in Wert verwandelt.' :
-               language === 'es' ? 'la elección en valor.' :
-               'zekâ.'}
+              {!sc('hero_heading', lang, '') && (
+                <>
+                  <br />
+                  {language === 'ru' ? 'превращающий' :
+                   language === 'en' ? 'that turns' :
+                   language === 'de' ? 'die Auswahl' :
+                   language === 'es' ? 'que convierte' :
+                   'değere çeviren'}
+                  <br />
+                  {language === 'ru' ? 'выбор в ценность.' :
+                   language === 'en' ? 'choice into value.' :
+                   language === 'de' ? 'in Wert verwandelt.' :
+                   language === 'es' ? 'la elección en valor.' :
+                   'zekâ.'}
+                </>
+              )}
             </motion.h1>
 
             <motion.div
@@ -223,25 +234,29 @@ export default function HeroSection({ onGoToDashboard }: HeroSectionProps) {
               transition={{ delay: 0.4 }}
               className="text-white text-[14px] leading-relaxed mb-6"
             >
-              <p className="font-bold mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>{t.heroSubtitle}</p>
+              <p className="font-bold mb-2" style={{ fontFamily: 'Nunito, sans-serif' }}>
+                {sc('hero_subtitle', lang, '') || t.heroSubtitle}
+              </p>
               
               <p className="font-normal opacity-90 mb-4">
-                {language === 'ru' ? (
-                  <>
-                    которая изучает ваш ритм, запоминает ваш вкус и сохраняет вам<br />
-                    время и деньги каждый день.
-                  </>
-                ) : (
-                  t.heroDescription
+                {sc('hero_description', lang, '') || (
+                  language === 'ru' ? (
+                    <>
+                      которая изучает ваш ритм, запоминает ваш вкус и сохраняет вам<br />
+                      время и деньги каждый день.
+                    </>
+                  ) : (
+                    t.heroDescription
+                  )
                 )}
               </p>
               
-              <p className="font-normal opacity-90 mb-1">{t.heroBenefit1}</p>
-              <p className="font-normal opacity-90 mb-1">{t.heroBenefit2}</p>
-              <p className="font-normal opacity-90 mb-4">{t.heroBenefit3}</p>
+              <p className="font-normal opacity-90 mb-1">{sc('hero_benefit1', lang, '') || t.heroBenefit1}</p>
+              <p className="font-normal opacity-90 mb-1">{sc('hero_benefit2', lang, '') || t.heroBenefit2}</p>
+              <p className="font-normal opacity-90 mb-4">{sc('hero_benefit3', lang, '') || t.heroBenefit3}</p>
 
               <p className="font-normal opacity-90">
-                {t.heroCta}
+                {sc('hero_cta', lang, '') || t.heroCta}
               </p>
             </motion.div>
           </div>

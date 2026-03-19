@@ -406,16 +406,16 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
   });
 
   router.put('/content/:key', ...auth, async (req, res) => {
-    const { value_en, value_ru, value_de, value_es, value_tr, label } = req.body;
+    const { value_en, value_ru, value_de, value_es, value_tr, label, type, section } = req.body;
     try {
       await pool.query(
-        `INSERT INTO site_content (key, label, value_en, value_ru, value_de, value_es, value_tr, updated_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,now())
+        `INSERT INTO site_content (key, label, value_en, value_ru, value_de, value_es, value_tr, type, section, updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,now())
          ON CONFLICT (key) DO UPDATE SET
            label=EXCLUDED.label, value_en=EXCLUDED.value_en, value_ru=EXCLUDED.value_ru,
            value_de=EXCLUDED.value_de, value_es=EXCLUDED.value_es, value_tr=EXCLUDED.value_tr,
-           updated_at=now()`,
-        [req.params.key, label||'', value_en||'', value_ru||'', value_de||'', value_es||'', value_tr||'']
+           type=EXCLUDED.type, section=EXCLUDED.section, updated_at=now()`,
+        [req.params.key, label||'', value_en||'', value_ru||'', value_de||'', value_es||'', value_tr||'', type||'text', section||'']
       );
       res.json({ success: true });
     } catch (err) {

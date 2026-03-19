@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ThemeProvider } from '@/app/components/ThemeProvider';
 import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
+import { SiteContentProvider } from '@/contexts/SiteContentContext';
 import NewPasswordModal from '@/app/components/auth/NewPasswordModal';
 import AdminPanel from '@/app/components/admin/AdminPanel';
 import HeroSection from '@/app/components/sections/HeroSection';
@@ -227,12 +228,14 @@ function AppContent() {
 
 export default function App() {
   return (
-    <LanguageProvider>
-      <AuthProvider>
-        <ThemeProvider defaultTheme="light" storageKey="chefnet-theme">
-          <AppContent />
-        </ThemeProvider>
-      </AuthProvider>
-    </LanguageProvider>
+    <SiteContentProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <ThemeProvider defaultTheme="light" storageKey="chefnet-theme">
+            <AppContent />
+          </ThemeProvider>
+        </AuthProvider>
+      </LanguageProvider>
+    </SiteContentProvider>
   );
 }

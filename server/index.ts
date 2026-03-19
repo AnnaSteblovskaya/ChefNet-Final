@@ -247,6 +247,8 @@ async function ensureDbSchema() {
     `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS tasks_de text`,
     `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS tasks_es text`,
     `ALTER TABLE rounds ADD COLUMN IF NOT EXISTS tasks_tr text`,
+    `ALTER TABLE site_content ADD COLUMN IF NOT EXISTS type text DEFAULT 'text'`,
+    `ALTER TABLE site_content ADD COLUMN IF NOT EXISTS section text DEFAULT ''`,
     `ALTER TABLE referrals ADD COLUMN IF NOT EXISTS status text DEFAULT 'pending'`,
     `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS verification_token text`,
     `ALTER TABLE profiles ADD COLUMN IF NOT EXISTS verification_token_expires timestamptz`,
@@ -556,6 +558,16 @@ app.put('/api/profile', requireAuth, async (req, res) => {
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Error updating profile:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.get('/api/site-content', async (_req, res) => {
+  try {
+    const result = await pool.query('SELECT key, value_en, value_ru, value_de, value_es, value_tr, type, section FROM site_content');
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching site content:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
