@@ -636,6 +636,18 @@ app.get('/api/rounds', async (_req, res) => {
   }
 });
 
+app.get('/api/documents', async (_req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, title_en, title_ru, title_de, title_es, title_tr, file_url, file_name, category, created_at FROM documents WHERE visible = true ORDER BY created_at DESC'
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching documents:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.get('/api/investments', requireAuth, async (req, res) => {
   const userId = (req as any).userId;
   try {
