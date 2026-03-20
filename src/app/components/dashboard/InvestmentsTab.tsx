@@ -6,6 +6,7 @@ import { dashboardTranslations } from '@/utils/dashboardTranslations';
 import { useState, useEffect, useRef } from 'react';
 import LanguageSwitcher from '@/app/components/LanguageSwitcher';
 import { getAuthHeaders } from '@/utils/api';
+import PaymentModal from './PaymentModal';
 
 interface ApiRound {
   id: string;
@@ -65,11 +66,11 @@ export default function InvestmentsTab({ setActiveTab }: InvestmentsTabProps) {
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [loadingRounds, setLoadingRounds] = useState(true);
   const [loadingInv, setLoadingInv] = useState(true);
-  const [buying, setBuying] = useState(false);
 
   const [activeRoundId, setActiveRoundId] = useState<string>('');
   const [amount, setAmount] = useState(0);
   const [selectedRound, setSelectedRound] = useState<string | null>(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Load rounds from public API
   const loadRounds = async () => {
@@ -134,10 +135,11 @@ export default function InvestmentsTab({ setActiveTab }: InvestmentsTabProps) {
     setActiveRoundId(roundId);
     setTimeout(() => {
       calculatorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(() => setShowPaymentModal(true), 400);
     }, 100);
   };
 
-  const handleBuyShares = async () => {
+  const handleBuyShares = () => {
     if (!activeRound || activeRound.status !== 'active') {
       alert(t.roundNotActive || 'Раунд не активен');
       return;
@@ -146,27 +148,7 @@ export default function InvestmentsTab({ setActiveTab }: InvestmentsTabProps) {
       alert(`${t.sharesRange || 'Количество долей должно быть от'} ${activeRound.min_investment.toLocaleString()} ${t.and || 'до'} ${availableShares.toLocaleString()}`);
       return;
     }
-    setBuying(true);
-    try {
-      const headers = await getAuthHeaders();
-      const res = await fetch('/api/investments', {
-        method: 'POST',
-        headers,
-        credentials: 'include',
-        body: JSON.stringify({ round: activeRound.id, shares: amount, amount: parseFloat(paymentAmount) }),
-      });
-      if (res.ok) {
-        await loadRounds();
-        await loadInvestments();
-        setAmount(activeRound.min_investment);
-      } else {
-        const err = await res.json().catch(() => ({}));
-        alert(err.error || 'Ошибка при покупке долей');
-      }
-    } catch (e) {
-      alert('Ошибка сети. Попробуйте ещё раз.');
-    }
-    setBuying(false);
+    setShowPaymentModal(true);
   };
 
   const statusLabel = (r: ApiRound) => {
@@ -409,14 +391,14 @@ export default function InvestmentsTab({ setActiveTab }: InvestmentsTabProps) {
 
                 <button
                   className={`w-full py-3 rounded-xl font-medium transition-all shadow-md ${
-                    isActive(activeRound) && !buying
+                    isActive(activeRound)
                       ? 'bg-[#D4522A] hover:bg-[#B8441F] text-white cursor-pointer'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
                   onClick={handleBuyShares}
-                  disabled={!isActive(activeRound) || buying}
+                  disabled={!isActive(activeRound)}
                 >
-                  {buying ? 'Обработка...' : isActive(activeRound) ? t.buyMore : t.roundInactive}
+                  {isActive(activeRound) ? t.buyMore : t.roundInactive}
                 </button>
               </>
             ) : null}
@@ -477,6 +459,21 @@ export default function InvestmentsTab({ setActiveTab }: InvestmentsTabProps) {
           </ScrollIndicator>
         )}
       </motion.div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && activeRound && (
+        <PaymentModal
+          round={activeRound}
+          shares={amount}
+          usdAmount={parseFloat(paymentAmount)}
+          onClose={() => setShowPaymentModal(false)}
+          onSuccess={async () => {
+            await loadRounds();
+            await loadInvestments();
+            setAmount(activeRound.min_investment);
+          }}
+        />
+      )}
     </div>
   );
 }

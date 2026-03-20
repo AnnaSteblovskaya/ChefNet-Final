@@ -282,6 +282,11 @@ async function ensureDbSchema() {
     `ALTER TABLE email_templates ADD COLUMN IF NOT EXISTS body_es text`,
     `ALTER TABLE email_templates ADD COLUMN IF NOT EXISTS subject_tr text`,
     `ALTER TABLE email_templates ADD COLUMN IF NOT EXISTS body_tr text`,
+    `ALTER TABLE investments ADD COLUMN IF NOT EXISTS payment_method text DEFAULT 'bank'`,
+    `ALTER TABLE investments ADD COLUMN IF NOT EXISTS crypto_network text`,
+    `ALTER TABLE investments ADD COLUMN IF NOT EXISTS tx_hash text`,
+    `ALTER TABLE investments ADD COLUMN IF NOT EXISTS bank_type text`,
+    `ALTER TABLE investments ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now()`,
   ];
   for (const sql of migrations) {
     try {
@@ -826,6 +831,30 @@ app.get('/api/rounds', async (_req, res) => {
   }
 });
 
+// Public payment settings (bank details + crypto wallets)
+app.get('/api/payment-settings', async (_req, res) => {
+  try {
+    const PAYMENT_KEYS = [
+      'bank_us_account_holder', 'bank_us_bank_name', 'bank_us_routing_number',
+      'bank_us_account_number', 'bank_us_swift', 'bank_us_address',
+      'bank_intl_account_holder', 'bank_intl_bank_name', 'bank_intl_swift',
+      'bank_intl_iban', 'bank_intl_bank_address', 'bank_intl_bank_country',
+      'crypto_usdt_trc20', 'crypto_usdt_erc20', 'crypto_usdt_bep20',
+      'crypto_usdt_polygon', 'crypto_usdt_solana', 'crypto_usdt_arbitrum', 'crypto_usdt_ton',
+    ];
+    const result = await pool.query(
+      `SELECT key, value FROM settings WHERE key = ANY($1)`,
+      [PAYMENT_KEYS]
+    );
+    const map: Record<string, string> = {};
+    result.rows.forEach((r: { key: string; value: string }) => { map[r.key] = r.value; });
+    res.json(map);
+  } catch (err) {
+    console.error('Error fetching payment settings:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.get('/api/documents', async (_req, res) => {
   try {
     const result = await pool.query(
@@ -858,7 +887,7 @@ app.get('/api/investments', requireAuth, async (req, res) => {
 
 app.post('/api/investments', requireAuth, async (req, res) => {
   const userId = (req as any).userId;
-  const { round, shares, amount } = req.body;
+  const { round, shares, amount, payment_method = 'bank', crypto_network, bank_type } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -869,11 +898,12 @@ app.post('/api/investments', requireAuth, async (req, res) => {
     );
 
     await client.query(
-      `INSERT INTO investments (user_id, round, shares, amount, date, status)
-       VALUES ($1, $2, $3, $4, $5, 'completed')`,
-      [userId, round, shares, amount, new Date().toISOString().split('T')[0]]
+      `INSERT INTO investments (user_id, round, shares, amount, date, status, payment_method, crypto_network, bank_type)
+       VALUES ($1, $2, $3, $4, $5, 'pending', $6, $7, $8)`,
+      [userId, round, shares, amount, new Date().toISOString().split('T')[0], payment_method, crypto_network || null, bank_type || null]
     );
 
+    // Reserve shares immediately to prevent overselling
     await client.query(
       `INSERT INTO user_rounds (user_id, round_id, my_shares)
        VALUES ($1, $2, $3)

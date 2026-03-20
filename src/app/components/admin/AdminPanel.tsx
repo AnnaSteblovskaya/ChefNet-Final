@@ -3,7 +3,6 @@ import { getSupabaseClient } from '@/utils/supabase/client';
 import { injectToken } from './api';
 import OverviewSection from './sections/OverviewSection';
 import UsersSection from './sections/UsersSection';
-import InvestmentsSection from './sections/InvestmentsSection';
 import RoundsSection from './sections/RoundsSection';
 import KYCSection from './sections/KYCSection';
 import PartnersSection from './sections/PartnersSection';
@@ -119,7 +118,7 @@ function BootstrapScreen({ email, isAlreadyAdmin, onSuccess, onExit }: { email: 
   );
 }
 
-type Section = 'overview' | 'users' | 'investments' | 'rounds' | 'kyc' | 'partners' | 'news' | 'documents' | 'content' | 'faq' | 'payments' | 'notifications' | 'settings' | 'templates' | 'bonuses';
+type Section = 'overview' | 'users' | 'rounds' | 'kyc' | 'partners' | 'news' | 'documents' | 'content' | 'faq' | 'payments' | 'notifications' | 'settings' | 'templates' | 'bonuses';
 
 const NAV: Array<{ id: Section; label: string; icon: string }> = [
   { id: 'overview',       label: 'Обзор',          icon: '📊' },
@@ -133,7 +132,6 @@ const NAV: Array<{ id: Section; label: string; icon: string }> = [
   { id: 'templates',      label: 'Шаблоны',        icon: '📝' },
   { id: 'users',          label: 'Пользователи',   icon: '👥' },
   { id: 'kyc',            label: 'Верификации',    icon: '✅' },
-  { id: 'investments',    label: 'Инвестиции',     icon: '💰' },
   { id: 'partners',       label: 'Партнёры',       icon: '🤝' },
   { id: 'news',           label: 'Новости',        icon: '📰' },
   { id: 'content',        label: 'Контент',        icon: '✏️' },
@@ -262,7 +260,7 @@ export default function AdminPanel({ onExit }: Props) {
   }
 
   const SectionComponent = {
-    overview: OverviewSection, users: UsersSection, investments: InvestmentsSection,
+    overview: OverviewSection, users: UsersSection,
     rounds: RoundsSection, kyc: KYCSection, partners: PartnersSection,
     news: NewsSection, documents: DocumentsSection, content: ContentSection,
     faq: FAQSection, payments: PaymentsSection, notifications: NotificationsSection,
