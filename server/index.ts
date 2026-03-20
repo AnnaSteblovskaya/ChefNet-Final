@@ -70,6 +70,7 @@ function verifySupabaseToken(token: string): string | null {
 async function requireAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
+    console.log(`[requireAuth] No Bearer token for ${req.method} ${req.path}`);
     res.status(401).json({ error: 'Unauthorized' });
     return;
   }
@@ -77,6 +78,7 @@ async function requireAuth(req: express.Request, res: express.Response, next: ex
   const token = authHeader.split(' ')[1];
   const userId = verifySupabaseToken(token);
   if (!userId) {
+    console.log(`[requireAuth] Invalid/expired token for ${req.method} ${req.path}`);
     res.status(401).json({ error: 'Invalid token' });
     return;
   }
@@ -1594,14 +1596,20 @@ async function handleVerifyEmail(req: express.Request, res: express.Response) {
 // ─── USER NOTIFICATIONS ──────────────────────────────────────────────────────
 app.get('/api/notifications', requireAuth, async (req, res) => {
   const userId = (req as any).userId;
+  console.log('[GET /api/notifications] userId:', userId);
   try {
     const profileResult = await pool.query('SELECT email FROM profiles WHERE id=$1', [userId]);
-    if (!profileResult.rows.length) return res.json([]);
+    if (!profileResult.rows.length) {
+      console.log('[GET /api/notifications] no profile found for userId:', userId);
+      return res.json([]);
+    }
     const email = profileResult.rows[0].email;
+    console.log('[GET /api/notifications] fetching for email:', email);
     const result = await pool.query(
       `SELECT * FROM notifications WHERE user_email=$1 ORDER BY created_at DESC LIMIT 100`,
       [email]
     );
+    console.log('[GET /api/notifications] found:', result.rows.length, 'notifications');
     res.json(result.rows);
   } catch (err) {
     console.error('[GET /api/notifications]', err);

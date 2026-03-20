@@ -70,20 +70,32 @@ export default function NotificationsTab({ setActiveTab }: NotificationsTabProps
   const [notifications, setNotifications] = useState<DbNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<number | null>(null);
+  const [authError, setAuthError] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setAuthError(false);
     try {
       const headers = await getAuthHeaders();
+      const hasAuth = 'Authorization' in headers;
+      console.log('[Notifications] token found:', hasAuth, '| storage key chefnet-auth-storage:', (() => { try { return !!localStorage.getItem('chefnet-auth-storage'); } catch { return false; } })());
       const res = await fetch('/api/notifications', {
         headers,
         credentials: 'include',
       });
+      console.log('[Notifications] response status:', res.status);
+      if (res.status === 401) {
+        setAuthError(true);
+        return;
+      }
+      const data = await res.json();
+      console.log('[Notifications] count:', Array.isArray(data) ? data.length : data);
       if (res.ok) {
-        const data = await res.json();
         setNotifications(Array.isArray(data) ? data : []);
       }
-    } catch { /* silent */ }
+    } catch (e) {
+      console.error('[Notifications] fetch error:', e);
+    }
     finally { setLoading(false); }
   }, []);
 
@@ -188,6 +200,15 @@ export default function NotificationsTab({ setActiveTab }: NotificationsTabProps
         {loading ? (
           <div className="flex justify-center py-12">
             <div className="w-8 h-8 border-4 border-[#FF6B35] border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : authError ? (
+          <div className="text-center py-12">
+            <Bell className="w-12 h-12 text-red-200 mx-auto mb-3" />
+            <p className="text-red-500 font-medium">{{ en: 'Session expired', ru: 'Сессия истекла', de: 'Sitzung abgelaufen', es: 'Sesión expirada', tr: 'Oturum süresi doldu' }[language] || 'Session expired'}</p>
+            <p className="text-gray-400 text-sm mt-1">{{ en: 'Please log out and log back in', ru: 'Пожалуйста, выйдите и войдите снова', de: 'Bitte ab- und neu anmelden', es: 'Por favor, cierre sesión y vuelva a iniciarla', tr: 'Lütfen çıkış yapıp tekrar giriş yapın' }[language] || 'Please log out and log back in'}</p>
+            <button onClick={load} className="mt-4 px-4 py-2 text-sm bg-[#FF6B35] text-white rounded-lg hover:bg-[#e55a26]">
+              {{ en: 'Retry', ru: 'Повторить', de: 'Erneut versuchen', es: 'Reintentar', tr: 'Yeniden dene' }[language] || 'Retry'}
+            </button>
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-12">
