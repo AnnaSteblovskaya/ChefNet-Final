@@ -1,5 +1,37 @@
 import { getUncachableGmailClient } from './gmail.js';
 
+function getSiteUrl(): string {
+  if (process.env.VITE_SITE_URL) return process.env.VITE_SITE_URL;
+  if (process.env.REPLIT_DEPLOYMENT === '1') {
+    if (process.env.REPLIT_DOMAINS) {
+      const firstDomain = process.env.REPLIT_DOMAINS.split(',')[0].trim();
+      return `https://${firstDomain}`;
+    }
+    return 'https://chefnet.replit.app';
+  }
+  if (process.env.REPLIT_DEV_DOMAIN) return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  return 'https://chefnet.replit.app';
+}
+
+const dashboardBtnLabels: Record<string, string> = {
+  en: 'Open Dashboard',
+  ru: 'Открыть личный кабинет',
+  de: 'Dashboard öffnen',
+  es: 'Abrir panel',
+  tr: 'Paneli aç',
+};
+const supportLabels: Record<string, string> = {
+  en: 'Questions? Write to us at',
+  ru: 'Вопросы? Напишите нам на',
+  de: 'Fragen? Schreiben Sie uns an',
+  es: '¿Preguntas? Escríbenos a',
+  tr: 'Sorularınız mı var? Bize yazın:',
+};
+
+function escapeHtml(str: string): string {
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 function buildRawEmail(to: string, subject: string, html: string): string {
   const safeTo = to.replace(/[\r\n]/g, '');
   const boundary = 'boundary_' + Date.now().toString(36);
@@ -20,12 +52,13 @@ function buildRawEmail(to: string, subject: string, html: string): string {
   return lines.join('\r\n');
 }
 
-function escapeHtml(str: string): string {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
-
-function buildTemplateHtml(subject: string, body: string, name: string): string {
+function buildTemplateHtml(subject: string, body: string, lang: string = 'ru'): string {
+  const siteUrl = getSiteUrl();
+  const dashboardUrl = `${siteUrl}/dashboard`;
   const escapedBody = escapeHtml(body).replace(/\n/g, '<br>');
+  const btnLabel = dashboardBtnLabels[lang] || dashboardBtnLabels.ru;
+  const supportLabel = supportLabels[lang] || supportLabels.ru;
+
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
@@ -44,12 +77,12 @@ function buildTemplateHtml(subject: string, body: string, name: string): string 
             <p style="margin:0 0 24px;color:#444;font-size:15px;line-height:1.7;">${escapedBody}</p>
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr><td align="center" style="padding:8px 0 24px;">
-                <a href="https://chefnet.ai" style="display:inline-block;padding:12px 32px;background:linear-gradient(135deg,#D4522A,#E8744F);color:#ffffff;text-decoration:none;border-radius:12px;font-size:15px;font-weight:600;box-shadow:0 4px 16px rgba(212,82,42,0.3);">
-                  Открыть личный кабинет
+                <a href="${dashboardUrl}" style="display:inline-block;padding:12px 32px;background:linear-gradient(135deg,#D4522A,#E8744F);color:#ffffff;text-decoration:none;border-radius:12px;font-size:15px;font-weight:600;box-shadow:0 4px 16px rgba(212,82,42,0.3);">
+                  ${btnLabel}
                 </a>
               </td></tr>
             </table>
-            <p style="margin:0;color:#999;font-size:13px;">Вопросы? Напишите нам на <a href="mailto:support@chefnet.ai" style="color:#D4522A;">support@chefnet.ai</a></p>
+            <p style="margin:0;color:#999;font-size:13px;">${supportLabel} <a href="mailto:support@chefnet.ai" style="color:#D4522A;">support@chefnet.ai</a></p>
           </td>
         </tr>
         <tr>
@@ -68,10 +101,10 @@ export async function buildAndSendTemplateEmail(
   to: string,
   subject: string,
   body: string,
-  name: string
+  lang: string = 'ru'
 ): Promise<boolean> {
   try {
-    const html = buildTemplateHtml(subject, body, name);
+    const html = buildTemplateHtml(subject, body, lang);
     const gmail = await getUncachableGmailClient();
     const raw = buildRawEmail(to, subject, html);
     const encodedMessage = Buffer.from(raw)
@@ -85,7 +118,7 @@ export async function buildAndSendTemplateEmail(
       requestBody: { raw: encodedMessage },
     });
 
-    console.log(`[template-email] Sent "${subject}" to ${to}`);
+    console.log(`[template-email] Sent "${subject}" to ${to} (lang=${lang})`);
     return true;
   } catch (err) {
     console.error('[template-email] Failed:', err);

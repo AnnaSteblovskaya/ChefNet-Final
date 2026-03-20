@@ -774,39 +774,33 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
   });
 
   router.post('/templates/:id/test', ...auth, async (req, res) => {
-    const { type } = req.body; // 'email' | 'account'
+    const { type, lang } = req.body; // type: 'email' | 'account', lang: 'en'|'ru'|'de'|'es'|'tr'
     const userId = (req as any).userId;
     try {
       const tplResult = await pool.query('SELECT * FROM email_templates WHERE id=$1', [req.params.id]);
       if (!tplResult.rows.length) return res.status(404).json({ error: 'Template not found' });
       const tpl = tplResult.rows[0];
+
       const adminResult = await pool.query('SELECT email, full_name FROM profiles WHERE id=$1', [userId]);
       if (!adminResult.rows.length) return res.status(404).json({ error: 'Admin not found' });
       const admin = adminResult.rows[0];
       const adminName = admin.full_name || 'Admin';
 
+      const useLang = (lang && ['en','ru','de','es','tr'].includes(lang)) ? lang : 'ru';
+      const subject = tpl[`subject_${useLang}`] || tpl.subject_ru || tpl.subject_en || tpl.event;
+      const body = (tpl[`body_${useLang}`] || tpl.body_ru || tpl.body_en || '').replace(/\{\{name\}\}/g, adminName);
+
       if (type === 'account') {
-        const body = (tpl.body_en || '').replace(/\{\{name\}\}/g, adminName);
-        const subject = tpl.subject_en || tpl.event;
         await pool.query(
-          `INSERT INTO notifications (user_id, title, message, type, status) VALUES ($1, $2, $3, 'system', 'active')`,
-          [userId, subject, body]
+          `INSERT INTO notifications (user_email, type, message, status) VALUES ($1, $2, $3, 'active')`,
+          [admin.email, tpl.event, `[${useLang.toUpperCase()}] ${subject}: ${body.substring(0, 200)}`]
         );
         return res.json({ success: true, sent_to: admin.email, channel: 'account' });
       }
 
       if (type === 'email') {
-        if (!tpl.email_enabled) {
-          const subject = tpl.subject_en || tpl.event;
-          const body = (tpl.body_en || '').replace(/\{\{name\}\}/g, adminName);
-          const { buildAndSendTemplateEmail } = await import('./emailTemplateHelper.js');
-          const sent = await buildAndSendTemplateEmail(admin.email, subject, body, adminName);
-          return res.json({ success: sent, sent_to: admin.email, channel: 'email', note: 'Test sent regardless of email_enabled setting' });
-        }
-        const subject = tpl.subject_en || tpl.event;
-        const body = (tpl.body_en || '').replace(/\{\{name\}\}/g, adminName);
         const { buildAndSendTemplateEmail } = await import('./emailTemplateHelper.js');
-        const sent = await buildAndSendTemplateEmail(admin.email, subject, body, adminName);
+        const sent = await buildAndSendTemplateEmail(admin.email, subject, body, useLang);
         return res.json({ success: sent, sent_to: admin.email, channel: 'email' });
       }
 

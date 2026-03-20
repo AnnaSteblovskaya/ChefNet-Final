@@ -85,7 +85,7 @@ export const adminApi = {
     setStatus: (id: number, status: string) => req('PUT', `/notifications/${id}/status`, { status }),
   },
   settings: { list: () => req('GET', '/settings'), save: (d: unknown) => req('PUT', '/settings', d) },
-  templates: { list: () => req('GET', '/templates'), update: (id: number, d: unknown) => req('PUT', `/templates/${id}`, d), test: (id: number, type: string) => req('POST', `/templates/${id}/test`, { type }) },
+  templates: { list: () => req('GET', '/templates'), update: (id: number, d: unknown) => req('PUT', `/templates/${id}`, d), test: (id: number, type: string, lang?: string) => req('POST', `/templates/${id}/test`, { type, lang }) },
   bonuses: { list: () => req('GET', '/bonuses'), update: (id: number, d: unknown) => req('PUT', `/bonuses/${id}`, d) },
   partnerUsers: {
     list: () => req('GET', '/partner-users'),

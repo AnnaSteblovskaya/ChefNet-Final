@@ -25,7 +25,7 @@ export default function TemplatesSection() {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [saveOk, setSaveOk] = useState(false);
-  const [bodyLang, setBodyLang] = useState<Lang>('en');
+  const [bodyLang, setBodyLang] = useState<Lang>('ru');
   const [testing, setTesting] = useState<{ id: number; type: string } | null>(null);
   const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
@@ -62,17 +62,17 @@ export default function TemplatesSection() {
     }
   };
 
-  const sendTest = async (id: number, type: 'email' | 'account') => {
+  const sendTest = async (id: number, type: 'email' | 'account', lang?: Lang) => {
     setTesting({ id, type });
     setTestResult(null);
     try {
-      const res = await adminApi.templates.test(id, type);
-      setTestResult({ ok: res.success, msg: res.success ? `Отправлено → ${res.sent_to}` : 'Ошибка отправки' });
+      const res = await adminApi.templates.test(id, type, lang || bodyLang);
+      setTestResult({ ok: res.success, msg: res.success ? `Отправлено (${(lang || bodyLang).toUpperCase()}) → ${res.sent_to}` : 'Ошибка отправки' });
     } catch (e: any) {
       setTestResult({ ok: false, msg: e?.message || 'Ошибка' });
     } finally {
       setTesting(null);
-      setTimeout(() => setTestResult(null), 4000);
+      setTimeout(() => setTestResult(null), 5000);
     }
   };
 
@@ -135,7 +135,7 @@ export default function TemplatesSection() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button onClick={() => { setEditing({ ...t }); setBodyLang('en'); setSaveError(''); setSaveOk(false); }} className="text-white/50 hover:text-white text-xs px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition">Изменить</button>
+                    <button onClick={() => { setEditing({ ...t }); setBodyLang('ru'); setSaveError(''); setSaveOk(false); }} className="text-white/50 hover:text-white text-xs px-3 py-1 rounded-lg bg-white/5 hover:bg-white/10 transition">Изменить</button>
                   </td>
                 </tr>
               ))}
