@@ -1591,6 +1591,42 @@ async function handleVerifyEmail(req: express.Request, res: express.Response) {
   }
 }
 
+// ─── USER NOTIFICATIONS ──────────────────────────────────────────────────────
+app.get('/api/notifications', requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  try {
+    const profileResult = await pool.query('SELECT email FROM profiles WHERE id=$1', [userId]);
+    if (!profileResult.rows.length) return res.json([]);
+    const email = profileResult.rows[0].email;
+    const result = await pool.query(
+      `SELECT * FROM notifications WHERE user_email=$1 ORDER BY created_at DESC LIMIT 100`,
+      [email]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error('[GET /api/notifications]', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.put('/api/notifications/:id/status', requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  const { status } = req.body;
+  try {
+    const profileResult = await pool.query('SELECT email FROM profiles WHERE id=$1', [userId]);
+    if (!profileResult.rows.length) return res.status(404).json({ error: 'Profile not found' });
+    const email = profileResult.rows[0].email;
+    await pool.query(
+      `UPDATE notifications SET status=$1 WHERE id=$2 AND user_email=$3`,
+      [status, req.params.id, email]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[PUT /api/notifications/:id/status]', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.get('/api/email-status', requireAuth, async (req, res) => {
   const userId = (req as any).userId;
   try {
