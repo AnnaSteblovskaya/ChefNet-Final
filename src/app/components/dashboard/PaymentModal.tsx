@@ -84,6 +84,9 @@ export default function PaymentModal({ round, shares, usdAmount, onClose, onSucc
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  // Capture final values at submit time so success screen is not affected by parent state resets
+  const [finalShares, setFinalShares] = useState(0);
+  const [finalAmount, setFinalAmount] = useState('');
 
   useEffect(() => {
     fetch('/api/payment-settings').then(r => r.json()).then(setSettings).catch(() => {});
@@ -96,6 +99,9 @@ export default function PaymentModal({ round, shares, usdAmount, onClose, onSucc
   const handleSubmit = async () => {
     setSubmitting(true);
     setError('');
+    // Capture before onSuccess() resets parent state
+    const capturedShares = shares;
+    const capturedAmount = totalWithFee;
     try {
       const headers = await getAuthHeaders();
       const res = await fetch('/api/investments', {
@@ -112,6 +118,8 @@ export default function PaymentModal({ round, shares, usdAmount, onClose, onSucc
         }),
       });
       if (res.ok) {
+        setFinalShares(capturedShares);
+        setFinalAmount(capturedAmount);
         setSubmitted(true);
         onSuccess();
       } else {
@@ -150,7 +158,7 @@ export default function PaymentModal({ round, shares, usdAmount, onClose, onSucc
             </div>
             <h3 className="text-xl font-bold text-white mb-2">Заявка отправлена!</h3>
             <p className="text-white/60 text-sm mb-2">
-              Ваша заявка на покупку <strong className="text-white">{shares.toLocaleString()} долей</strong> за <strong className="text-white">${totalWithFee}</strong> отправлена и ожидает подтверждения.
+              Ваша заявка на покупку <strong className="text-white">{finalShares.toLocaleString()} долей</strong> за <strong className="text-white">${finalAmount}</strong> отправлена и ожидает подтверждения.
             </p>
             <p className="text-white/40 text-xs mb-6">
               После получения платежа администратор подтвердит вашу покупку вручную. Статус отобразится в разделе «История покупок».
