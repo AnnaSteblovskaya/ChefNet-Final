@@ -1,31 +1,17 @@
+import { getAuthHeaders } from '@/utils/api';
+
 const BASE = '/api/admin';
-const SUPABASE_KEY = 'sb-sdwlngwkeipgwelzxfai-auth-token';
 
-let _token: string | null = null;
-
-function getToken(): string | undefined {
-  if (_token) return _token;
-  if ((window as any).__supabaseSession?.access_token) {
-    return (window as any).__supabaseSession.access_token;
-  }
-  try {
-    const raw = localStorage.getItem(SUPABASE_KEY);
-    if (raw) {
-      const stored = JSON.parse(raw);
-      return stored?.access_token ?? undefined;
-    }
-  } catch {}
-  return undefined;
+// Always get a fresh token — never use a stale cached one
+async function getHeaders(): Promise<Record<string, string>> {
+  return getAuthHeaders();
 }
 
 async function req(method: string, path: string, body?: unknown) {
-  const token = getToken();
+  const headers = await getHeaders();
   const res = await fetch(`${BASE}${path}`, {
     method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
@@ -50,7 +36,8 @@ export const adminApi = {
     update: (id: number, d: unknown) => req('PUT', `/documents/${id}`, d),
     remove: (id: number) => req('DELETE', `/documents/${id}`),
     upload: async (file: File, onProgress?: (pct: number) => void): Promise<{ file_url: string; file_name: string; size: number }> => {
-      const token = getToken();
+      const headers = await getHeaders();
+      const token = headers['Authorization']?.replace('Bearer ', '') ?? '';
       return new Promise((resolve, reject) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -96,7 +83,7 @@ export const adminApi = {
   },
 };
 
+// Keep injectToken for backward compat with AdminPanel.tsx (used only for checkAdmin flow)
 export function injectToken(token: string) {
-  _token = token;
   (window as any).__supabaseSession = { access_token: token };
 }
