@@ -6,7 +6,7 @@ import { dashboardTranslations } from '@/utils/dashboardTranslations';
 import { useState, useEffect } from 'react';
 import PortfolioChart from './PortfolioChart';
 import { getSiteUrl } from '@/utils/siteUrl';
-import { apiGet } from '@/utils/api';
+import { apiGet, getAuthHeaders } from '@/utils/api';
 
 export default function DashboardTab() {
   const { language } = useLanguage();
@@ -44,13 +44,10 @@ export default function DashboardTab() {
       try {
         const [roundsRes, invRes] = await Promise.all([
           fetch('/api/rounds'),
-          (() => {
-            const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || '';
-            return fetch('/api/investments', {
-              headers: token ? { Authorization: `Bearer ${token}` } : {},
-              credentials: 'include',
-            });
-          })(),
+          getAuthHeaders().then(h => fetch('/api/investments', {
+            headers: h,
+            credentials: 'include',
+          })),
         ]);
         const rounds: any[] = await roundsRes.json().catch(() => []);
         const invData = invRes.ok ? await invRes.json().catch(() => ({})) : {};

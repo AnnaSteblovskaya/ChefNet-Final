@@ -43,4 +43,4 @@ async function apiPut<T>(path: string, body: any): Promise<T> {
   return res.json();
 }
 
-export { apiGet, apiPost, apiPut };
+export { apiGet, apiPost, apiPut, getAuthHeaders };

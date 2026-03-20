@@ -1,9 +1,10 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { Bell, Archive, Trash2, RefreshCw, CheckCheck, Info, ShieldCheck, TrendingUp, UserPlus, FileText, Mail } from 'lucide-react';
+import { Bell, Archive, RefreshCw, CheckCheck, Info, ShieldCheck, TrendingUp, UserPlus, FileText, Mail } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { dashboardTranslations } from '@/utils/dashboardTranslations';
 import { useState, useEffect, useCallback } from 'react';
 import LanguageSwitcher from '@/app/components/LanguageSwitcher';
+import { getAuthHeaders } from '@/utils/api';
 
 interface NotificationsTabProps {
   setActiveTab: (tab: string) => void;
@@ -45,9 +46,6 @@ function formatTime(dateStr: string, language: string): string {
   return `${Math.floor(diff / 604800)} ${l.weeksAgo}`;
 }
 
-function getAuthToken(): string {
-  return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || '';
-}
 
 const UI: Record<string, Record<string, string>> = {
   title: { en: 'Notifications', ru: 'Уведомления', de: 'Benachrichtigungen', es: 'Notificaciones', tr: 'Bildirimler' },
@@ -76,9 +74,9 @@ export default function NotificationsTab({ setActiveTab }: NotificationsTabProps
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const token = getAuthToken();
+      const headers = await getAuthHeaders();
       const res = await fetch('/api/notifications', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers,
         credentials: 'include',
       });
       if (res.ok) {
@@ -94,10 +92,10 @@ export default function NotificationsTab({ setActiveTab }: NotificationsTabProps
   const updateStatus = async (id: number, status: string) => {
     setUpdating(id);
     try {
-      const token = getAuthToken();
+      const headers = await getAuthHeaders();
       await fetch(`/api/notifications/${id}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        headers,
         credentials: 'include',
         body: JSON.stringify({ status }),
       });

@@ -5,6 +5,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { dashboardTranslations } from '@/utils/dashboardTranslations';
 import { useState, useEffect, useRef } from 'react';
 import LanguageSwitcher from '@/app/components/LanguageSwitcher';
+import { getAuthHeaders } from '@/utils/api';
 
 interface ApiRound {
   id: string;
@@ -88,9 +89,9 @@ export default function InvestmentsTab({ setActiveTab }: InvestmentsTabProps) {
   // Load user investments from API
   const loadInvestments = async () => {
     try {
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || '';
+      const headers = await getAuthHeaders();
       const res = await fetch('/api/investments', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers,
         credentials: 'include',
       });
       if (res.ok) {
@@ -147,13 +148,10 @@ export default function InvestmentsTab({ setActiveTab }: InvestmentsTabProps) {
     }
     setBuying(true);
     try {
-      const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || '';
+      const headers = await getAuthHeaders();
       const res = await fetch('/api/investments', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify({ round: activeRound.id, shares: amount, amount: parseFloat(paymentAmount) }),
       });
