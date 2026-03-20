@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import pool from './db.js';
 import { sendVerificationEmail, sendPasswordResetEmail, verifySmtpConnection, sendReferralNotificationEmail } from './email.js';
 import { createAdminRouter, createPublicContentRouter } from './admin.js';
+import { faqSeedData } from './faqSeedData.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -378,6 +379,29 @@ async function ensureDbSchema() {
     }
   } catch (err: any) {
     console.error('[db-init] Round seeding failed:', err.message);
+  }
+
+  // Seed FAQ if table is empty
+  try {
+    const faqCount = await pool.query('SELECT COUNT(*) FROM faq');
+    if (parseInt(faqCount.rows[0].count) === 0) {
+      for (const item of faqSeedData) {
+        await pool.query(
+          `INSERT INTO faq (question_en,question_ru,question_de,question_es,question_tr,
+                           answer_en,answer_ru,answer_de,answer_es,answer_tr,
+                           is_active,sort_order)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,true,$11)`,
+          [
+            item.question_en, item.question_ru, item.question_de, item.question_es, item.question_tr,
+            item.answer_en,   item.answer_ru,   item.answer_de,   item.answer_es,   item.answer_tr,
+            item.sort_order,
+          ]
+        );
+      }
+      console.log(`[db-init] Seeded ${faqSeedData.length} FAQ items`);
+    }
+  } catch (err: any) {
+    console.error('[db-init] FAQ seeding failed:', err.message);
   }
 
   // One-time cleanup: remove fake referrals and investments inserted by legacy seedDemoData()

@@ -1,14 +1,30 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronDown, MessageCircleQuestion } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/locales/translations';
 import IconBox from '@/app/components/IconBox';
+
+interface DBFaqItem {
+  id: number;
+  question_en: string; question_ru: string; question_de: string; question_es: string; question_tr: string;
+  answer_en: string;   answer_ru: string;   answer_de: string;   answer_es: string;   answer_tr: string;
+  is_active: boolean;
+  sort_order: number;
+}
 
 export default function FAQSection() {
   const { language } = useLanguage();
   const t = translations[language];
   const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const [dbFaqs, setDbFaqs] = useState<DBFaqItem[] | null>(null);
+
+  useEffect(() => {
+    fetch('/api/admin/faq/public')
+      .then(r => r.ok ? r.json() : [])
+      .then((data: DBFaqItem[]) => { if (data.length > 0) setDbFaqs(data); })
+      .catch(() => {});
+  }, []);
 
   // Function to make ChefNet bold in text
   const formatText = (text: string, questionText?: string) => {
@@ -817,48 +833,25 @@ export default function FAQSection() {
     });
   };
 
-  const faqs = [
-    {
-      question: t.faq1Question,
-      answer: t.faq1Answer,
-    },
-    {
-      question: t.faq2Question,
-      answer: t.faq2Answer,
-    },
-    {
-      question: t.faq3Question,
-      answer: t.faq3Answer,
-    },
-    {
-      question: t.faq4Question,
-      answer: t.faq4Answer,
-    },
-    {
-      question: t.faq5Question,
-      answer: t.faq5Answer,
-    },
-    {
-      question: t.faq6Question,
-      answer: t.faq6Answer,
-    },
-    {
-      question: t.faq7Question,
-      answer: t.faq7Answer,
-    },
-    {
-      question: t.faq8Question,
-      answer: t.faq8Answer,
-    },
-    {
-      question: t.faq9Question,
-      answer: t.faq9Answer,
-    },
-    {
-      question: t.faq10Question,
-      answer: t.faq10Answer,
-    },
+  const staticFaqs = [
+    { question: t.faq1Question,  answer: t.faq1Answer  },
+    { question: t.faq2Question,  answer: t.faq2Answer  },
+    { question: t.faq3Question,  answer: t.faq3Answer  },
+    { question: t.faq4Question,  answer: t.faq4Answer  },
+    { question: t.faq5Question,  answer: t.faq5Answer  },
+    { question: t.faq6Question,  answer: t.faq6Answer  },
+    { question: t.faq7Question,  answer: t.faq7Answer  },
+    { question: t.faq8Question,  answer: t.faq8Answer  },
+    { question: t.faq9Question,  answer: t.faq9Answer  },
+    { question: t.faq10Question, answer: t.faq10Answer },
   ];
+
+  const faqs = dbFaqs
+    ? dbFaqs.map(item => ({
+        question: (item[`question_${language}` as keyof DBFaqItem] as string) || item.question_en,
+        answer:   (item[`answer_${language}` as keyof DBFaqItem]   as string) || item.answer_en,
+      }))
+    : staticFaqs;
 
   return (
     <section id="faq" className="py-12 bg-background relative overflow-hidden">

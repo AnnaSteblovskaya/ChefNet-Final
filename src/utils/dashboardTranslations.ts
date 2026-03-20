@@ -11,9 +11,20 @@ export const dashboardTranslations = {
     referralProgram: 'Referral Program',
     kycVerification: 'KYC Verification',
     notifications: 'Notifications',
-    faq: 'FAQ',
+    faq: 'Q&A',
     profile: 'Profile',
     logout: 'Logout',
+
+    // Q&A Tab
+    qaTitle: 'Q&A',
+    qaSubtitle: 'Answers to common questions and AI assistant',
+    qaAiTitle: 'ChefNet AI Companion',
+    qaAiDesc: 'Ask any question about ChefNet, investment opportunities, platform features, and get instant answers from our AI assistant trained on ChefNet data.',
+    qaAiFeatures: ['Investment FAQ', 'Platform questions', '24/7 available', 'Multilingual', 'Up-to-date info'],
+    qaOpenChat: 'Open AI Chat',
+    qaFaqTitle: 'Frequently Asked Questions',
+    qaNoFaq: 'No questions available yet.',
+    qaHint: 'Can\'t find your answer? Use the AI assistant — it knows everything about ChefNet.',
 
     // Dashboard Tab
     dashboardTitle: 'Investor Dashboard',
@@ -279,6 +290,17 @@ export const dashboardTranslations = {
     notifications: 'Уведомления',
     faq: 'Вопросы',
     profile: 'Профиль',
+
+    // Q&A Tab
+    qaTitle: 'Вопросы и ответы',
+    qaSubtitle: 'Ответы на частые вопросы и AI-ассистент',
+    qaAiTitle: 'AI-Компаньон ChefNet',
+    qaAiDesc: 'Задайте любой вопрос о ChefNet, инвестиционных возможностях, функциях платформы — и получите мгновенный ответ от нашего AI-ассистента, обученного на данных ChefNet.',
+    qaAiFeatures: ['Вопросы об инвестициях', 'О платформе', 'Доступен 24/7', 'Мультиязычный', 'Актуальная инфо'],
+    qaOpenChat: 'Открыть AI-чат',
+    qaFaqTitle: 'Часто задаваемые вопросы',
+    qaNoFaq: 'Вопросы пока не добавлены.',
+    qaHint: 'Не нашли ответ? Используйте AI-ассистент — он знает всё о ChefNet.',
     logout: 'Выйти',
 
     dashboardTitle: 'Эффективность портфеля',
@@ -541,9 +563,20 @@ export const dashboardTranslations = {
     referralProgram: 'Empfehlungsprogramm',
     kycVerification: 'KYC Verifizierung',
     notifications: 'Benachrichtigungen',
-    faq: 'FAQ',
+    faq: 'F&A',
     profile: 'Profil',
     logout: 'Abmelden',
+
+    // Q&A Tab
+    qaTitle: 'Fragen & Antworten',
+    qaSubtitle: 'Antworten auf häufige Fragen und KI-Assistent',
+    qaAiTitle: 'ChefNet KI-Begleiter',
+    qaAiDesc: 'Stellen Sie beliebige Fragen zu ChefNet, Investitionsmöglichkeiten und Plattformfunktionen — und erhalten Sie sofortige Antworten von unserem KI-Assistenten.',
+    qaAiFeatures: ['Investment-FAQ', 'Plattformfragen', '24/7 verfügbar', 'Mehrsprachig', 'Aktuelle Infos'],
+    qaOpenChat: 'KI-Chat öffnen',
+    qaFaqTitle: 'Häufig gestellte Fragen',
+    qaNoFaq: 'Noch keine Fragen vorhanden.',
+    qaHint: 'Keine Antwort gefunden? Nutzen Sie den KI-Assistenten — er weiß alles über ChefNet.',
 
     dashboardTitle: 'Investor Dashboard',
     subtitle: 'Hier ist eine Übersicht Ihres Portfolios und Ihrer Aktivität.',
@@ -806,8 +839,19 @@ export const dashboardTranslations = {
     referralProgram: 'Programa de Referidos',
     kycVerification: 'Verificación KYC',
     notifications: 'Notificaciones',
-    faq: 'Preguntas Frecuentes',
+    faq: 'P&R',
     profile: 'Perfil',
+
+    // Q&A Tab
+    qaTitle: 'Preguntas y Respuestas',
+    qaSubtitle: 'Respuestas a preguntas frecuentes y asistente IA',
+    qaAiTitle: 'Compañero IA ChefNet',
+    qaAiDesc: 'Haga cualquier pregunta sobre ChefNet, oportunidades de inversión o funciones de la plataforma — y obtenga respuestas instantáneas de nuestro asistente IA.',
+    qaAiFeatures: ['FAQ de inversión', 'Preguntas de plataforma', 'Disponible 24/7', 'Multilingüe', 'Info actualizada'],
+    qaOpenChat: 'Abrir chat IA',
+    qaFaqTitle: 'Preguntas Frecuentes',
+    qaNoFaq: 'Aún no hay preguntas disponibles.',
+    qaHint: '¿No encontró su respuesta? Use el asistente IA — sabe todo sobre ChefNet.',
     logout: 'Cerrar Sesión',
 
     dashboardTitle: 'Panel del Inversor',
@@ -1071,8 +1115,19 @@ export const dashboardTranslations = {
     referralProgram: 'Yönlendirme Programı',
     kycVerification: 'KYC Doğrulama',
     notifications: 'Bildirimler',
-    faq: 'SSS',
+    faq: 'S&C',
     profile: 'Profil',
+
+    // Q&A Tab
+    qaTitle: 'Soru & Cevap',
+    qaSubtitle: 'Sık sorulan sorulara yanıtlar ve AI asistanı',
+    qaAiTitle: 'ChefNet AI Yardımcısı',
+    qaAiDesc: 'ChefNet, yatırım fırsatları veya platform özellikleri hakkında herhangi bir soru sorun — AI asistanımızdan anında yanıt alın.',
+    qaAiFeatures: ['Yatırım SSS', 'Platform soruları', '7/24 mevcut', 'Çok dilli', 'Güncel bilgi'],
+    qaOpenChat: 'AI Sohbeti Aç',
+    qaFaqTitle: 'Sıkça Sorulan Sorular',
+    qaNoFaq: 'Henüz soru eklenmemiş.',
+    qaHint: 'Yanıtı bulamadınız mı? AI asistanı kullanın — ChefNet hakkında her şeyi biliyor.',
     logout: 'Çıkış yap',
 
     dashboardTitle: 'Yatırımcı Paneli',
