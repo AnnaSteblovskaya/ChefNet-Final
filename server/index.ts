@@ -874,8 +874,14 @@ app.get('/api/investments', requireAuth, async (req, res) => {
       'SELECT * FROM investments WHERE user_id = $1 ORDER BY created_at DESC',
       [userId]
     );
+    // Only count confirmed/completed investments in the user's portfolio (pending = awaiting payment)
     const userRounds = await pool.query(
-      'SELECT ur.*, r.name, r.price, r.status as round_status FROM user_rounds ur JOIN rounds r ON ur.round_id = r.id WHERE ur.user_id = $1',
+      `SELECT i.round as round_id, SUM(i.shares) as my_shares,
+              r.name, r.price, r.status as round_status
+       FROM investments i
+       JOIN rounds r ON r.id = i.round
+       WHERE i.user_id = $1 AND i.status IN ('confirmed', 'completed')
+       GROUP BY i.round, r.name, r.price, r.status`,
       [userId]
     );
     res.json({ investments: investments.rows, userRounds: userRounds.rows });
@@ -903,14 +909,8 @@ app.post('/api/investments', requireAuth, async (req, res) => {
       [userId, round, shares, amount, new Date().toISOString().split('T')[0], payment_method, crypto_network || null, bank_type || null]
     );
 
-    // Reserve shares immediately to prevent overselling
-    await client.query(
-      `INSERT INTO user_rounds (user_id, round_id, my_shares)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (user_id, round_id) DO UPDATE SET my_shares = user_rounds.my_shares + $3`,
-      [userId, round, shares]
-    );
-
+    // Reserve shares in sold_shares to prevent overselling, but do NOT credit user_rounds yet.
+    // user_rounds is updated only when admin confirms the payment.
     await client.query(
       `UPDATE rounds SET sold_shares = sold_shares + $1 WHERE id = $2`,
       [shares, round]

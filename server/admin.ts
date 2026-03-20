@@ -198,32 +198,126 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
   });
 
   router.put('/investments/:id', ...auth, async (req, res) => {
-    const { status, shares, amount, round } = req.body;
+    const { status, shares: newShares, amount, round: newRound } = req.body;
+    const client = await pool.connect();
     try {
+      await client.query('BEGIN');
+
+      // Fetch current investment before any change
+      const current = await client.query('SELECT * FROM investments WHERE id = $1', [req.params.id]);
+      if (!current.rows.length) { res.status(404).json({ error: 'Not found' }); await client.query('ROLLBACK'); return; }
+      const inv = current.rows[0];
+      const oldStatus = inv.status;
+      const invShares = Number(inv.shares);
+      const invRound = inv.round;
+      const invUserId = inv.user_id;
+
+      // ─── Status transition logic ───────────────────────────────────────────
+      if (status !== undefined && status !== oldStatus) {
+        const wasCredit = ['confirmed', 'completed'].includes(oldStatus); // user_rounds was credited
+        const willCredit = ['confirmed', 'completed'].includes(status);   // should credit user_rounds
+        const wasReserved = ['pending', 'confirmed', 'completed'].includes(oldStatus); // sold_shares was reserved
+        const willReserve = ['pending', 'confirmed', 'completed'].includes(status);   // sold_shares should stay
+
+        // 1. Revert sold_shares reservation if moving to rejected (unreserve)
+        if (wasReserved && !willReserve) {
+          await client.query(
+            `UPDATE rounds SET sold_shares = GREATEST(0, sold_shares - $1) WHERE id = $2`,
+            [invShares, invRound]
+          );
+        }
+        // Re-add sold_shares reservation if moving from rejected back to active state
+        if (!wasReserved && willReserve) {
+          await client.query(
+            `UPDATE rounds SET sold_shares = sold_shares + $1 WHERE id = $2`,
+            [invShares, invRound]
+          );
+        }
+
+        // 2. Credit user_rounds when confirming for the first time
+        if (!wasCredit && willCredit) {
+          await client.query(
+            `INSERT INTO user_rounds (user_id, round_id, my_shares)
+             VALUES ($1, $2, $3)
+             ON CONFLICT (user_id, round_id) DO UPDATE SET my_shares = user_rounds.my_shares + $3`,
+            [invUserId, invRound, invShares]
+          );
+        }
+        // Revert user_rounds when moving from confirmed/completed → other
+        if (wasCredit && !willCredit) {
+          await client.query(
+            `UPDATE user_rounds SET my_shares = GREATEST(0, my_shares - $1)
+             WHERE user_id = $2 AND round_id = $3`,
+            [invShares, invUserId, invRound]
+          );
+        }
+      }
+
+      // ─── Build update query ────────────────────────────────────────────────
       const fields: string[] = [];
       const values: unknown[] = [];
       let idx = 1;
-      if (status !== undefined) { fields.push(`status = $${idx++}`); values.push(status); }
-      if (shares !== undefined) { fields.push(`shares = $${idx++}`); values.push(shares); }
-      if (amount !== undefined) { fields.push(`amount = $${idx++}`); values.push(amount); }
-      if (round !== undefined) { fields.push(`round = $${idx++}`); values.push(round); }
-      if (!fields.length) { res.status(400).json({ error: 'No fields to update' }); return; }
-      values.push(req.params.id);
-      await pool.query(`UPDATE investments SET ${fields.join(', ')} WHERE id = $${idx}`, values);
+      if (status !== undefined)    { fields.push(`status = $${idx++}`); values.push(status); }
+      if (newShares !== undefined)  { fields.push(`shares = $${idx++}`); values.push(newShares); }
+      if (amount !== undefined)     { fields.push(`amount = $${idx++}`); values.push(amount); }
+      if (newRound !== undefined)   { fields.push(`round = $${idx++}`); values.push(newRound); }
+      if (fields.length) {
+        values.push(req.params.id);
+        await client.query(`UPDATE investments SET ${fields.join(', ')} WHERE id = $${idx}`, values);
+      }
+
+      await client.query('COMMIT');
       res.json({ success: true });
     } catch (err) {
-      console.error(err);
+      await client.query('ROLLBACK');
+      console.error('[admin PUT investments]', err);
       res.status(500).json({ error: 'Internal server error' });
+    } finally {
+      client.release();
     }
   });
 
   router.delete('/investments/:id', ...auth, async (req, res) => {
+    const client = await pool.connect();
     try {
-      await pool.query('DELETE FROM investments WHERE id = $1', [req.params.id]);
+      await client.query('BEGIN');
+
+      // Fetch before delete to know what to revert
+      const current = await client.query('SELECT * FROM investments WHERE id = $1', [req.params.id]);
+      if (current.rows.length) {
+        const inv = current.rows[0];
+        const invShares = Number(inv.shares);
+        const invRound = inv.round;
+        const invUserId = inv.user_id;
+        const invStatus = inv.status;
+
+        // Revert sold_shares (unless already rejected — then already reverted)
+        if (['pending', 'confirmed', 'completed'].includes(invStatus)) {
+          await client.query(
+            `UPDATE rounds SET sold_shares = GREATEST(0, sold_shares - $1) WHERE id = $2`,
+            [invShares, invRound]
+          );
+        }
+
+        // Revert user_rounds only if shares were already credited
+        if (['confirmed', 'completed'].includes(invStatus)) {
+          await client.query(
+            `UPDATE user_rounds SET my_shares = GREATEST(0, my_shares - $1)
+             WHERE user_id = $2 AND round_id = $3`,
+            [invShares, invUserId, invRound]
+          );
+        }
+      }
+
+      await client.query('DELETE FROM investments WHERE id = $1', [req.params.id]);
+      await client.query('COMMIT');
       res.json({ success: true });
     } catch (err) {
-      console.error(err);
+      await client.query('ROLLBACK');
+      console.error('[admin DELETE investments]', err);
       res.status(500).json({ error: 'Internal server error' });
+    } finally {
+      client.release();
     }
   });
 
