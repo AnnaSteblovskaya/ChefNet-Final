@@ -274,6 +274,12 @@ async function ensureDbSchema() {
     `ALTER TABLE referrals ADD COLUMN IF NOT EXISTS email text`,
     `ALTER TABLE referrals ALTER COLUMN referred_user_id TYPE text USING referred_user_id::text`,
     `ALTER TABLE kyc_submissions ADD COLUMN IF NOT EXISTS sumsub_applicant_id text`,
+    `ALTER TABLE email_templates ADD COLUMN IF NOT EXISTS subject_de text`,
+    `ALTER TABLE email_templates ADD COLUMN IF NOT EXISTS body_de text`,
+    `ALTER TABLE email_templates ADD COLUMN IF NOT EXISTS subject_es text`,
+    `ALTER TABLE email_templates ADD COLUMN IF NOT EXISTS body_es text`,
+    `ALTER TABLE email_templates ADD COLUMN IF NOT EXISTS subject_tr text`,
+    `ALTER TABLE email_templates ADD COLUMN IF NOT EXISTS body_tr text`,
   ];
   for (const sql of migrations) {
     try {
@@ -335,24 +341,130 @@ async function ensureDbSchema() {
   } catch (err: any) {
     console.error('[db-init] full_name backfill failed:', err.message);
   }
-  // Seed default email templates
+  // Seed default email templates with ready-made content
   const defaultTemplates = [
-    { event: 'User registered', sort_order: 1 },
-    { event: 'Need email verification', sort_order: 2 },
-    { event: 'Email verified', sort_order: 3 },
-    { event: 'Need KYC verification', sort_order: 4 },
-    { event: 'Password changed', sort_order: 5 },
-    { event: 'Referral registered', sort_order: 6 },
-    { event: 'Referral paid', sort_order: 7 },
-    { event: 'Referral bonus credited', sort_order: 8 },
+    {
+      event: 'User registered', sort_order: 1,
+      subject_en: 'Welcome to ChefNet Invest!',
+      body_en: 'Dear {{name}},\n\nWelcome to ChefNet Invest! Your account has been successfully created.\n\nYou can now explore investment opportunities in the FoodTech sector. To start investing, please verify your email and complete KYC verification.\n\nBest regards,\nChefNet Invest Team',
+      subject_ru: 'Добро пожаловать в ChefNet Invest!',
+      body_ru: 'Уважаемый(ая) {{name}},\n\nДобро пожаловать в ChefNet Invest! Ваш аккаунт успешно создан.\n\nТеперь вы можете изучить инвестиционные возможности в секторе FoodTech. Для начала инвестирования подтвердите email и пройдите KYC-верификацию.\n\nС уважением,\nКоманда ChefNet Invest',
+      subject_de: 'Willkommen bei ChefNet Invest!',
+      body_de: 'Liebe(r) {{name}},\n\nWillkommen bei ChefNet Invest! Ihr Konto wurde erfolgreich erstellt.\n\nSie können jetzt Investitionsmöglichkeiten im FoodTech-Sektor erkunden. Um mit dem Investieren zu beginnen, verifizieren Sie bitte Ihre E-Mail und schließen Sie die KYC-Verifizierung ab.\n\nMit freundlichen Grüßen,\nChefNet Invest Team',
+      subject_es: '¡Bienvenido a ChefNet Invest!',
+      body_es: 'Estimado/a {{name}},\n\n¡Bienvenido/a a ChefNet Invest! Tu cuenta ha sido creada exitosamente.\n\nAhora puedes explorar oportunidades de inversión en el sector FoodTech. Para comenzar a invertir, verifica tu email y completa la verificación KYC.\n\nAtentamente,\nEquipo ChefNet Invest',
+      subject_tr: 'ChefNet Invest\'e Hoş Geldiniz!',
+      body_tr: 'Sayın {{name}},\n\nChefNet Invest\'e hoş geldiniz! Hesabınız başarıyla oluşturuldu.\n\nArtık FoodTech sektöründeki yatırım fırsatlarını keşfedebilirsiniz. Yatırıma başlamak için lütfen e-postanızı doğrulayın ve KYC doğrulamasını tamamlayın.\n\nSaygılarımızla,\nChefNet Invest Ekibi',
+    },
+    {
+      event: 'Need email verification', sort_order: 2,
+      subject_en: 'Please verify your email — ChefNet Invest',
+      body_en: 'Dear {{name}},\n\nPlease verify your email address to complete your registration and access all platform features.\n\nClick the confirmation link sent to your email inbox. If you did not receive it, you can request a new one from your dashboard.\n\nBest regards,\nChefNet Invest Team',
+      subject_ru: 'Подтвердите ваш email — ChefNet Invest',
+      body_ru: 'Уважаемый(ая) {{name}},\n\nПожалуйста, подтвердите адрес электронной почты для завершения регистрации и доступа ко всем функциям платформы.\n\nПерейдите по ссылке подтверждения, отправленной на вашу почту. Если вы не получили письмо, запросите новое в личном кабинете.\n\nС уважением,\nКоманда ChefNet Invest',
+      subject_de: 'Bitte bestätigen Sie Ihre E-Mail — ChefNet Invest',
+      body_de: 'Liebe(r) {{name}},\n\nBitte bestätigen Sie Ihre E-Mail-Adresse, um Ihre Registrierung abzuschließen und Zugang zu allen Plattformfunktionen zu erhalten.\n\nKlicken Sie auf den Bestätigungslink, der an Ihre E-Mail gesendet wurde. Falls Sie ihn nicht erhalten haben, können Sie einen neuen über Ihr Dashboard anfordern.\n\nMit freundlichen Grüßen,\nChefNet Invest Team',
+      subject_es: 'Por favor verifica tu email — ChefNet Invest',
+      body_es: 'Estimado/a {{name}},\n\nPor favor verifica tu dirección de email para completar tu registro y acceder a todas las funciones de la plataforma.\n\nHaz clic en el enlace de confirmación enviado a tu bandeja de entrada. Si no lo recibiste, puedes solicitar uno nuevo desde tu panel.\n\nAtentamente,\nEquipo ChefNet Invest',
+      subject_tr: 'Lütfen e-postanızı doğrulayın — ChefNet Invest',
+      body_tr: 'Sayın {{name}},\n\nKayıt işleminizi tamamlamak ve tüm platform özelliklerine erişmek için lütfen e-posta adresinizi doğrulayın.\n\nE-posta gelen kutunuza gönderilen onay bağlantısına tıklayın. Almadıysanız, panonuzdan yeni bir tane talep edebilirsiniz.\n\nSaygılarımızla,\nChefNet Invest Ekibi',
+    },
+    {
+      event: 'Email verified', sort_order: 3,
+      subject_en: 'Email verified — ChefNet Invest',
+      body_en: 'Dear {{name}},\n\nYour email has been successfully verified! 🎉\n\nThe next step is to complete your KYC (identity) verification to unlock full access to investment opportunities.\n\nLog in to your dashboard to get started.\n\nBest regards,\nChefNet Invest Team',
+      subject_ru: 'Email подтверждён — ChefNet Invest',
+      body_ru: 'Уважаемый(ая) {{name}},\n\nВаш email успешно подтверждён! 🎉\n\nСледующий шаг — пройти KYC-верификацию (подтверждение личности) для получения полного доступа к инвестиционным возможностям.\n\nВойдите в личный кабинет, чтобы начать.\n\nС уважением,\nКоманда ChefNet Invest',
+      subject_de: 'E-Mail bestätigt — ChefNet Invest',
+      body_de: 'Liebe(r) {{name}},\n\nIhre E-Mail wurde erfolgreich bestätigt! 🎉\n\nDer nächste Schritt ist die Vervollständigung Ihrer KYC-Verifizierung (Identitätsprüfung), um vollen Zugang zu Investitionsmöglichkeiten zu erhalten.\n\nMelden Sie sich in Ihrem Dashboard an, um zu beginnen.\n\nMit freundlichen Grüßen,\nChefNet Invest Team',
+      subject_es: 'Email verificado — ChefNet Invest',
+      body_es: 'Estimado/a {{name}},\n\n¡Tu email ha sido verificado exitosamente! 🎉\n\nEl siguiente paso es completar tu verificación KYC (identidad) para desbloquear acceso completo a las oportunidades de inversión.\n\nInicia sesión en tu panel para comenzar.\n\nAtentamente,\nEquipo ChefNet Invest',
+      subject_tr: 'E-posta doğrulandı — ChefNet Invest',
+      body_tr: 'Sayın {{name}},\n\nE-postanız başarıyla doğrulandı! 🎉\n\nSonraki adım, yatırım fırsatlarına tam erişimi açmak için KYC (kimlik) doğrulamanızı tamamlamaktır.\n\nBaşlamak için panonuza giriş yapın.\n\nSaygılarımızla,\nChefNet Invest Ekibi',
+    },
+    {
+      event: 'Need KYC verification', sort_order: 4,
+      subject_en: 'Complete your KYC verification — ChefNet Invest',
+      body_en: 'Dear {{name}},\n\nTo start investing on ChefNet Invest, you need to complete your identity verification (KYC). This process takes only a few minutes.\n\nYou will need:\n• A valid government-issued ID (passport or ID card)\n• A selfie for face matching\n\nLog in to your dashboard and go to the "KYC Verification" tab to get started.\n\nBest regards,\nChefNet Invest Team',
+      subject_ru: 'Пройдите KYC-верификацию — ChefNet Invest',
+      body_ru: 'Уважаемый(ая) {{name}},\n\nДля начала инвестирования на ChefNet Invest необходимо пройти верификацию личности (KYC). Процесс занимает всего несколько минут.\n\nВам понадобится:\n• Действующий документ, удостоверяющий личность (паспорт или ID-карта)\n• Селфи для сверки лица\n\nВойдите в личный кабинет и перейдите в раздел «KYC Верификация», чтобы начать.\n\nС уважением,\nКоманда ChefNet Invest',
+      subject_de: 'Schließen Sie Ihre KYC-Verifizierung ab — ChefNet Invest',
+      body_de: 'Liebe(r) {{name}},\n\nUm bei ChefNet Invest zu investieren, müssen Sie Ihre Identitätsprüfung (KYC) abschließen. Dieser Vorgang dauert nur wenige Minuten.\n\nSie benötigen:\n• Einen gültigen Lichtbildausweis (Reisepass oder Personalausweis)\n• Ein Selfie zur Gesichtserkennung\n\nMelden Sie sich in Ihrem Dashboard an und gehen Sie zum Tab "KYC Verifizierung".\n\nMit freundlichen Grüßen,\nChefNet Invest Team',
+      subject_es: 'Completa tu verificación KYC — ChefNet Invest',
+      body_es: 'Estimado/a {{name}},\n\nPara comenzar a invertir en ChefNet Invest, necesitas completar tu verificación de identidad (KYC). Este proceso toma solo unos minutos.\n\nNecesitarás:\n• Un documento de identidad válido (pasaporte o DNI)\n• Un selfie para verificación facial\n\nInicia sesión en tu panel y ve a la pestaña "Verificación KYC" para comenzar.\n\nAtentamente,\nEquipo ChefNet Invest',
+      subject_tr: 'KYC doğrulamanızı tamamlayın — ChefNet Invest',
+      body_tr: 'Sayın {{name}},\n\nChefNet Invest\'te yatırım yapmaya başlamak için kimlik doğrulamanızı (KYC) tamamlamanız gerekmektedir. Bu işlem sadece birkaç dakika sürer.\n\nİhtiyacınız olanlar:\n• Geçerli bir kimlik belgesi (pasaport veya kimlik kartı)\n• Yüz eşleştirmesi için selfie\n\nPanonuza giriş yapın ve başlamak için "KYC Doğrulama" sekmesine gidin.\n\nSaygılarımızla,\nChefNet Invest Ekibi',
+    },
+    {
+      event: 'Password changed', sort_order: 5,
+      subject_en: 'Your password has been changed — ChefNet Invest',
+      body_en: 'Dear {{name}},\n\nYour ChefNet Invest account password was successfully changed.\n\nIf you did not initiate this change, please contact our support team immediately at support@chefnet.ai or secure your account by resetting your password.\n\nBest regards,\nChefNet Invest Team',
+      subject_ru: 'Пароль изменён — ChefNet Invest',
+      body_ru: 'Уважаемый(ая) {{name}},\n\nПароль от вашего аккаунта ChefNet Invest был успешно изменён.\n\nЕсли вы не инициировали это изменение, немедленно свяжитесь с нашей службой поддержки по адресу support@chefnet.ai или защитите аккаунт, выполнив сброс пароля.\n\nС уважением,\nКоманда ChefNet Invest',
+      subject_de: 'Ihr Passwort wurde geändert — ChefNet Invest',
+      body_de: 'Liebe(r) {{name}},\n\nIhr ChefNet Invest-Kontopasswort wurde erfolgreich geändert.\n\nFalls Sie diese Änderung nicht veranlasst haben, kontaktieren Sie bitte sofort unser Support-Team unter support@chefnet.ai oder sichern Sie Ihr Konto durch das Zurücksetzen des Passworts.\n\nMit freundlichen Grüßen,\nChefNet Invest Team',
+      subject_es: 'Tu contraseña ha sido cambiada — ChefNet Invest',
+      body_es: 'Estimado/a {{name}},\n\nLa contraseña de tu cuenta ChefNet Invest fue cambiada exitosamente.\n\nSi no iniciaste este cambio, contacta a nuestro equipo de soporte inmediatamente en support@chefnet.ai o asegura tu cuenta restableciendo tu contraseña.\n\nAtentamente,\nEquipo ChefNet Invest',
+      subject_tr: 'Şifreniz değiştirildi — ChefNet Invest',
+      body_tr: 'Sayın {{name}},\n\nChefNet Invest hesabınızın şifresi başarıyla değiştirildi.\n\nBu değişikliği siz başlatmadıysanız, lütfen hemen support@chefnet.ai adresinden destek ekibimizle iletişime geçin veya şifrenizi sıfırlayarak hesabınızı güvence altına alın.\n\nSaygılarımızla,\nChefNet Invest Ekibi',
+    },
+    {
+      event: 'Referral registered', sort_order: 6,
+      subject_en: 'New partner registered via your link — ChefNet Invest',
+      body_en: 'Dear {{name}},\n\nGreat news! A new partner has registered using your referral link.\n\nOnce your partner completes KYC verification and makes their first investment, you will automatically receive a 10% commission in ChefNet shares.\n\nTrack your referrals in your dashboard under the "Referral Program" tab.\n\nBest regards,\nChefNet Invest Team',
+      subject_ru: 'Новый партнёр зарегистрировался по вашей ссылке — ChefNet Invest',
+      body_ru: 'Уважаемый(ая) {{name}},\n\nОтличные новости! По вашей реферальной ссылке зарегистрировался новый партнёр.\n\nКак только партнёр пройдёт KYC-верификацию и совершит первую инвестицию, вы автоматически получите 10% комиссию в акциях ChefNet.\n\nОтслеживайте своих рефералов в личном кабинете в разделе «Партнёрская программа».\n\nС уважением,\nКоманда ChefNet Invest',
+      subject_de: 'Neuer Partner über Ihren Link registriert — ChefNet Invest',
+      body_de: 'Liebe(r) {{name}},\n\nTolle Neuigkeiten! Ein neuer Partner hat sich über Ihren Empfehlungslink registriert.\n\nSobald Ihr Partner die KYC-Verifizierung abschließt und seine erste Investition tätigt, erhalten Sie automatisch eine 10%-Provision in ChefNet-Aktien.\n\nVerfolgen Sie Ihre Empfehlungen in Ihrem Dashboard unter dem Tab "Empfehlungsprogramm".\n\nMit freundlichen Grüßen,\nChefNet Invest Team',
+      subject_es: 'Nuevo socio registrado por tu enlace — ChefNet Invest',
+      body_es: 'Estimado/a {{name}},\n\n¡Excelentes noticias! Un nuevo socio se ha registrado usando tu enlace de referido.\n\nUna vez que tu socio complete la verificación KYC y realice su primera inversión, recibirás automáticamente una comisión del 10% en acciones ChefNet.\n\nRastraea tus referidos en tu panel en la pestaña "Programa de Referidos".\n\nAtentamente,\nEquipo ChefNet Invest',
+      subject_tr: 'Bağlantınız üzerinden yeni ortak kaydoldu — ChefNet Invest',
+      body_tr: 'Sayın {{name}},\n\nHarika haber! Yönlendirme bağlantınız aracılığıyla yeni bir ortak kaydoldu.\n\nOrtağınız KYC doğrulamasını tamamlayıp ilk yatırımını yaptığında, otomatik olarak ChefNet hisselerinde %10 komisyon alacaksınız.\n\nYönlendirmelerinizi panonuzda "Yönlendirme Programı" sekmesi altında takip edin.\n\nSaygılarımızla,\nChefNet Invest Ekibi',
+    },
+    {
+      event: 'Referral paid', sort_order: 7,
+      subject_en: 'Your partner made an investment — bonus incoming! — ChefNet Invest',
+      body_en: 'Dear {{name}},\n\nExcellent news! Your referral partner has made an investment on ChefNet Invest.\n\nYour 10% referral commission in ChefNet shares is being processed and will be credited to your account shortly.\n\nCheck your dashboard for the latest status.\n\nBest regards,\nChefNet Invest Team',
+      subject_ru: 'Ваш партнёр совершил инвестицию — бонус на подходе! — ChefNet Invest',
+      body_ru: 'Уважаемый(ая) {{name}},\n\nПрекрасные новости! Ваш реферальный партнёр совершил инвестицию на ChefNet Invest.\n\nВаша реферальная комиссия в размере 10% в акциях ChefNet обрабатывается и будет начислена на ваш счёт в ближайшее время.\n\nПроверьте статус в личном кабинете.\n\nС уважением,\nКоманда ChefNet Invest',
+      subject_de: 'Ihr Partner hat investiert — Bonus kommt! — ChefNet Invest',
+      body_de: 'Liebe(r) {{name}},\n\nAusgezeichnete Neuigkeiten! Ihr Empfehlungspartner hat eine Investition bei ChefNet Invest getätigt.\n\nIhre 10%-Empfehlungsprovision in ChefNet-Aktien wird bearbeitet und in Kürze auf Ihr Konto gutgeschrieben.\n\nÜberprüfen Sie den aktuellen Status in Ihrem Dashboard.\n\nMit freundlichen Grüßen,\nChefNet Invest Team',
+      subject_es: 'Tu socio realizó una inversión — ¡bonus en camino! — ChefNet Invest',
+      body_es: 'Estimado/a {{name}},\n\n¡Excelentes noticias! Tu socio referido ha realizado una inversión en ChefNet Invest.\n\nTu comisión de referido del 10% en acciones ChefNet está siendo procesada y se acreditará a tu cuenta en breve.\n\nRevisa tu panel para el último estado.\n\nAtentamente,\nEquipo ChefNet Invest',
+      subject_tr: 'Ortağınız yatırım yaptı — bonus geliyor! — ChefNet Invest',
+      body_tr: 'Sayın {{name}},\n\nMükemmel haber! Yönlendirme ortağınız ChefNet Invest\'te bir yatırım yaptı.\n\nChefNet hisselerindeki %10 yönlendirme komisyonunuz işleniyor ve yakında hesabınıza yatırılacak.\n\nEn son durumu panonuzdan kontrol edin.\n\nSaygılarımızla,\nChefNet Invest Ekibi',
+    },
+    {
+      event: 'Referral bonus credited', sort_order: 8,
+      subject_en: 'Referral bonus credited to your account — ChefNet Invest',
+      body_en: 'Dear {{name}},\n\nYour referral bonus has been successfully credited to your account! 🎉\n\nYou have received a 10% commission in ChefNet shares for your referral partner\'s investment. The shares are now reflected in your portfolio.\n\nLog in to your dashboard to see the details.\n\nBest regards,\nChefNet Invest Team',
+      subject_ru: 'Реферальный бонус начислен на ваш счёт — ChefNet Invest',
+      body_ru: 'Уважаемый(ая) {{name}},\n\nВаш реферальный бонус успешно начислен на счёт! 🎉\n\nВы получили 10% комиссию в акциях ChefNet за инвестицию вашего реферального партнёра. Акции уже отображаются в вашем портфеле.\n\nВойдите в личный кабинет, чтобы просмотреть детали.\n\nС уважением,\nКоманда ChefNet Invest',
+      subject_de: 'Empfehlungsbonus Ihrem Konto gutgeschrieben — ChefNet Invest',
+      body_de: 'Liebe(r) {{name}},\n\nIhr Empfehlungsbonus wurde erfolgreich Ihrem Konto gutgeschrieben! 🎉\n\nSie haben eine 10%-Provision in ChefNet-Aktien für die Investition Ihres Empfehlungspartners erhalten. Die Aktien sind nun in Ihrem Portfolio sichtbar.\n\nMelden Sie sich in Ihrem Dashboard an, um die Details zu sehen.\n\nMit freundlichen Grüßen,\nChefNet Invest Team',
+      subject_es: 'Bono de referido acreditado a tu cuenta — ChefNet Invest',
+      body_es: 'Estimado/a {{name}},\n\n¡Tu bono de referido ha sido acreditado exitosamente a tu cuenta! 🎉\n\nHas recibido una comisión del 10% en acciones ChefNet por la inversión de tu socio referido. Las acciones ya se reflejan en tu portafolio.\n\nInicia sesión en tu panel para ver los detalles.\n\nAtentamente,\nEquipo ChefNet Invest',
+      subject_tr: 'Yönlendirme bonusu hesabınıza yatırıldı — ChefNet Invest',
+      body_tr: 'Sayın {{name}},\n\nYönlendirme bonusunuz hesabınıza başarıyla yatırıldı! 🎉\n\nYönlendirme ortağınızın yatırımı için ChefNet hisselerinde %10 komisyon aldınız. Hisseler artık portföyünüzde görünmektedir.\n\nDetayları görmek için panonuza giriş yapın.\n\nSaygılarımızla,\nChefNet Invest Ekibi',
+    },
   ];
   for (const t of defaultTemplates) {
     try {
       await pool.query(
-        `INSERT INTO email_templates (event, email_enabled, account_enabled, sort_order)
-         VALUES ($1, false, true, $2)
-         ON CONFLICT (event) DO NOTHING`,
-        [t.event, t.sort_order]
+        `INSERT INTO email_templates (event, email_enabled, account_enabled, sort_order, subject_en, body_en, subject_ru, body_ru, subject_de, body_de, subject_es, body_es, subject_tr, body_tr)
+         VALUES ($1, false, true, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+         ON CONFLICT (event) DO UPDATE SET
+           subject_en = COALESCE(NULLIF(email_templates.subject_en, ''), EXCLUDED.subject_en),
+           body_en = COALESCE(NULLIF(email_templates.body_en, ''), EXCLUDED.body_en),
+           subject_ru = COALESCE(NULLIF(email_templates.subject_ru, ''), EXCLUDED.subject_ru),
+           body_ru = COALESCE(NULLIF(email_templates.body_ru, ''), EXCLUDED.body_ru),
+           subject_de = COALESCE(email_templates.subject_de, EXCLUDED.subject_de),
+           body_de = COALESCE(email_templates.body_de, EXCLUDED.body_de),
+           subject_es = COALESCE(email_templates.subject_es, EXCLUDED.subject_es),
+           body_es = COALESCE(email_templates.body_es, EXCLUDED.body_es),
+           subject_tr = COALESCE(email_templates.subject_tr, EXCLUDED.subject_tr),
+           body_tr = COALESCE(email_templates.body_tr, EXCLUDED.body_tr)`,
+        [t.event, t.sort_order, t.subject_en, t.body_en, t.subject_ru, t.body_ru, t.subject_de, t.body_de, t.subject_es, t.body_es, t.subject_tr, t.body_tr]
       );
     } catch { /* skip */ }
   }

@@ -754,15 +754,65 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
   });
 
   router.put('/templates/:id', ...auth, async (req, res) => {
-    const { email_enabled, account_enabled, subject_en, subject_ru, body_en, body_ru } = req.body;
+    const { email_enabled, account_enabled, subject_en, subject_ru, subject_de, subject_es, subject_tr, body_en, body_ru, body_de, body_es, body_tr } = req.body;
     try {
       await pool.query(
-        'UPDATE email_templates SET email_enabled=$1, account_enabled=$2, subject_en=$3, subject_ru=$4, body_en=$5, body_ru=$6 WHERE id=$7',
-        [email_enabled, account_enabled, subject_en||'', subject_ru||'', body_en||'', body_ru||'', req.params.id]
+        `UPDATE email_templates SET email_enabled=$1, account_enabled=$2,
+         subject_en=$3, subject_ru=$4, subject_de=$5, subject_es=$6, subject_tr=$7,
+         body_en=$8, body_ru=$9, body_de=$10, body_es=$11, body_tr=$12
+         WHERE id=$13`,
+        [email_enabled, account_enabled,
+         subject_en||'', subject_ru||'', subject_de||'', subject_es||'', subject_tr||'',
+         body_en||'', body_ru||'', body_de||'', body_es||'', body_tr||'',
+         req.params.id]
       );
       res.json({ success: true });
     } catch (err) {
       console.error(err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  router.post('/templates/:id/test', ...auth, async (req, res) => {
+    const { type } = req.body; // 'email' | 'account'
+    const userId = (req as any).userId;
+    try {
+      const tplResult = await pool.query('SELECT * FROM email_templates WHERE id=$1', [req.params.id]);
+      if (!tplResult.rows.length) return res.status(404).json({ error: 'Template not found' });
+      const tpl = tplResult.rows[0];
+      const adminResult = await pool.query('SELECT email, full_name FROM profiles WHERE id=$1', [userId]);
+      if (!adminResult.rows.length) return res.status(404).json({ error: 'Admin not found' });
+      const admin = adminResult.rows[0];
+      const adminName = admin.full_name || 'Admin';
+
+      if (type === 'account') {
+        const body = (tpl.body_en || '').replace(/\{\{name\}\}/g, adminName);
+        const subject = tpl.subject_en || tpl.event;
+        await pool.query(
+          `INSERT INTO notifications (user_id, title, message, type, status) VALUES ($1, $2, $3, 'system', 'active')`,
+          [userId, subject, body]
+        );
+        return res.json({ success: true, sent_to: admin.email, channel: 'account' });
+      }
+
+      if (type === 'email') {
+        if (!tpl.email_enabled) {
+          const subject = tpl.subject_en || tpl.event;
+          const body = (tpl.body_en || '').replace(/\{\{name\}\}/g, adminName);
+          const { buildAndSendTemplateEmail } = await import('./emailTemplateHelper.js');
+          const sent = await buildAndSendTemplateEmail(admin.email, subject, body, adminName);
+          return res.json({ success: sent, sent_to: admin.email, channel: 'email', note: 'Test sent regardless of email_enabled setting' });
+        }
+        const subject = tpl.subject_en || tpl.event;
+        const body = (tpl.body_en || '').replace(/\{\{name\}\}/g, adminName);
+        const { buildAndSendTemplateEmail } = await import('./emailTemplateHelper.js');
+        const sent = await buildAndSendTemplateEmail(admin.email, subject, body, adminName);
+        return res.json({ success: sent, sent_to: admin.email, channel: 'email' });
+      }
+
+      res.status(400).json({ error: 'type must be email or account' });
+    } catch (err) {
+      console.error('[templates/test]', err);
       res.status(500).json({ error: 'Internal server error' });
     }
   });
