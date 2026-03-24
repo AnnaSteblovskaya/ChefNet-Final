@@ -5,6 +5,10 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { SiteContentProvider } from '@/contexts/SiteContentContext';
 import NewPasswordModal from '@/app/components/auth/NewPasswordModal';
 import AdminPanel from '@/app/components/admin/AdminPanel';
+import PrivacyPolicy from '@/app/components/legal/PrivacyPolicy';
+import TermsOfUse from '@/app/components/legal/TermsOfUse';
+import RiskDisclosure from '@/app/components/legal/RiskDisclosure';
+import ReferralTerms from '@/app/components/legal/ReferralTerms';
 import HeroSection from '@/app/components/sections/HeroSection';
 import AboutSection from '@/app/components/sections/AboutSection';
 import UniqueFeaturesSection from '@/app/components/sections/UniqueFeaturesSection';
@@ -65,6 +69,7 @@ function AppContent() {
   const { language } = useLanguage();
   const [showDashboard, setShowDashboard] = useState(false);
   const [showAdmin, setShowAdmin] = useState(window.location.pathname === '/admin');
+  const pathname = window.location.pathname;
   const [verifiedBanner, setVerifiedBanner] = useState(false);
   const [verifyErrorBanner, setVerifyErrorBanner] = useState<string | null>(null);
   const [resendEmail, setResendEmail] = useState('');
@@ -137,6 +142,12 @@ function AppContent() {
   if (showAdmin) {
     return <AdminPanel onExit={() => { setShowAdmin(false); window.history.replaceState({}, '', '/'); }} />;
   }
+
+  // Legal pages — no auth required
+  if (pathname === '/privacy') return <PrivacyPolicy />;
+  if (pathname === '/terms') return <TermsOfUse />;
+  if (pathname === '/risks') return <RiskDisclosure />;
+  if (pathname === '/referral-terms') return <ReferralTerms />;
 
   // Show dashboard if authenticated and user wants to see it
   if (!loading && isAuthenticated && showDashboard) {

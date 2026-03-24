@@ -149,15 +149,25 @@ export default function Footer() {
               </motion.a>
             </div>
 
-            {/* Privacy Policy */}
-            <motion.a
-              href="#"
-              whileHover={{ x: 5 }}
-              className="inline-flex items-center gap-2 mt-8 text-[#6B4423] hover:text-[#FF6B35] transition-colors text-sm font-medium"
-            >
-              {t.footerPrivacyPolicy}
-              <ArrowRight className="w-4 h-4" />
-            </motion.a>
+            {/* Legal links */}
+            <div className="mt-8 flex flex-col gap-2">
+              {[
+                { href: '/privacy', label: { ru: 'Политика конфиденциальности', en: 'Privacy Policy', de: 'Datenschutzrichtlinie', es: 'Política de privacidad', tr: 'Gizlilik Politikası' } },
+                { href: '/terms', label: { ru: 'Пользовательское соглашение', en: 'Terms of Use', de: 'Nutzungsbedingungen', es: 'Términos de uso', tr: 'Kullanım Koşulları' } },
+                { href: '/risks', label: { ru: 'Раскрытие рисков', en: 'Risk Disclosure', de: 'Risikohinweise', es: 'Divulgación de riesgos', tr: 'Risk Açıklaması' } },
+                { href: '/referral-terms', label: { ru: 'Условия реф. программы', en: 'Referral Program Terms', de: 'Empfehlungsprogramm', es: 'Programa de referidos', tr: 'Referans Programı' } },
+              ].map(link => (
+                <motion.a
+                  key={link.href}
+                  href={link.href}
+                  whileHover={{ x: 5 }}
+                  className="inline-flex items-center gap-2 text-[#6B4423] hover:text-[#FF6B35] transition-colors text-sm font-medium"
+                >
+                  <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
+                  {link.label[lang] || link.label.en}
+                </motion.a>
+              ))}
+            </div>
           </motion.div>
 
           {/* Contacts */}
