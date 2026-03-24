@@ -800,7 +800,18 @@ app.get('/api/site-content', async (_req, res) => {
 
 app.get('/api/rounds', async (_req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM rounds ORDER BY sort_order');
+    // sold_shares is calculated live from investments (pending+confirmed+completed)
+    // so deleting/rejecting an investment immediately updates "Доступно долей"
+    const result = await pool.query(`
+      SELECT r.*,
+        COALESCE((
+          SELECT SUM(i.shares)
+          FROM investments i
+          WHERE i.round = r.id AND i.status IN ('pending', 'confirmed', 'completed')
+        ), 0) AS sold_shares_live
+      FROM rounds r
+      ORDER BY sort_order
+    `);
     const rows = result.rows.map((r: any) => {
       const sharePrice = parseFloat(r.share_price) || parseFloat(r.price) || 0;
       const targetSum = parseFloat(r.target_sum) || 0;
@@ -817,7 +828,7 @@ app.get('/api/rounds', async (_req, res) => {
         price: sharePrice,
         min_investment: minOrder,
         total_shares: computedTotalShares,
-        sold_shares: r.sold_shares || 0,
+        sold_shares: Number(r.sold_shares_live) || 0,
         status: isActive ? 'active' : 'upcoming',
         amount: formattedAmount,
         highlight: isActive,
