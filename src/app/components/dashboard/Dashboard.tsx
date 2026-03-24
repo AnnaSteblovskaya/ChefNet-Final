@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChefHat, LayoutDashboard, TrendingUp, FileText, Users, ShieldCheck, MessageCircleQuestion, User, LogOut, Bell, Menu, X, Newspaper } from 'lucide-react';
+import { ChefHat, LayoutDashboard, TrendingUp, FileText, Users, ShieldCheck, MessageCircleQuestion, User, LogOut, Bell, Menu, X, Newspaper, Volume2, VolumeX } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { dashboardTranslations } from '@/utils/dashboardTranslations';
 import LanguageSwitcher from '@/app/components/LanguageSwitcher';
+import { playIfUnmuted, isMuted, setMuted } from '@/utils/notificationSounds';
+import { getAuthHeaders } from '@/utils/api';
 import DashboardTab from './DashboardTab';
 import InvestmentsTab from './InvestmentsTab';
 import DocumentsTab from './DocumentsTab';
@@ -28,6 +30,53 @@ export default function Dashboard({ onBackToHome }: DashboardProps) {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showChartDemo, setShowChartDemo] = useState(false);
   const mainContentRef = useRef<HTMLElement>(null);
+
+  // ── Sound mute toggle ────────────────────────────────────────────────────
+  const [muted, setMutedState] = useState(isMuted);
+  const toggleMute = () => {
+    const next = !muted;
+    setMuted(next);
+    setMutedState(next);
+  };
+
+  // ── Notification polling (every 30 s) ────────────────────────────────────
+  const [unreadCount, setUnreadCount] = useState(0);
+  const seenIdsRef = useRef<Set<number>>(new Set());
+  const firstPollRef = useRef(true);
+
+  const pollNotifications = useCallback(async () => {
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/notifications', { headers, credentials: 'include' });
+      if (!res.ok) return;
+      const data: { id: number; type: string; status: string }[] = await res.json();
+      if (!Array.isArray(data)) return;
+
+      const active = data.filter(n => n.status === 'active');
+      setUnreadCount(active.length);
+
+      if (firstPollRef.current) {
+        // Seed known IDs on first load — don't play sounds for existing notifications
+        active.forEach(n => seenIdsRef.current.add(n.id));
+        firstPollRef.current = false;
+        return;
+      }
+
+      // Play a sound for each newly arrived notification
+      for (const n of active) {
+        if (!seenIdsRef.current.has(n.id)) {
+          seenIdsRef.current.add(n.id);
+          playIfUnmuted(n.type);
+        }
+      }
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => {
+    pollNotifications();
+    const interval = setInterval(pollNotifications, 30_000);
+    return () => clearInterval(interval);
+  }, [pollNotifications]);
 
   // Clear any legacy fake referral data that may have been stored in localStorage
   useEffect(() => {
@@ -172,6 +221,22 @@ export default function Dashboard({ onBackToHome }: DashboardProps) {
           <motion.button
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
+            transition={{ delay: 0.45 }}
+            onClick={toggleMute}
+            title={muted ? 'Включить звук уведомлений' : 'Выключить звук уведомлений'}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[var(--color-text)] hover:bg-[#FFF5F0] hover:text-[#FF6B35] transition-all mt-1"
+          >
+            {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+            <span className="text-sm font-medium">
+              {muted
+                ? { en: 'Sound off', ru: 'Звук выкл.', de: 'Ton aus', es: 'Sonido apagado', tr: 'Ses kapalı' }[language] || 'Sound off'
+                : { en: 'Sound on', ru: 'Звук вкл.', de: 'Ton an', es: 'Sonido activado', tr: 'Ses açık' }[language] || 'Sound on'
+              }
+            </span>
+          </motion.button>
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[var(--color-text)] hover:bg-red-50 hover:text-red-600 transition-all mt-2"
@@ -223,12 +288,25 @@ export default function Dashboard({ onBackToHome }: DashboardProps) {
                   </div>
                 </button>
                 
+                {/* Sound toggle */}
+                <button
+                  onClick={toggleMute}
+                  title={muted ? 'Включить звук' : 'Выключить звук'}
+                  className="hidden lg:flex p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-gray-100 transition-all"
+                >
+                  {muted
+                    ? <VolumeX className="w-5 h-5" />
+                    : <Volume2 className="w-5 h-5" />}
+                </button>
+
                 {/* Desktop Notification Bell */}
                 <div className="hidden lg:block relative cursor-pointer" onClick={() => setActiveTab('notifications')}>
                   <Bell className="w-6 h-6 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors" />
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-[var(--color-primary)] text-white text-xs rounded-full flex items-center justify-center font-medium">
-                    2
-                  </span>
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-[var(--color-primary)] text-white text-xs rounded-full flex items-center justify-center font-medium">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
