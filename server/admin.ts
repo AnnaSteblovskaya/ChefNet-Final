@@ -506,14 +506,21 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
         [title_en||'', title_ru||'', title_de||'', title_es||'', title_tr||'', body_en||'', body_ru||'', body_de||'', body_es||'', body_tr||'', isNowPublished, req.params.id]
       );
 
-      // If transitioning from draft → published, notify all users by email (fire-and-forget)
+      // If transitioning from draft → published, notify all users by email + in-app notification
       if (!wasPublished && isNowPublished) {
         const usersResult = await pool.query('SELECT email FROM profiles WHERE email IS NOT NULL AND email != \'\'');
         const newsDate = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
         const title = title_ru || title_en || 'Новость';
         const body = body_ru || body_en || '';
+        const shortBody = body.length > 120 ? body.slice(0, 120).trimEnd() + '…' : body;
         for (const user of usersResult.rows) {
+          // Send email
           sendNewsNotificationEmail(user.email, title, body, newsDate).catch(() => {});
+          // Insert in-app notification so the sound polling detects it
+          pool.query(
+            `INSERT INTO notifications (user_email, type, message, status) VALUES ($1, 'news', $2, 'active')`,
+            [user.email, `${title}${shortBody ? ': ' + shortBody : ''}`]
+          ).catch(() => {});
         }
         console.log(`[news-notify] Publishing news "${title}" — notifying ${usersResult.rows.length} users`);
       }
