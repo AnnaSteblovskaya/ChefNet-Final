@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import path from 'path';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
-import { sendVerificationEmail } from './email.js';
+import { sendVerificationEmail, sendNewsNotificationEmail } from './email.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -496,10 +496,28 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
   router.put('/news/:id', ...auth, async (req, res) => {
     const { title_en, title_ru, title_de, title_es, title_tr, body_en, body_ru, body_de, body_es, body_tr, published } = req.body;
     try {
+      // Check previous published state to detect first-publish transition
+      const prev = await pool.query('SELECT published FROM news WHERE id=$1', [req.params.id]);
+      const wasPublished = prev.rows[0]?.published ?? false;
+      const isNowPublished = !!published;
+
       await pool.query(
         'UPDATE news SET title_en=$1,title_ru=$2,title_de=$3,title_es=$4,title_tr=$5,body_en=$6,body_ru=$7,body_de=$8,body_es=$9,body_tr=$10,published=$11,updated_at=now() WHERE id=$12',
-        [title_en||'', title_ru||'', title_de||'', title_es||'', title_tr||'', body_en||'', body_ru||'', body_de||'', body_es||'', body_tr||'', published||false, req.params.id]
+        [title_en||'', title_ru||'', title_de||'', title_es||'', title_tr||'', body_en||'', body_ru||'', body_de||'', body_es||'', body_tr||'', isNowPublished, req.params.id]
       );
+
+      // If transitioning from draft → published, notify all users by email (fire-and-forget)
+      if (!wasPublished && isNowPublished) {
+        const usersResult = await pool.query('SELECT email FROM profiles WHERE email IS NOT NULL AND email != \'\'');
+        const newsDate = new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+        const title = title_ru || title_en || 'Новость';
+        const body = body_ru || body_en || '';
+        for (const user of usersResult.rows) {
+          sendNewsNotificationEmail(user.email, title, body, newsDate).catch(() => {});
+        }
+        console.log(`[news-notify] Publishing news "${title}" — notifying ${usersResult.rows.length} users`);
+      }
+
       res.json({ success: true });
     } catch (err) {
       console.error(err);

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChefHat, LayoutDashboard, TrendingUp, FileText, Users, ShieldCheck, MessageCircleQuestion, User, LogOut, Bell, Menu, X } from 'lucide-react';
+import { ChefHat, LayoutDashboard, TrendingUp, FileText, Users, ShieldCheck, MessageCircleQuestion, User, LogOut, Bell, Menu, X, Newspaper } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { dashboardTranslations } from '@/utils/dashboardTranslations';
@@ -14,6 +14,7 @@ import NotificationsTab from './NotificationsTab';
 import ProfileTab from './ProfileTab';
 import ChartVariantsDemo from './ChartVariantsDemo';
 import QATab from './QATab';
+import NewsTab from './NewsTab';
 
 interface DashboardProps {
   onBackToHome: () => void;
@@ -68,6 +69,7 @@ export default function Dashboard({ onBackToHome }: DashboardProps) {
     { id: 'documents', icon: FileText, label: t.documents },
     { id: 'kyc', icon: ShieldCheck, label: t.kycVerification },
     { id: 'notifications', icon: Bell, label: t.notifications },
+    { id: 'news', icon: Newspaper, label: t.news },
     { id: 'qa', icon: MessageCircleQuestion, label: t.faq },
   ];
 
@@ -85,6 +87,8 @@ export default function Dashboard({ onBackToHome }: DashboardProps) {
         return <KYCTab setActiveTab={setActiveTab} />;
       case 'notifications':
         return <NotificationsTab setActiveTab={setActiveTab} />;
+      case 'news':
+        return <NewsTab />;
       case 'qa':
         return <QATab />;
       case 'profile':

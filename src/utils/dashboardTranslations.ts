@@ -11,9 +11,16 @@ export const dashboardTranslations = {
     referralProgram: 'Referral Program',
     kycVerification: 'KYC Verification',
     notifications: 'Notifications',
+    news: 'News',
     faq: 'Q&A',
     profile: 'Profile',
     logout: 'Logout',
+
+    // News Tab
+    newsTitle: 'News',
+    newsSubtitle: 'Platform updates and announcements',
+    newsEmpty: 'No news yet. Check back later.',
+    newsNoTitle: 'Untitled',
 
     // Q&A Tab
     qaTitle: 'Q&A',
@@ -288,8 +295,15 @@ export const dashboardTranslations = {
     referralProgram: 'Партнерская программа',
     kycVerification: 'KYC Верификация',
     notifications: 'Уведомления',
+    news: 'Новости',
     faq: 'Вопросы',
     profile: 'Профиль',
+
+    // News Tab
+    newsTitle: 'Новости',
+    newsSubtitle: 'Обновления и объявления платформы',
+    newsEmpty: 'Новостей пока нет. Заходите позже.',
+    newsNoTitle: 'Без названия',
 
     // Q&A Tab
     qaTitle: 'Вопросы и ответы',
@@ -563,8 +577,15 @@ export const dashboardTranslations = {
     referralProgram: 'Empfehlungsprogramm',
     kycVerification: 'KYC Verifizierung',
     notifications: 'Benachrichtigungen',
+    news: 'Neuigkeiten',
     faq: 'F&A',
     profile: 'Profil',
+
+    // News Tab
+    newsTitle: 'Neuigkeiten',
+    newsSubtitle: 'Plattform-Updates und Ankündigungen',
+    newsEmpty: 'Noch keine Neuigkeiten. Schauen Sie später vorbei.',
+    newsNoTitle: 'Ohne Titel',
     logout: 'Abmelden',
 
     // Q&A Tab
@@ -839,8 +860,15 @@ export const dashboardTranslations = {
     referralProgram: 'Programa de Referidos',
     kycVerification: 'Verificación KYC',
     notifications: 'Notificaciones',
+    news: 'Noticias',
     faq: 'P&R',
     profile: 'Perfil',
+
+    // News Tab
+    newsTitle: 'Noticias',
+    newsSubtitle: 'Actualizaciones y anuncios de la plataforma',
+    newsEmpty: 'Aún no hay noticias. Vuelve más tarde.',
+    newsNoTitle: 'Sin título',
 
     // Q&A Tab
     qaTitle: 'Preguntas y Respuestas',
@@ -1115,8 +1143,15 @@ export const dashboardTranslations = {
     referralProgram: 'Yönlendirme Programı',
     kycVerification: 'KYC Doğrulama',
     notifications: 'Bildirimler',
+    news: 'Haberler',
     faq: 'S&C',
     profile: 'Profil',
+
+    // News Tab
+    newsTitle: 'Haberler',
+    newsSubtitle: 'Platform güncellemeleri ve duyurular',
+    newsEmpty: 'Henüz haber yok. Daha sonra tekrar kontrol edin.',
+    newsNoTitle: 'Başlıksız',
 
     // Q&A Tab
     qaTitle: 'Soru & Cevap',
