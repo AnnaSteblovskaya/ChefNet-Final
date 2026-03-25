@@ -57,6 +57,7 @@ SENDPULSE_API_ID = "7d4e40570ca324cf5c0b890c408b8cb8"
 SENDPULSE_API_KEY = "7521f27808ff7d3e4c06bc113631b70b"
 CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1"
 ADMIN_BOOTSTRAP_SECRET = "7bf7f4040c7ac45edccaf54320dc5eec"
+SUMSUB_LEVEL_NAME = "id-and-liveness"
 
 [userenv.production]
 VITE_SITE_URL = "https://chefnet.replit.app"
