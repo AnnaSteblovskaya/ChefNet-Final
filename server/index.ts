@@ -1432,9 +1432,15 @@ app.post('/api/kyc/access-token', requireAuth, async (req, res) => {
       const createPath = `/resources/applicants?levelName=${encodeURIComponent(SUMSUB_LEVEL_NAME)}`;
       const createRes = await sumsubRequest('POST', createPath, { externalUserId: userId });
       if (!createRes.ok) {
-        const err = await createRes.text();
-        console.error('[sumsub] create applicant error:', err);
-        res.status(500).json({ error: 'Failed to create Sumsub applicant' });
+        const errText = await createRes.text();
+        console.error('[sumsub] create applicant error:', errText);
+        let errJson: any = {};
+        try { errJson = JSON.parse(errText); } catch {}
+        if (errJson.description?.includes('Level') && errJson.description?.includes('not found')) {
+          res.status(503).json({ error: `KYC level '${SUMSUB_LEVEL_NAME}' not found in Sumsub. Please create it in the Sumsub dashboard under Verification Flows.` });
+        } else {
+          res.status(500).json({ error: 'Failed to create Sumsub applicant' });
+        }
         return;
       }
       const applicant = await createRes.json();

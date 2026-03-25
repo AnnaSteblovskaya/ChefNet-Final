@@ -119,8 +119,11 @@ export default function KYCTab({ setActiveTab }: KYCTabProps) {
       }, 100);
     } catch (err: any) {
       console.error('[sumsub] launch error:', err);
-      if (err?.message === 'Sumsub not configured') {
+      const msg = (err as any)?.data?.error || err?.message || '';
+      if (msg.includes('not configured')) {
         setError('Sumsub не настроен. Свяжитесь с администратором.');
+      } else if (msg.includes('not found in Sumsub') || msg.includes('KYC level')) {
+        setError('Уровень верификации не найден в Sumsub. Администратору необходимо создать Verification Flow в панели Sumsub.');
       } else {
         setError('Не удалось запустить верификацию. Попробуйте позже.');
       }
