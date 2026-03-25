@@ -53,7 +53,7 @@ export default function DashboardTab() {
         const invData = invRes.ok ? await invRes.json().catch(() => ({})) : {};
         const userRounds: any[] = invData.userRounds || [];
         const mySharesMap: Record<string, number> = {};
-        userRounds.forEach((ur: any) => { mySharesMap[ur.round_id] = ur.my_shares || 0; });
+        userRounds.forEach((ur: any) => { mySharesMap[ur.round_id] = Number(ur.my_shares) || 0; });
         if (!Array.isArray(rounds) || rounds.length === 0) return;
         const next: typeof roundsData = {};
         rounds.forEach((round: any) => {
@@ -290,7 +290,7 @@ export default function DashboardTab() {
             <div className="mb-1 lg:mb-1.5">
               <p className="text-[9px] lg:text-xs text-[var(--color-text-secondary)] mb-0.5">{t.sharesPurchased}</p>
               <div>
-                <span className="text-base lg:text-2xl font-bold text-[var(--color-text)]">{totalMyShares}</span>
+                <span className="text-base lg:text-2xl font-bold text-[var(--color-text)]">{totalMyShares.toLocaleString()}</span>
               </div>
             </div>
             
@@ -351,7 +351,7 @@ export default function DashboardTab() {
             {/* Возможная прибыль */}
             <div>
               <div>
-                <span className="text-base lg:text-2xl font-bold text-[var(--color-text)]">${potentialProfit.toFixed(2)}</span>
+                <span className="text-base lg:text-2xl font-bold text-[var(--color-text)]">${potentialProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
           </motion.div>

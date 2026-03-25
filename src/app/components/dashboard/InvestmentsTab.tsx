@@ -101,7 +101,7 @@ export default function InvestmentsTab({ setActiveTab }: InvestmentsTabProps) {
         const userRoundsArr: UserRound[] = data.userRounds || [];
         setInvestments(invArr);
         const myMap: Record<string, number> = {};
-        userRoundsArr.forEach(ur => { myMap[ur.round_id] = ur.my_shares; });
+        userRoundsArr.forEach(ur => { myMap[ur.round_id] = Number(ur.my_shares) || 0; });
         setMyRounds(myMap);
       }
     } catch (e) {}
