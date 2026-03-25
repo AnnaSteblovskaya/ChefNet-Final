@@ -267,6 +267,26 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
       }
 
       await client.query('COMMIT');
+
+      // ─── Notify the investor when status changes ───────────────────────────
+      if (status !== undefined && status !== oldStatus) {
+        const userResult = await pool.query('SELECT email FROM profiles WHERE id=$1', [invUserId]);
+        const userEmail = userResult.rows[0]?.email;
+        if (userEmail) {
+          const msgs: Record<string, string> = {
+            confirmed:  `Ваша инвестиция в раунд ${invRound} подтверждена. Акции зачислены в ваш портфель.`,
+            completed:  `Ваша инвестиция в раунд ${invRound} завершена.`,
+            rejected:   `Ваша инвестиция в раунд ${invRound} отклонена. Обратитесь в поддержку для получения информации.`,
+            pending:    `Ваша инвестиция в раунд ${invRound} ожидает подтверждения.`,
+          };
+          const msg = msgs[status] || `Статус вашей инвестиции в раунд ${invRound} изменён на: ${status}.`;
+          pool.query(
+            `INSERT INTO notifications (user_email, type, message, status) VALUES ($1, 'investment', $2, 'active')`,
+            [userEmail, msg]
+          ).catch(() => {});
+        }
+      }
+
       res.json({ success: true });
     } catch (err) {
       await client.query('ROLLBACK');

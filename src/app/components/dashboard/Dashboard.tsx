@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { dashboardTranslations } from '@/utils/dashboardTranslations';
 import LanguageSwitcher from '@/app/components/LanguageSwitcher';
-import { playIfUnmuted, isMuted, setMuted } from '@/utils/notificationSounds';
+import { playIfUnmuted, isMuted, setMuted, unlockAudioContext } from '@/utils/notificationSounds';
 import { getAuthHeaders } from '@/utils/api';
 import DashboardTab from './DashboardTab';
 import InvestmentsTab from './InvestmentsTab';
@@ -39,7 +39,29 @@ export default function Dashboard({ onBackToHome }: DashboardProps) {
     setMutedState(next);
   };
 
-  // ── Notification polling (every 30 s) ────────────────────────────────────
+  // ── Unlock AudioContext on first user interaction ─────────────────────────
+  // Browsers suspend AudioContext until a real click/touch occurs.
+  useEffect(() => {
+    let unlocked = false;
+    const unlock = () => {
+      if (unlocked) return;
+      unlocked = true;
+      unlockAudioContext().catch(() => {});
+      document.removeEventListener('click', unlock);
+      document.removeEventListener('keydown', unlock);
+      document.removeEventListener('touchstart', unlock);
+    };
+    document.addEventListener('click', unlock);
+    document.addEventListener('keydown', unlock);
+    document.addEventListener('touchstart', unlock);
+    return () => {
+      document.removeEventListener('click', unlock);
+      document.removeEventListener('keydown', unlock);
+      document.removeEventListener('touchstart', unlock);
+    };
+  }, []);
+
+  // ── Notification polling (every 15 s) ────────────────────────────────────
   const [unreadCount, setUnreadCount] = useState(0);
   const seenIdsRef = useRef<Set<number>>(new Set());
   const firstPollRef = useRef(true);
@@ -56,25 +78,29 @@ export default function Dashboard({ onBackToHome }: DashboardProps) {
       setUnreadCount(active.length);
 
       if (firstPollRef.current) {
-        // Seed known IDs on first load — don't play sounds for existing notifications
+        // Seed known IDs — never play sounds for notifications that existed on load
         active.forEach(n => seenIdsRef.current.add(n.id));
         firstPollRef.current = false;
+        console.log('[Sound] Initial poll — seeded', seenIdsRef.current.size, 'known notification IDs');
         return;
       }
 
-      // Play a sound for each newly arrived notification
+      // Play a sound for each brand-new notification
       for (const n of active) {
         if (!seenIdsRef.current.has(n.id)) {
           seenIdsRef.current.add(n.id);
+          console.log('[Sound] New notification detected — type:', n.type, 'id:', n.id, 'muted:', isMuted());
           playIfUnmuted(n.type);
         }
       }
-    } catch { /* silent */ }
+    } catch (e) {
+      console.warn('[Sound] Poll error:', e);
+    }
   }, []);
 
   useEffect(() => {
     pollNotifications();
-    const interval = setInterval(pollNotifications, 30_000);
+    const interval = setInterval(pollNotifications, 15_000); // poll every 15 s
     return () => clearInterval(interval);
   }, [pollNotifications]);
 
