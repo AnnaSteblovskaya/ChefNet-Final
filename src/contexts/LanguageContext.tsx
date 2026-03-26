@@ -10,23 +10,28 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 const STORAGE_KEY = 'chefnet-language';
+const SUPPORTED: Language[] = ['en', 'ru', 'de', 'es', 'tr'];
 
-// Helper function to get initial language
+const detectBrowserLanguage = (): Language => {
+  try {
+    const langs = Array.from(navigator.languages || [navigator.language]).filter(Boolean);
+    for (const lang of langs) {
+      const base = lang.split('-')[0].toLowerCase() as Language;
+      if (SUPPORTED.includes(base)) return base;
+    }
+  } catch (_) {}
+  return 'en';
+};
+
 const getInitialLanguage = (): Language => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored && ['en', 'ru', 'de', 'es', 'tr'].includes(stored)) {
+    if (stored && SUPPORTED.includes(stored as Language)) {
       return stored as Language;
     }
-    // Clear invalid language from localStorage
-    if (stored) {
-      console.warn(`Invalid language "${stored}" found in localStorage, resetting to default`);
-      localStorage.removeItem(STORAGE_KEY);
-    }
-  } catch (error) {
-    console.error('Error reading language from localStorage:', error);
-  }
-  return 'ru';
+    if (stored) localStorage.removeItem(STORAGE_KEY);
+  } catch (_) {}
+  return detectBrowserLanguage();
 };
 
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
@@ -35,11 +40,8 @@ export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const setLanguage = (lang: Language) => {
     try {
       localStorage.setItem(STORAGE_KEY, lang);
-      setLanguageState(lang);
-    } catch (error) {
-      console.error('Error saving language to localStorage:', error);
-      setLanguageState(lang);
-    }
+    } catch (_) {}
+    setLanguageState(lang);
   };
 
   return (
