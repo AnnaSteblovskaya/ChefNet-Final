@@ -297,6 +297,19 @@ async function ensureDbSchema() {
       }
     }
   }
+  // Enable Supabase Realtime for key tables (idempotent — ignores "already member" errors)
+  const realtimeTables = ['notifications', 'investments', 'news'];
+  for (const tbl of realtimeTables) {
+    try {
+      await pool.query(`ALTER PUBLICATION supabase_realtime ADD TABLE ${tbl}`);
+      console.log(`[realtime] Added ${tbl} to supabase_realtime publication`);
+    } catch (err: any) {
+      if (!err.message?.includes('already member') && !err.message?.includes('does not exist')) {
+        console.warn(`[realtime] Could not add ${tbl} to publication:`, err.message);
+      }
+    }
+  }
+
   // Backfill referred_user_id and email for existing referral records using name matching
   try {
     await pool.query(`

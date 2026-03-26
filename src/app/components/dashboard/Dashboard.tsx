@@ -7,6 +7,7 @@ import { dashboardTranslations } from '@/utils/dashboardTranslations';
 import LanguageSwitcher from '@/app/components/LanguageSwitcher';
 import { playIfUnmuted, isMuted, setMuted, unlockAudioContext } from '@/utils/notificationSounds';
 import { getAuthHeaders } from '@/utils/api';
+import { useRealtimeTable } from '@/utils/useRealtimeTable';
 import DashboardTab from './DashboardTab';
 import InvestmentsTab from './InvestmentsTab';
 import DocumentsTab from './DocumentsTab';
@@ -61,12 +62,12 @@ export default function Dashboard({ onBackToHome }: DashboardProps) {
     };
   }, []);
 
-  // ── Notification polling (every 15 s) ────────────────────────────────────
+  // ── Notification state ────────────────────────────────────────────────────
   const [unreadCount, setUnreadCount] = useState(0);
   const seenIdsRef = useRef<Set<number>>(new Set());
-  const firstPollRef = useRef(true);
+  const firstLoadRef = useRef(true);
 
-  const pollNotifications = useCallback(async () => {
+  const syncNotifications = useCallback(async () => {
     try {
       const headers = await getAuthHeaders();
       const res = await fetch('/api/notifications', { headers, credentials: 'include' });
@@ -77,32 +78,43 @@ export default function Dashboard({ onBackToHome }: DashboardProps) {
       const active = data.filter(n => n.status === 'active');
       setUnreadCount(active.length);
 
-      if (firstPollRef.current) {
-        // Seed known IDs — never play sounds for notifications that existed on load
+      if (firstLoadRef.current) {
         active.forEach(n => seenIdsRef.current.add(n.id));
-        firstPollRef.current = false;
-        console.log('[Sound] Initial poll — seeded', seenIdsRef.current.size, 'known notification IDs');
+        firstLoadRef.current = false;
+        console.log('[Realtime] Initial load — seeded', seenIdsRef.current.size, 'known notification IDs');
         return;
       }
 
-      // Play a sound for each brand-new notification
       for (const n of active) {
         if (!seenIdsRef.current.has(n.id)) {
           seenIdsRef.current.add(n.id);
-          console.log('[Sound] New notification detected — type:', n.type, 'id:', n.id, 'muted:', isMuted());
+          console.log('[Realtime] New notification detected — type:', n.type, 'id:', n.id);
           playIfUnmuted(n.type);
         }
       }
     } catch (e) {
-      console.warn('[Sound] Poll error:', e);
+      console.warn('[Realtime] Notification sync error:', e);
     }
   }, []);
 
+  // Initial load + 60 s fallback poll
   useEffect(() => {
-    pollNotifications();
-    const interval = setInterval(pollNotifications, 15_000); // poll every 15 s
+    syncNotifications();
+    const interval = setInterval(syncNotifications, 60_000);
     return () => clearInterval(interval);
-  }, [pollNotifications]);
+  }, [syncNotifications]);
+
+  // Supabase Realtime — immediate updates when a notification row changes
+  useRealtimeTable({
+    table: 'notifications',
+    filter: user?.email ? `user_email=eq.${user.email}` : undefined,
+    event: '*',
+    enabled: !!user?.email,
+    onEvent: (payload) => {
+      console.log('[Realtime] notifications event:', payload.eventType);
+      syncNotifications();
+    },
+  });
 
   // Clear any legacy fake referral data that may have been stored in localStorage
   useEffect(() => {

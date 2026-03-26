@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Newspaper, ChevronDown, ChevronUp, Calendar, Loader2 } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { dashboardTranslations } from '@/utils/dashboardTranslations';
+import { useRealtimeTable } from '@/utils/useRealtimeTable';
 
 interface NewsItem {
   id: number;
@@ -20,12 +21,24 @@ export default function NewsTab() {
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState<number | null>(null);
 
-  useEffect(() => {
+  const loadNews = useCallback(() => {
     fetch('/api/news')
       .then(r => r.json())
       .then(data => { setNews(Array.isArray(data) ? data : []); setLoading(false); })
       .catch(() => setLoading(false));
   }, []);
+
+  useEffect(() => { loadNews(); }, [loadNews]);
+
+  // Supabase Realtime — refresh list when news is published/updated
+  useRealtimeTable({
+    table: 'news',
+    event: '*',
+    onEvent: (payload) => {
+      console.log('[Realtime] news event:', payload.eventType);
+      loadNews();
+    },
+  });
 
   const getTitle = (item: NewsItem) =>
     item[`title_${language}` as keyof NewsItem] as string ||

@@ -3,10 +3,12 @@ import { TrendingUp, ShoppingCart, History, Bell, ArrowRight } from 'lucide-reac
 import { ScrollIndicator } from '../ScrollIndicator';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { dashboardTranslations } from '@/utils/dashboardTranslations';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import LanguageSwitcher from '@/app/components/LanguageSwitcher';
 import { getAuthHeaders } from '@/utils/api';
 import PaymentModal from './PaymentModal';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRealtimeTable } from '@/utils/useRealtimeTable';
 
 interface ApiRound {
   id: string;
@@ -59,6 +61,7 @@ function formatAmount(amount: string | number): string {
 export default function InvestmentsTab({ setActiveTab }: InvestmentsTabProps) {
   const { language } = useLanguage();
   const t = dashboardTranslations[language];
+  const { user } = useAuth();
   const calculatorRef = useRef<HTMLDivElement>(null);
 
   const [rounds, setRounds] = useState<ApiRound[]>([]);
@@ -88,7 +91,7 @@ export default function InvestmentsTab({ setActiveTab }: InvestmentsTabProps) {
   };
 
   // Load user investments from API
-  const loadInvestments = async () => {
+  const loadInvestments = useCallback(async () => {
     try {
       const headers = await getAuthHeaders();
       const res = await fetch('/api/investments', {
@@ -106,12 +109,24 @@ export default function InvestmentsTab({ setActiveTab }: InvestmentsTabProps) {
       }
     } catch (e) {}
     setLoadingInv(false);
-  };
+  }, []);
 
   useEffect(() => {
     loadRounds();
     loadInvestments();
-  }, []);
+  }, [loadInvestments]);
+
+  // Supabase Realtime — instant update when investment status changes
+  useRealtimeTable({
+    table: 'investments',
+    filter: user?.id ? `user_id=eq.${user.id}` : undefined,
+    event: 'UPDATE',
+    enabled: !!user?.id,
+    onEvent: (payload) => {
+      console.log('[Realtime] investments UPDATE:', payload.new);
+      loadInvestments();
+    },
+  });
 
   const activeRound = rounds.find(r => r.id === activeRoundId);
 
