@@ -275,7 +275,7 @@ export default function DashboardTab() {
         </div>
 
         {/* Stats Cards Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-5">
           {/* Total Investment */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -334,37 +334,6 @@ export default function DashboardTab() {
               <p className="text-[9px] lg:text-xs text-[var(--color-text-secondary)] mb-0.5">{t.spent}</p>
               <div>
                 <span className="text-base lg:text-2xl font-bold text-[#FF6B35]">${totalTeamSpent.toFixed(2)}</span>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Partner Profit Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="bg-white rounded-2xl p-2 lg:p-2.5 border border-[var(--color-border)] shadow-sm hover:shadow-lg transition-shadow duration-300"
-          >
-            <div className="flex items-start justify-between mb-1.5 lg:mb-2">
-              <span className="text-[10px] lg:text-sm font-semibold text-[var(--color-text)] leading-tight">{t.partnerProfit}</span>
-              <div className="min-w-[24px] min-h-[24px] w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-gradient-to-br from-[#4CAF50] to-[#2E7D32] flex items-center justify-center shadow-md flex-shrink-0" style={{ borderRadius: '50%' }}>
-                <Award className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
-              </div>
-            </div>
-
-            {/* Комиссионные доли */}
-            <div className="mb-1 lg:mb-1.5">
-              <p className="text-[9px] lg:text-xs text-[var(--color-text-secondary)] mb-0.5">{t.commissionShares}</p>
-              <div>
-                <span className="text-base lg:text-2xl font-bold text-[var(--color-text)]">{totalCommissionShares.toLocaleString()}</span>
-              </div>
-            </div>
-
-            {/* Стоимость при IPO */}
-            <div>
-              <p className="text-[9px] lg:text-xs text-[var(--color-text-secondary)] mb-0.5">{t.ipoValuePartner}</p>
-              <div>
-                <span className="text-base lg:text-2xl font-bold text-[#4CAF50]">${commissionIPOValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
               </div>
             </div>
           </motion.div>
