@@ -67,9 +67,42 @@ const verifyErrorTexts: Record<string, Record<string, string>> = {
 function AppContent() {
   const { isAuthenticated, loading, isPasswordRecovery } = useAuth();
   const { language } = useLanguage();
-  const [showDashboard, setShowDashboard] = useState(false);
   const [showAdmin, setShowAdmin] = useState(window.location.pathname === '/admin');
   const pathname = window.location.pathname;
+
+  // Dashboard visibility driven by URL — survives page refresh
+  const [showDashboard, setShowDashboard] = useState(
+    () => window.location.pathname === '/dashboard'
+  );
+
+  const goToDashboard = () => {
+    setShowDashboard(true);
+    window.history.pushState({}, '', '/dashboard');
+  };
+
+  const goToHome = () => {
+    setShowDashboard(false);
+    window.history.pushState({}, '', '/');
+  };
+
+  // If user was on /dashboard but auth check completed and they are NOT logged in,
+  // redirect them to landing so they can log in.
+  useEffect(() => {
+    if (!loading && !isAuthenticated && showDashboard) {
+      setShowDashboard(false);
+      window.history.replaceState({}, '', '/');
+    }
+  }, [loading, isAuthenticated, showDashboard]);
+
+  // Sync showDashboard with browser back/forward navigation
+  useEffect(() => {
+    const onPopState = () => {
+      setShowDashboard(window.location.pathname === '/dashboard');
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
   const [verifiedBanner, setVerifiedBanner] = useState(false);
   const [verifyErrorBanner, setVerifyErrorBanner] = useState<string | null>(null);
   const [resendEmail, setResendEmail] = useState('');
@@ -149,9 +182,18 @@ function AppContent() {
   if (pathname === '/risks') return <RiskDisclosure />;
   if (pathname === '/referral-terms') return <ReferralTerms />;
 
-  // Show dashboard if authenticated and user wants to see it
+  // While auth is loading on /dashboard — show full-screen spinner (no landing flash)
+  if (loading && showDashboard) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--color-background)]">
+        <div className="w-10 h-10 border-4 border-[#D4522A] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Show dashboard if authenticated and URL is /dashboard
   if (!loading && isAuthenticated && showDashboard) {
-    return <Dashboard onBackToHome={() => setShowDashboard(false)} />;
+    return <Dashboard onBackToHome={goToHome} />;
   }
 
   // Show main landing page (StickyNavigation is always mounted so referral modal
@@ -161,7 +203,7 @@ function AppContent() {
       {(isPasswordRecovery) && <NewPasswordModal />}
       {resetToken && <NewPasswordModal resetToken={resetToken} onClose={() => setResetToken(null)} />}
       {/* StickyNavigation always rendered — needed for referral link auto-open */}
-      <StickyNavigation onGoToDashboard={() => setShowDashboard(true)} autoOpenRegister={autoOpenRegister} onAutoOpenHandled={() => setAutoOpenRegister(false)} pageReady={!loading} />
+      <StickyNavigation onGoToDashboard={goToDashboard} autoOpenRegister={autoOpenRegister} onAutoOpenHandled={() => setAutoOpenRegister(false)} pageReady={!loading} />
       {loading ? (
         <div className="min-h-screen flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-[#D4522A] border-t-transparent rounded-full animate-spin" />
@@ -219,7 +261,7 @@ function AppContent() {
           </div>
         </div>
       )}
-      <HeroSection key={language} onGoToDashboard={() => setShowDashboard(true)} />
+      <HeroSection key={language} onGoToDashboard={goToDashboard} />
       <UniqueFeaturesSection />
       <OpportunitiesSection />
       <PartnershipSection />
