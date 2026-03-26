@@ -181,13 +181,17 @@ export default function DashboardTab() {
   const seedRound = Object.values(roundsData).find(r => r.status === 'Активный') || Object.values(roundsData)[0];
   const totalTeamSpent = totalTeamShares * (seedRound?.price || 0.075);
 
+  // Partner commission: 10% of all team confirmed shares
+  const totalCommissionShares = Math.floor(totalTeamShares * 0.1);
+
   // Calculate potential profit based on IPO price ($1.00)
   // Each share bought in any round will be worth $1.00 at IPO
   const ipoPrice = 1.00;
-  const potentialValue = totalMyShares * ipoPrice; // Total value at IPO price
-  const potentialProfit = potentialValue; // Display total potential value
+  const potentialValue = totalMyShares * ipoPrice; // Total value of own shares at IPO
+  const commissionIPOValue = totalCommissionShares * ipoPrice; // Separate commission value at IPO
+  const potentialProfit = potentialValue; // Display total potential value (own shares only)
   
-  // Calculate portfolio growth percentage
+  // Calculate portfolio growth percentage (based on own investment only)
   const portfolioGrowth = totalSpent > 0 ? ((potentialValue - totalSpent) / totalSpent * 100) : 0;
 
   return (
@@ -271,7 +275,7 @@ export default function DashboardTab() {
         </div>
 
         {/* Stats Cards Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-5">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 lg:gap-4">
           {/* Total Investment */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -334,11 +338,42 @@ export default function DashboardTab() {
             </div>
           </motion.div>
 
-          {/* Total Shares */}
+          {/* Partner Profit Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
+            className="bg-white rounded-2xl p-2 lg:p-2.5 border border-[var(--color-border)] shadow-sm hover:shadow-lg transition-shadow duration-300"
+          >
+            <div className="flex items-start justify-between mb-1.5 lg:mb-2">
+              <span className="text-[10px] lg:text-sm font-semibold text-[var(--color-text)] leading-tight">{t.partnerProfit}</span>
+              <div className="min-w-[24px] min-h-[24px] w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-gradient-to-br from-[#4CAF50] to-[#2E7D32] flex items-center justify-center shadow-md flex-shrink-0" style={{ borderRadius: '50%' }}>
+                <Award className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
+              </div>
+            </div>
+
+            {/* Комиссионные доли */}
+            <div className="mb-1 lg:mb-1.5">
+              <p className="text-[9px] lg:text-xs text-[var(--color-text-secondary)] mb-0.5">{t.commissionShares}</p>
+              <div>
+                <span className="text-base lg:text-2xl font-bold text-[var(--color-text)]">{totalCommissionShares.toLocaleString()}</span>
+              </div>
+            </div>
+
+            {/* Стоимость при IPO */}
+            <div>
+              <p className="text-[9px] lg:text-xs text-[var(--color-text-secondary)] mb-0.5">{t.ipoValuePartner}</p>
+              <div>
+                <span className="text-base lg:text-2xl font-bold text-[#4CAF50]">${commissionIPOValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Potential Growth $ */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
             className="bg-white rounded-2xl p-2 lg:p-2.5 border border-[var(--color-border)] shadow-sm hover:shadow-lg transition-shadow duration-300"
           >
             <div className="flex items-start justify-between mb-1.5 lg:mb-2">
@@ -347,13 +382,18 @@ export default function DashboardTab() {
                 <Coins className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
               </div>
             </div>
-            
-            {/* Возможная прибыль */}
-            <div>
-              <div>
-                <span className="text-base lg:text-2xl font-bold text-[var(--color-text)]">${potentialProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
+
+            {/* Breakdown: own shares + commission */}
+            <div className="mb-1">
+              <p className="text-[9px] lg:text-xs text-[var(--color-text-secondary)] mb-0.5">{t.mySharesIPOLabel}</p>
+              <span className="text-base lg:text-xl font-bold text-[var(--color-text)]">${potentialProfit.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
+            {totalCommissionShares > 0 && (
+              <div className="border-t border-gray-100 pt-1">
+                <p className="text-[9px] lg:text-xs text-[var(--color-text-secondary)] mb-0.5">{t.partnerSharesIPOLabel}</p>
+                <span className="text-base lg:text-xl font-bold text-[#4CAF50]">+${commissionIPOValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              </div>
+            )}
           </motion.div>
 
           {/* Referrals - Growth Rate */}
@@ -369,13 +409,18 @@ export default function DashboardTab() {
                 <TrendingUp className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
               </div>
             </div>
-            
-            {/* Рост портфеля */}
-            <div>
-              <div>
-                <span className="text-base lg:text-2xl font-bold text-[#7CB342]">+{portfolioGrowth.toFixed(2)}%</span>
-              </div>
+
+            {/* Рост портфеля (только свои доли) */}
+            <div className="mb-1">
+              <p className="text-[9px] lg:text-xs text-[var(--color-text-secondary)] mb-0.5">{t.mySharesIPOLabel}</p>
+              <span className="text-base lg:text-2xl font-bold text-[#7CB342]">+{portfolioGrowth.toFixed(2)}%</span>
             </div>
+            {totalCommissionShares > 0 && (
+              <div className="border-t border-gray-100 pt-1">
+                <p className="text-[9px] lg:text-xs text-[var(--color-text-secondary)] mb-0.5">{t.partnerSharesIPOLabel}</p>
+                <span className="text-sm lg:text-base font-bold text-[#4CAF50]">+{totalCommissionShares.toLocaleString()} {t.sharesWord}</span>
+              </div>
+            )}
           </motion.div>
         </div>
       </motion.div>

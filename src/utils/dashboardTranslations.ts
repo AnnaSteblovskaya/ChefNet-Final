@@ -83,6 +83,11 @@ export const dashboardTranslations = {
     roundsChart: 'Rounds',
     sharesInRound: 'Shares in Round',
     potentialGrowthIPO: 'Potential portfolio growth at IPO exit',
+    partnerProfit: 'Partner Profit',
+    commissionShares: 'Commission Shares',
+    ipoValuePartner: 'IPO Value',
+    mySharesIPOLabel: 'My Shares',
+    partnerSharesIPOLabel: 'Partner Profit',
     
     // Portfolio Chart Labels
     myShares: 'My Shares',
@@ -366,6 +371,11 @@ export const dashboardTranslations = {
     roundsChart: 'Раунды',
     sharesInRound: 'Доли в раунде',
     potentialGrowthIPO: 'Потенциальный рост портфеля при выходе на IPO',
+    partnerProfit: 'Партнёрская прибыль',
+    commissionShares: 'Комиссионные доли',
+    ipoValuePartner: 'Стоимость при IPO',
+    mySharesIPOLabel: 'Мои доли',
+    partnerSharesIPOLabel: 'Партнёрская прибыль',
     
     // Portfolio Chart Labels
     myShares: 'Мои доли',
@@ -648,6 +658,11 @@ export const dashboardTranslations = {
     roundsChart: 'Rounds',
     sharesInRound: 'Shares in Round',
     potentialGrowthIPO: 'Potential portfolio growth at IPO exit',
+    partnerProfit: 'Partnergewinn',
+    commissionShares: 'Provisionsanteile',
+    ipoValuePartner: 'IPO-Wert',
+    mySharesIPOLabel: 'Meine Anteile',
+    partnerSharesIPOLabel: 'Partnergewinn',
     
     // Portfolio Chart Labels
     myShares: 'My Shares',
@@ -931,6 +946,11 @@ export const dashboardTranslations = {
     roundsChart: 'Rondas',
     sharesInRound: 'Acciones en la Ronda',
     potentialGrowthIPO: 'Crecimiento potencial del portafolio en la salida a IPO',
+    partnerProfit: 'Beneficio de Socios',
+    commissionShares: 'Acciones de Comisión',
+    ipoValuePartner: 'Valor en IPO',
+    mySharesIPOLabel: 'Mis Acciones',
+    partnerSharesIPOLabel: 'Beneficio de Socios',
     
     // Portfolio Chart Labels
     myShares: 'Mis Acciones',
@@ -1214,6 +1234,11 @@ export const dashboardTranslations = {
     roundsChart: 'Rounds',
     sharesInRound: 'Shares in Round',
     potentialGrowthIPO: 'Potential portfolio growth at IPO exit',
+    partnerProfit: 'Partner Kârı',
+    commissionShares: 'Komisyon Hisseleri',
+    ipoValuePartner: 'IPO Değeri',
+    mySharesIPOLabel: 'Hisselerim',
+    partnerSharesIPOLabel: 'Partner Kârı',
     
     // Portfolio Chart Labels
     myShares: 'My Shares',
