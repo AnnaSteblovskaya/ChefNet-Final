@@ -125,7 +125,7 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
     const matchesStatus = searchStatus === 'all' || investor.status === searchStatus;
     const matchesAmount = investor.amount.toLowerCase().includes(searchAmount.toLowerCase());
     const matchesShares = investor.shares.toString().includes(searchShares);
-    const matchesCommission = investor.commission.toLowerCase().includes(searchCommission.toLowerCase());
+    const matchesCommission = String(investor.commission ?? '').includes(searchCommission);
     const matchesDate = !searchDate || investor.date?.includes(searchDate);
     
     return matchesName && matchesStatus && matchesAmount && matchesShares && matchesCommission && matchesDate;
@@ -277,11 +277,11 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
             <td className="py-2.5 px-2 lg:px-4 text-xs lg:text-sm text-gray-500">{node.email || '—'}</td>
             <td className="py-2.5 px-2 lg:px-4">
               <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                node.status === 'invested'
+                node.status === 'investor'
                   ? 'bg-blue-100 text-blue-800 border border-blue-200'
                   : 'bg-gray-100 text-gray-700 border border-gray-200'
               }`}>
-                {node.status === 'invested' ? t.invested : t.registered}
+                {node.status === 'investor' ? t.invested : t.registered}
               </span>
             </td>
             <td className="py-2.5 px-2 lg:px-4 text-xs lg:text-sm font-semibold text-gray-900">{shares}</td>
@@ -479,7 +479,7 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
                     className="w-full px-2 py-1 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-normal"
                   >
                     <option value="all">{t.searchByStatus}</option>
-                    <option value="invested">{t.invested}</option>
+                    <option value="investor">{t.invested}</option>
                     <option value="registered">{t.registered}</option>
                   </select>
                 </th>
@@ -547,12 +547,12 @@ export default function ReferralTab({ setActiveTab }: ReferralTabProps) {
                   <td className="py-3 lg:py-4 px-2 lg:px-4">
                     <span
                       className={`inline-flex px-2 lg:px-3 py-0.5 lg:py-1 rounded-full text-[10px] lg:text-xs font-medium ${
-                        investor.status === 'invested'
+                        investor.status === 'investor'
                           ? 'bg-blue-100 text-blue-800 border border-blue-200'
                           : 'bg-gray-100 text-gray-800 border border-gray-200'
                       }`}
                     >
-                      {investor.status === 'invested' ? t.invested : t.registered}
+                      {investor.status === 'investor' ? t.invested : t.registered}
                     </span>
                   </td>
                   <td className="py-3 lg:py-4 px-2 lg:px-4 text-xs lg:text-sm font-semibold text-gray-900">{investor.shares}</td>

@@ -1252,54 +1252,53 @@ app.get('/api/referrals', requireAuth, async (req, res) => {
   try {
     const referralCode = `CHEF-${userId.replace(/-/g, '').substring(0, 6).toUpperCase()}`;
 
-    // Get records from referrals table, join with profiles to get email if missing
-    const referralsResult = await pool.query(
-      `SELECT r.*, COALESCE(r.email, p.email) as email
-       FROM referrals r
-       LEFT JOIN profiles p ON r.referred_user_id = p.id
-       WHERE r.user_id = $1 ORDER BY r.created_at DESC`,
-      [userId]
-    );
-
-    // Also get users from profiles who registered with this referral code
-    // but may not have a referrals record yet
-    const profilesResult = await pool.query(
-      `SELECT p.id, p.full_name, p.email, p.referred_by, p.email_verified, p.created_at
+    // Single query: all partners who used this referral code, with live investment data
+    const result = await pool.query(
+      `SELECT
+         p.id               AS referred_user_id,
+         p.email,
+         COALESCE(p.full_name, p.email, 'Unknown') AS name,
+         p.created_at,
+         p.referred_by,
+         -- confirmed/completed investment totals
+         COALESCE(inv.total_shares, 0)               AS shares,
+         COALESCE(inv.total_amount_num, 0)            AS amount_num,
+         FLOOR(COALESCE(inv.total_shares, 0) * 0.1)  AS commission_shares,
+         -- status: investor if any confirmed/completed investment, else registered
+         CASE WHEN COALESCE(inv.confirmed_count, 0) > 0 THEN 'investor' ELSE 'registered' END AS status,
+         COALESCE(inv.rounds_list, '')                AS round
        FROM profiles p
-       WHERE UPPER(p.referred_by) = $1`,
+       LEFT JOIN (
+         SELECT
+           user_id,
+           SUM(shares)                             FILTER (WHERE status IN ('confirmed','completed')) AS total_shares,
+           SUM(
+             REPLACE(REPLACE(amount::text,'$',''),',','')::numeric
+           )                                       FILTER (WHERE status IN ('confirmed','completed')) AS total_amount_num,
+           COUNT(*)                                FILTER (WHERE status IN ('confirmed','completed')) AS confirmed_count,
+           STRING_AGG(DISTINCT round, ', ')        FILTER (WHERE status IN ('confirmed','completed')) AS rounds_list
+         FROM investments
+         GROUP BY user_id
+       ) inv ON inv.user_id = p.id
+       WHERE UPPER(p.referred_by) = $1
+       ORDER BY p.created_at DESC`,
       [referralCode.toUpperCase()]
     );
 
-    // Merge: profiles-based records that are not yet in referrals table
-    const existingUserIds = new Set(referralsResult.rows.map((r: any) => r.referred_user_id).filter(Boolean));
-    const existingEmails = new Set(referralsResult.rows.map((r: any) => r.email?.toLowerCase()).filter(Boolean));
-    const existingNames = new Set(referralsResult.rows.map((r: any) => r.name?.toLowerCase()).filter(Boolean));
-    const extraFromProfiles = profilesResult.rows
-      .filter((p: any) =>
-        !existingUserIds.has(p.id) &&
-        !existingEmails.has(p.email?.toLowerCase()) &&
-        !existingNames.has((p.full_name || p.email || '').toLowerCase())
-      )
-      .map((p: any) => ({
-        id: null,
-        user_id: userId,
-        name: p.full_name || p.email || 'Unknown',
-        email: p.email || '',
-        referred_user_id: p.id,
-        status: 'registered',
-        amount: '$0',
-        shares: 0,
-        commission: '$0',
-        date: p.created_at ? new Date(p.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-        round: null,
-        created_at: p.created_at,
-      }));
+    const rows = result.rows.map((r: any) => ({
+      referred_user_id: r.referred_user_id,
+      email:            r.email || '',
+      name:             r.name,
+      date:             r.created_at ? new Date(r.created_at).toISOString().split('T')[0] : '',
+      created_at:       r.created_at,
+      status:           r.status,
+      shares:           Number(r.shares) || 0,
+      commission:       Number(r.commission_shares) || 0,
+      amount:           `$${(Number(r.amount_num) || 0).toFixed(2)}`,
+      round:            r.round || null,
+    }));
 
-    const combined = [...referralsResult.rows, ...extraFromProfiles].sort(
-      (a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-
-    res.json(combined);
+    res.json(rows);
   } catch (err) {
     console.error('Error fetching referrals:', err);
     res.status(500).json({ error: 'Internal server error' });
@@ -1340,11 +1339,24 @@ app.get('/api/referral-tree', requireAuth, async (req, res) => {
         INNER JOIN downline d ON UPPER(p.referred_by) = d.own_ref_code
         WHERE d.level < 10
       )
-      SELECT d.*, r.shares, r.amount, r.status, r.commission
+      SELECT
+        d.*,
+        COALESCE(inv.total_shares, 0)                                           AS shares,
+        COALESCE(inv.total_amount, 0)                                           AS amount_num,
+        '$' || COALESCE(inv.total_amount::numeric, 0)::text                     AS amount,
+        FLOOR(COALESCE(inv.total_shares, 0) * 0.1)                              AS commission,
+        CASE WHEN COALESCE(inv.confirmed_count, 0) > 0 THEN 'investor' ELSE 'registered' END AS status
       FROM downline d
-      LEFT JOIN referrals r ON r.referred_user_id = d.id AND r.user_id = (
-        SELECT id FROM profiles WHERE 'CHEF-' || UPPER(SUBSTRING(REPLACE(id::text, '-', ''), 1, 6)) = d.parent_ref_code LIMIT 1
-      )
+      LEFT JOIN (
+        SELECT
+          user_id,
+          SUM(shares) FILTER (WHERE status IN ('confirmed','completed'))                      AS total_shares,
+          SUM(REPLACE(REPLACE(amount::text,'$',''),',','')::numeric)
+            FILTER (WHERE status IN ('confirmed','completed'))                                 AS total_amount,
+          COUNT(*) FILTER (WHERE status IN ('confirmed','completed'))                          AS confirmed_count
+        FROM investments
+        GROUP BY user_id
+      ) inv ON inv.user_id = d.id
       ORDER BY d.level, d.created_at`,
       [userId, `CHEF-${userId.replace(/-/g, '').substring(0, 6).toUpperCase()}`]
     );

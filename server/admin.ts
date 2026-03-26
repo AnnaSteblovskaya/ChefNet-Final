@@ -270,8 +270,10 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
 
       // ─── Notify the investor when status changes ───────────────────────────
       if (status !== undefined && status !== oldStatus) {
-        const userResult = await pool.query('SELECT email FROM profiles WHERE id=$1', [invUserId]);
+        const userResult = await pool.query('SELECT email, referred_by FROM profiles WHERE id=$1', [invUserId]);
         const userEmail = userResult.rows[0]?.email;
+        const referredBy = userResult.rows[0]?.referred_by;
+
         if (userEmail) {
           const msgs: Record<string, string> = {
             confirmed:  `Ваша инвестиция в раунд ${invRound} подтверждена. Акции зачислены в ваш портфель.`,
@@ -284,6 +286,84 @@ export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandle
             `INSERT INTO notifications (user_email, type, message, status) VALUES ($1, 'investment', $2, 'active')`,
             [userEmail, msg]
           ).catch(() => {});
+        }
+
+        // ─── When investment is confirmed: sync referrals table + notify referrer ───
+        if (['confirmed', 'completed'].includes(status) && referredBy) {
+          (async () => {
+            try {
+              // Find referrer profile by referral code
+              const referralCode = String(referredBy).toUpperCase();
+              const referrerRes = await pool.query(
+                `SELECT id, email, full_name FROM profiles
+                 WHERE UPPER(CONCAT('CHEF-', SUBSTRING(UPPER(REPLACE(id::text, '-', '')), 1, 6))) = $1
+                 LIMIT 1`,
+                [referralCode]
+              );
+              if (!referrerRes.rows.length) return;
+              const referrer = referrerRes.rows[0];
+
+              // Get partner's full confirmed investment totals
+              const totalsRes = await pool.query(
+                `SELECT
+                   COALESCE(SUM(shares), 0)::bigint AS total_shares,
+                   COALESCE(SUM(REPLACE(REPLACE(amount::text,'$',''),',','')::numeric), 0) AS total_amount
+                 FROM investments
+                 WHERE user_id = $1 AND status IN ('confirmed','completed')`,
+                [invUserId]
+              );
+              const totalShares = Number(totalsRes.rows[0]?.total_shares) || 0;
+              const totalAmount = Number(totalsRes.rows[0]?.total_amount) || 0;
+              const commission = Math.floor(totalShares * 0.1);
+              const partnerName = userResult.rows[0] ? (await pool.query(
+                `SELECT full_name FROM profiles WHERE id=$1`, [invUserId]
+              )).rows[0]?.full_name || userEmail : userEmail;
+
+              // Upsert referrals table record for this partner
+              await pool.query(
+                `INSERT INTO referrals (user_id, referred_user_id, name, email, status, shares, amount, commission, date, round)
+                 VALUES ($1, $2, $3, $4, 'investor', $5, $6, $7, CURRENT_DATE, $8)
+                 ON CONFLICT DO NOTHING`,
+                [
+                  referrer.id,
+                  invUserId,
+                  partnerName,
+                  userEmail,
+                  totalShares,
+                  `$${totalAmount.toFixed(2)}`,
+                  `$${commission}`,
+                  invRound,
+                ]
+              );
+              // If record already existed, update it
+              await pool.query(
+                `UPDATE referrals
+                 SET status='investor', shares=$1, amount=$2, commission=$3, round=$4
+                 WHERE user_id=$5 AND referred_user_id=$6`,
+                [
+                  totalShares,
+                  `$${totalAmount.toFixed(2)}`,
+                  `$${commission}`,
+                  invRound,
+                  referrer.id,
+                  invUserId,
+                ]
+              );
+
+              // Notify referrer about partner investment
+              await pool.query(
+                `INSERT INTO notifications (user_email, type, message, status)
+                 VALUES ($1, 'Partner investment', $2, 'active')`,
+                [
+                  referrer.email,
+                  `Ваш партнёр ${partnerName} инвестировал ${totalShares} акций в раунд ${invRound}. Ваша комиссия: ${commission} акций.`,
+                ]
+              );
+              console.log(`[admin] Referral synced: ${referrer.email} ← ${partnerName} (${totalShares} shares, commission ${commission})`);
+            } catch (refErr) {
+              console.error('[admin] Referral sync error:', refErr);
+            }
+          })();
         }
       }
 
