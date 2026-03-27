@@ -1,4 +1,5 @@
 import { getUncachableGmailClient } from './gmail.js';
+import { isSmtpConfigured, sendEmailViaSMTP } from './smtp.js';
 
 interface EmailTemplates {
   [lang: string]: {
@@ -210,23 +211,19 @@ export async function sendPasswordResetEmail(
   const html = buildResetPasswordHtml(resetUrl, firstName, lang);
 
   try {
+    if (isSmtpConfigured()) {
+      await sendEmailViaSMTP(to, t.subject, html);
+      return true;
+    }
     const gmail = await getUncachableGmailClient();
     const raw = buildRawEmail(to, t.subject, html);
-    const encodedMessage = Buffer.from(raw)
-      .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-
-    await gmail.users.messages.send({
-      userId: 'me',
-      requestBody: { raw: encodedMessage },
-    });
-
+    const encodedMessage = Buffer.from(raw).toString('base64')
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    await gmail.users.messages.send({ userId: 'me', requestBody: { raw: encodedMessage } });
     console.log(`Password reset email sent to ${to} via Gmail API`);
     return true;
   } catch (err) {
-    console.error('Failed to send password reset email via Gmail:', err);
+    console.error('Failed to send password reset email:', err);
     return false;
   }
 }
@@ -241,23 +238,19 @@ export async function sendVerificationEmail(
   const html = buildVerificationHtml(verifyUrl, firstName, lang);
 
   try {
+    if (isSmtpConfigured()) {
+      await sendEmailViaSMTP(to, t.subject, html);
+      return true;
+    }
     const gmail = await getUncachableGmailClient();
     const raw = buildRawEmail(to, t.subject, html);
-    const encodedMessage = Buffer.from(raw)
-      .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-
-    await gmail.users.messages.send({
-      userId: 'me',
-      requestBody: { raw: encodedMessage },
-    });
-
+    const encodedMessage = Buffer.from(raw).toString('base64')
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    await gmail.users.messages.send({ userId: 'me', requestBody: { raw: encodedMessage } });
     console.log(`Verification email sent to ${to} via Gmail API`);
     return true;
   } catch (err) {
-    console.error('Failed to send verification email via Gmail:', err);
+    console.error('Failed to send verification email:', err);
     return false;
   }
 }
@@ -350,19 +343,16 @@ export async function sendReferralNotificationEmail(
   const html = buildReferralNotificationHtml(type, partnerName, partnerEmail, extra);
 
   try {
+    if (isSmtpConfigured()) {
+      await sendEmailViaSMTP(to, subjects[type], html);
+      console.log(`[referral-notify] ${type} → ${to} via SMTP`);
+      return true;
+    }
     const gmail = await getUncachableGmailClient();
     const raw = buildRawEmail(to, subjects[type], html);
-    const encodedMessage = Buffer.from(raw)
-      .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-
-    await gmail.users.messages.send({
-      userId: 'me',
-      requestBody: { raw: encodedMessage },
-    });
-
+    const encodedMessage = Buffer.from(raw).toString('base64')
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    await gmail.users.messages.send({ userId: 'me', requestBody: { raw: encodedMessage } });
     console.log(`[referral-notify] ${type} → ${to}`);
     return true;
   } catch (err) {
@@ -423,19 +413,16 @@ export async function sendNewsNotificationEmail(
 </html>`;
 
   try {
+    if (isSmtpConfigured()) {
+      await sendEmailViaSMTP(to, subject, html);
+      console.log(`[news-notify] sent to ${to} via SMTP`);
+      return true;
+    }
     const gmail = await getUncachableGmailClient();
     const raw = buildRawEmail(to, subject, html);
-    const encodedMessage = Buffer.from(raw)
-      .toString('base64')
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=+$/, '');
-
-    await gmail.users.messages.send({
-      userId: 'me',
-      requestBody: { raw: encodedMessage },
-    });
-
+    const encodedMessage = Buffer.from(raw).toString('base64')
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    await gmail.users.messages.send({ userId: 'me', requestBody: { raw: encodedMessage } });
     console.log(`[news-notify] sent to ${to}`);
     return true;
   } catch (err) {
@@ -446,6 +433,10 @@ export async function sendNewsNotificationEmail(
 
 export async function verifySmtpConnection(): Promise<boolean> {
   try {
+    if (isSmtpConfigured()) {
+      console.log('SMTP connection configured — email via SMTP');
+      return true;
+    }
     const gmail = await getUncachableGmailClient();
     if (gmail) {
       console.log('Gmail API connection verified successfully');
@@ -453,7 +444,7 @@ export async function verifySmtpConnection(): Promise<boolean> {
     }
     return false;
   } catch (error) {
-    console.error('Gmail connection verification failed:', error);
+    console.error('Email connection verification failed:', error);
     return false;
   }
 }

@@ -1,0 +1,64 @@
+name: chefnet-invest
+region: ams
+
+services:
+  - name: web
+    source_dir: /
+    dockerfile_path: Dockerfile
+    http_port: 3001
+    instance_count: 1
+    instance_size_slug: basic-s
+
+    build_command: npm run build
+    run_command: node --import tsx/esm server/index.ts
+
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: API_PORT
+        value: "3001"
+      - key: VITE_SITE_URL
+        value: https://chefnet.ai
+      - key: DATABASE_URL
+        type: SECRET
+      - key: VITE_SUPABASE_URL
+        type: SECRET
+      - key: VITE_SUPABASE_ANON_KEY
+        type: SECRET
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        type: SECRET
+      - key: ADMIN_BOOTSTRAP_SECRET
+        type: SECRET
+      - key: SUMSUB_APP_TOKEN
+        type: SECRET
+      - key: SUMSUB_SECRET_KEY
+        type: SECRET
+      - key: SUMSUB_LEVEL_NAME
+        value: id-and-liveness
+      - key: SMTP_HOST
+        type: SECRET
+      - key: SMTP_PORT
+        type: SECRET
+      - key: SMTP_SECURE
+        value: "true"
+      - key: SMTP_USER
+        type: SECRET
+      - key: SMTP_PASS
+        type: SECRET
+      - key: SMTP_FROM
+        type: SECRET
+
+    health_check:
+      http_path: /api/health
+      period_seconds: 30
+      timeout_seconds: 10
+      failure_threshold: 3
+
+    routes:
+      - path: /
+
+domains:
+  - domain: chefnet.ai
+    type: PRIMARY
+  - domain: www.chefnet.ai
+    type: ALIAS

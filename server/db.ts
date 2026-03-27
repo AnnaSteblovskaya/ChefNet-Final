@@ -2,7 +2,9 @@ import pg from 'pg';
 
 const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: false,
+  ssl: process.env.DATABASE_URL?.includes('sslmode=require') || process.env.NODE_ENV === 'production'
+    ? { rejectUnauthorized: false }
+    : false,
 });
 
 export default pool;

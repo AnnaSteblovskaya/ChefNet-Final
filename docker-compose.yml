@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+        VITE_SITE_URL: ${VITE_SITE_URL}
+    container_name: chefnet-app
+    restart: unless-stopped
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: production
+      API_PORT: 3001
+      DATABASE_URL: ${DATABASE_URL}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
+      VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+      VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+      VITE_SITE_URL: ${VITE_SITE_URL}
+      ADMIN_BOOTSTRAP_SECRET: ${ADMIN_BOOTSTRAP_SECRET}
+      SUMSUB_APP_TOKEN: ${SUMSUB_APP_TOKEN}
+      SUMSUB_SECRET_KEY: ${SUMSUB_SECRET_KEY}
+      SUMSUB_LEVEL_NAME: ${SUMSUB_LEVEL_NAME}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_REFRESH_TOKEN: ${GOOGLE_REFRESH_TOKEN}
+      GMAIL_FROM: ${GMAIL_FROM}
+    volumes:
+      - uploads:/app/uploads
+    networks:
+      - chefnet-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: chefnet-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+    depends_on:
+      - app
+    networks:
+      - chefnet-network
+
+volumes:
+  uploads:
+
+networks:
+  chefnet-network:
+    driver: bridge
