@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import crypto from 'crypto';
 import path from 'path';
 import fs from 'fs';
@@ -8,6 +9,9 @@ import pool from './db.js';
 import { sendVerificationEmail, sendPasswordResetEmail, verifySmtpConnection, sendReferralNotificationEmail } from './email.js';
 import { createAdminRouter, createPublicContentRouter } from './admin.js';
 import { faqSeedData } from './faqSeedData.js';
+import { applySecurityMiddleware } from './middleware/security.js';
+import { logAuditEvent, AUDIT_TABLE_MIGRATION } from './utils/db-security.js';
+import { checkLoginAttempt, recordFailedLogin, resetLoginAttempts } from './utils/auth-security.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,8 +48,10 @@ async function sumsubRequest(method: string, path: string, body?: object): Promi
 }
 
 const app = express();
+app.use(cookieParser());
 app.use(cors());
 app.use(express.json());
+applySecurityMiddleware(app);
 
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   try {
@@ -296,6 +302,15 @@ async function ensureDbSchema() {
         console.error('[db-init] Migration failed:', sql, err.message);
       }
     }
+  }
+  // Audit log table
+  try {
+    for (const stmt of AUDIT_TABLE_MIGRATION.split(';').map((s) => s.trim()).filter(Boolean)) {
+      await pool.query(stmt);
+    }
+    console.log('[db-init] audit_log table ready');
+  } catch (err: any) {
+    console.warn('[db-init] audit_log migration skipped:', err.message);
   }
   // Enable Supabase Realtime for key tables (idempotent — ignores "already member" errors)
   const realtimeTables = ['notifications', 'investments', 'news'];

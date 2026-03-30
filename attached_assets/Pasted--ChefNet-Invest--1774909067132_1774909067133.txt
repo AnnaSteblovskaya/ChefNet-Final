@@ -1,0 +1,228 @@
+# 🔒 ChefNet Invest — Полное руководство по безопасности
+
+## Обзор
+
+Этот пакет содержит полный комплект security-кода для защиты ChefNet Invest от внешних угроз. Все файлы готовы к интеграции в существующий проект.
+
+---
+
+## 📦 Состав пакета
+
+```
+chefnet-security/
+├── server/
+│   ├── middleware/
+│   │   └── security.ts          ← HTTP заголовки, rate limiting, CORS, WAF
+│   └── utils/
+│       ├── auth-security.ts     ← JWT, сессии, хеширование паролей, brute-force
+│       ├── validation.ts        ← Zod-схемы валидации всех endpoints
+│       └── db-security.ts       ← SQL injection защита, RLS, аудит-лог
+├── src/
+│   └── utils/
+│       └── security.ts          ← Frontend: XSS защита, secure API client
+├── nginx.conf                   ← Hardened nginx конфигурация
+├── .env.security.example        ← Переменные окружения для безопасности
+└── SECURITY-GUIDE.md            ← Этот файл
+```
+
+---
+
+## 🚀 Пошаговая интеграция
+
+### Шаг 1: Установить зависимости
+
+```bash
+npm install helmet express-rate-limit express-slow-down hpp zod jsonwebtoken bcryptjs cookie-parser
+npm install -D @types/jsonwebtoken @types/bcryptjs @types/cookie-parser @types/hpp
+```
+
+### Шаг 2: Подключить middleware в server/index.ts
+
+Добавить в начало серверного файла:
+
+```typescript
+import { applySecurityMiddleware } from './middleware/security';
+import cookieParser from 'cookie-parser';
+
+const app = express();
+
+// Подключаем cookie parser ПЕРЕД security middleware
+app.use(cookieParser());
+
+// Применяем ВСЮ защиту одной строкой
+applySecurityMiddleware(app);
+
+// ... остальной код сервера
+```
+
+### Шаг 3: Защитить роуты аутентификацией
+
+```typescript
+import { requireAuth, requireRole, requireOwnerOrAdmin } from './utils/auth-security';
+import { validate, registerSchema, loginSchema } from './utils/validation';
+
+// Публичные роуты (без auth)
+app.post('/api/auth/register', validate(registerSchema), registerHandler);
+app.post('/api/auth/login', validate(loginSchema), loginHandler);
+
+// Защищённые роуты (требуют авторизацию)
+app.get('/api/profile', requireAuth, getProfileHandler);
+app.put('/api/profile', requireAuth, validate(updateProfileSchema), updateProfileHandler);
+
+// Только для admin
+app.get('/api/admin/users', requireAuth, requireRole('admin'), adminUsersHandler);
+
+// Владелец или admin
+app.get('/api/users/:userId', requireAuth, requireOwnerOrAdmin(), getUserHandler);
+```
+
+### Шаг 4: Обновить логику логина
+
+```typescript
+import {
+  hashPassword, verifyPassword, validatePasswordStrength,
+  generateTokenPair, registerSession, setRefreshTokenCookie,
+  checkLoginAttempt, resetLoginAttempts
+} from './utils/auth-security';
+import { logAuditEvent } from './utils/db-security';
+
+async function loginHandler(req, res) {
+  const { email, password } = req.body;
+  
+  // 1. Проверка brute-force
+  const attempt = checkLoginAttempt(email);
+  if (!attempt.allowed) {
+    return res.status(429).json({
+      error: 'Too many login attempts',
+      lockedUntil: attempt.lockedUntil
+    });
+  }
+  
+  // 2. Поиск пользователя
+  const user = await findUserByEmail(email);
+  if (!user) {
+    return res.status(401).json({ error: 'Invalid credentials' });
+  }
+  
+  // 3. Проверка пароля
+  const valid = await verifyPassword(password, user.passwordHash);
+  if (!valid) {
+    return res.status(401).json({
+      error: 'Invalid credentials',
+      remainingAttempts: attempt.remainingAttempts - 1
+    });
+  }
+  
+  // 4. Сброс счётчика попыток
+  resetLoginAttempts(email);
+  
+  // 5. Генерация токенов
+  const { accessToken, refreshToken, sessionId } = generateTokenPair({
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+  });
+  
+  // 6. Регистрация сессии
+  registerSession(sessionId, user.id, req.ip, req.headers['user-agent'] || '');
+  
+  // 7. Установка refresh token в httpOnly cookie
+  setRefreshTokenCookie(res, refreshToken);
+  
+  // 8. Аудит
+  await logAuditEvent(db, {
+    userId: user.id,
+    action: 'LOGIN_SUCCESS',
+    ip: req.ip,
+    userAgent: req.headers['user-agent'],
+  });
+  
+  // 9. Ответ (refresh token НЕ в JSON — только в cookie)
+  res.json({
+    accessToken,
+    expiresIn: 900, // 15 минут
+    user: { id: user.id, email: user.email, role: user.role },
+  });
+}
+```
+
+### Шаг 5: Обновить фронтенд
+
+```typescript
+// Вместо прямых fetch запросов используйте secureApiCall:
+import { secureApiCall, tokenManager } from '@/utils/security';
+
+// Логин
+const { data, error } = await secureApiCall('/auth/login', {
+  method: 'POST',
+  body: { email, password, recaptchaToken },
+  skipAuth: true, // логин не требует существующего токена
+});
+if (data) {
+  tokenManager.setAccessToken(data.accessToken, data.expiresIn);
+}
+
+// Защищённый запрос (токен добавляется автоматически)
+const { data: profile } = await secureApiCall('/profile');
+
+// Логаут
+tokenManager.clearTokens();
+await secureApiCall('/auth/logout', { method: 'POST' });
+```
+
+### Шаг 6: Применить SQL миграции
+
+Выполнить в Supabase SQL Editor содержимое из:
+- `db-security.ts` → `RLS_MIGRATIONS`
+- `db-security.ts` → `AUDIT_TABLE_MIGRATION`
+
+### Шаг 7: Заменить nginx.conf
+
+Скопировать `nginx.conf` из пакета, заменив существующий.
+
+### Шаг 8: Обновить .env
+
+Добавить переменные из `.env.security.example` в ваш `.env` файл.
+Сгенерировать секреты:
+
+```bash
+openssl rand -hex 64  # для JWT_SECRET
+openssl rand -hex 64  # для JWT_REFRESH_SECRET
+openssl rand -hex 32  # для ENCRYPTION_KEY
+```
+
+---
+
+## 🛡️ Что защищено
+
+| Угроза | Защита | Файл |
+|--------|--------|------|
+| XSS (Cross-Site Scripting) | CSP заголовки, input sanitization, escapeHtml | security.ts (оба) |
+| SQL Injection | Параметризованные запросы, safe query builders | db-security.ts |
+| CSRF | CSRF токены, SameSite cookies | security.ts |
+| Brute Force | Rate limiting, progressive lockout | auth-security.ts |
+| DDoS | Nginx rate limiting, slowdown | nginx.conf, security.ts |
+| Session Hijacking | httpOnly cookies, secure flag, session mgmt | auth-security.ts |
+| Clickjacking | X-Frame-Options, CSP frame-ancestors | nginx.conf |
+| MIME Sniffing | X-Content-Type-Options: nosniff | nginx.conf |
+| Path Traversal | Path validation, blocked patterns | security.ts |
+| Scanner Probes | User-Agent blocking, path blocking | nginx.conf, security.ts |
+| Data Exposure | Input validation, error sanitization | validation.ts |
+| Privilege Escalation | RBAC, owner-or-admin checks | auth-security.ts |
+| Token Theft | Short-lived JWT, httpOnly refresh, rotation | auth-security.ts |
+| Parameter Pollution | HPP middleware | security.ts |
+| NoSQL Injection | $ operator blocking, prototype pollution prevention | security.ts |
+| File Upload Attacks | MIME validation, magic bytes check, size limits | validation.ts |
+| Unauthorized Access | RLS policies, JWT verification | db-security.ts |
+| Audit Trail | Full event logging | db-security.ts |
+
+---
+
+## ⚠️ Важные замечания
+
+1. **JWT_SECRET** — сгенерируйте уникальный, минимум 64 символа. Никогда не коммитьте в Git.
+2. **В продакшене** замените in-memory хранилища сессий на Redis.
+3. **CSP** — если используете внешние сервисы (аналитика, чаты), добавьте их домены в политику.
+4. **reCAPTCHA** — уже настроена в проекте, убедитесь что верификация происходит на сервере.
+5. **Supabase RLS** — после применения миграций протестируйте все запросы.
+6. **Мониторинг** — настройте алерты на записи в audit_log с action = 'LOGIN_FAILED'.
