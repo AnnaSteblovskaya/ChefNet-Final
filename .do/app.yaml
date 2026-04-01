@@ -15,6 +15,8 @@ services:
     envs:
       - key: NODE_ENV
         value: production
+      - key: NODE_TLS_REJECT_UNAUTHORIZED
+        value: "0"
       - key: API_PORT
         value: "3001"
       - key: VITE_SITE_URL
