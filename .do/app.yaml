@@ -5,7 +5,7 @@ services:
   - name: web
     source_dir: /
     dockerfile_path: Dockerfile
-    http_port: 3001
+    http_port: 5000
     instance_count: 1
     instance_size_slug: basic-s
 
@@ -18,7 +18,7 @@ services:
       - key: NODE_TLS_REJECT_UNAUTHORIZED
         value: "0"
       - key: API_PORT
-        value: "3001"
+        value: "5000"
       - key: VITE_SITE_URL
         value: https://chefnet.ai
       - key: DATABASE_URL
