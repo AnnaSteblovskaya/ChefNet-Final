@@ -9,9 +9,19 @@ import pool from './db.js';
 import { sendVerificationEmail, sendPasswordResetEmail, verifySmtpConnection, sendReferralNotificationEmail } from './email.js';
 import { createAdminRouter, createPublicContentRouter } from './admin.js';
 import { faqSeedData } from './faqSeedData.js';
-import { applySecurityMiddleware } from './middleware/security.js';
+import {
+  applySecurityMiddleware,
+  corsOptions,
+  verificationEmailLimiter,
+  kycTokenLimiter,
+  investmentCreateLimiter,
+  profileUpdateLimiter,
+  passwordResetLimiter,
+} from './middleware/security.js';
 import { logAuditEvent, AUDIT_TABLE_MIGRATION } from './utils/db-security.js';
 import { checkLoginAttempt, recordFailedLogin, resetLoginAttempts } from './utils/auth-security.js';
+import { validate, updateProfileSchema } from './utils/validation.js';
+import { sanitizeText } from './utils/spam-protection.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -49,7 +59,7 @@ async function sumsubRequest(method: string, path: string, body?: object): Promi
 
 const app = express();
 app.use(cookieParser());
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 applySecurityMiddleware(app);
 
@@ -1057,7 +1067,7 @@ app.get('/api/profile', requireAuth, async (req, res) => {
   }
 });
 
-app.put('/api/profile', requireAuth, async (req, res) => {
+app.put('/api/profile', requireAuth, profileUpdateLimiter, validate(updateProfileSchema), async (req, res) => {
   const userId = (req as any).userId;
   const { email, full_name, phone, country, address, date_of_birth, nationality, zip_code } = req.body;
   try {
@@ -1210,7 +1220,7 @@ app.get('/api/investments', requireAuth, async (req, res) => {
   }
 });
 
-app.post('/api/investments', requireAuth, async (req, res) => {
+app.post('/api/investments', requireAuth, investmentCreateLimiter, async (req, res) => {
   const userId = (req as any).userId;
   const { round, shares, amount, payment_method = 'bank', crypto_network, bank_type } = req.body;
   const client = await pool.connect();
@@ -1414,9 +1424,24 @@ app.get('/api/kyc', requireAuth, async (req, res) => {
   }
 });
 
-app.put('/api/kyc', requireAuth, async (req, res) => {
+// Statuses that can be set by the client (verified/rejected come only from the Sumsub webhook)
+const USER_SETTABLE_KYC_STATUSES = new Set(['pending', 'not_started']);
+
+app.put('/api/kyc', requireAuth, profileUpdateLimiter, async (req, res) => {
   const userId = (req as any).userId;
-  const { status, full_name, date_of_birth, country, address, email, phone } = req.body;
+  const rawBody = req.body;
+  // Sanitize all free-text fields before storing
+  const rawStatus = sanitizeText(rawBody.status);
+  // Only allow non-privileged statuses from the client
+  const status = USER_SETTABLE_KYC_STATUSES.has(rawStatus) ? rawStatus : 'pending';
+  const full_name = sanitizeText(rawBody.full_name);
+  const date_of_birth = typeof rawBody.date_of_birth === 'string'
+    ? rawBody.date_of_birth.replace(/[^0-9\-]/g, '').slice(0, 10)
+    : undefined;
+  const country = sanitizeText(rawBody.country).slice(0, 100);
+  const address = sanitizeText(rawBody.address).slice(0, 500);
+  const email = sanitizeText(rawBody.email).toLowerCase().trim();
+  const phone = sanitizeText(rawBody.phone).slice(0, 30);
   try {
     await pool.query(
       `INSERT INTO profiles (id, email) VALUES ($1, COALESCE($2, '')) ON CONFLICT (id) DO NOTHING`,
@@ -1447,7 +1472,7 @@ app.put('/api/kyc', requireAuth, async (req, res) => {
 });
 
 // Sumsub: generate SDK access token (creates applicant if needed)
-app.post('/api/kyc/access-token', requireAuth, async (req, res) => {
+app.post('/api/kyc/access-token', requireAuth, kycTokenLimiter, async (req, res) => {
   const userId = (req as any).userId;
   if (!SUMSUB_APP_TOKEN || !SUMSUB_SECRET_KEY) {
     res.status(503).json({ error: 'Sumsub not configured' });
@@ -1655,7 +1680,7 @@ async function sendVerificationForUser(userId: string, email: string, firstName:
   }
 }
 
-app.post('/api/send-verification', async (req, res) => {
+app.post('/api/send-verification', verificationEmailLimiter, async (req, res) => {
   const authHeader = req.headers.authorization;
   const { email, firstName, lang, userId: bodyUserId } = req.body;
 
@@ -1712,7 +1737,7 @@ app.post('/api/send-verification', async (req, res) => {
 
 const resetPasswordRateLimit = new Map<string, number>();
 
-app.post('/api/reset-password', async (req, res) => {
+app.post('/api/reset-password', passwordResetLimiter, async (req, res) => {
   const { email, lang } = req.body;
 
   if (!email || typeof email !== 'string') {
@@ -1984,16 +2009,34 @@ app.get('/api/notifications', requireAuth, async (req, res) => {
   }
 });
 
+const ALLOWED_NOTIFICATION_STATUSES = new Set(['active', 'read', 'archived']);
+
 app.put('/api/notifications/:id/status', requireAuth, async (req, res) => {
   const userId = (req as any).userId;
   const { status } = req.body;
+
+  // Validate status value against strict allowlist
+  if (!status || !ALLOWED_NOTIFICATION_STATUSES.has(status)) {
+    res.status(400).json({ error: 'Invalid status value. Allowed: active, read, archived.' });
+    return;
+  }
+
+  // Validate that :id is a positive integer
+  const notifId = parseInt(req.params.id, 10);
+  if (!Number.isInteger(notifId) || notifId <= 0) {
+    res.status(400).json({ error: 'Invalid notification ID.' });
+    return;
+  }
+
   try {
     const profileResult = await pool.query('SELECT email FROM profiles WHERE id=$1', [userId]);
     if (!profileResult.rows.length) return res.status(404).json({ error: 'Profile not found' });
     const email = profileResult.rows[0].email;
+
+    // WHERE clause includes user_email to ensure a user can only update their own notifications
     await pool.query(
       `UPDATE notifications SET status=$1 WHERE id=$2 AND user_email=$3`,
-      [status, req.params.id, email]
+      [status, notifId, email]
     );
     res.json({ success: true });
   } catch (err) {

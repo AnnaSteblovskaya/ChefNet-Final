@@ -45,6 +45,53 @@ const uploadLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+// ─── Targeted rate limiters ────────────────────────────────────────────────
+
+/** Email sending endpoints — prevent spam / flooding */
+export const verificationEmailLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many email requests, please wait before trying again.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/** KYC access-token generation — costly external call */
+export const kycTokenLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { error: 'Too many KYC token requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/** Investment creation — prevent rapid-fire order spam */
+export const investmentCreateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 15,
+  message: { error: 'Too many investment requests, please slow down.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/** Profile update — prevent mass write abuse */
+export const profileUpdateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 20,
+  message: { error: 'Too many profile update requests.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/** Password reset — strict anti-abuse */
+export const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many password reset attempts. Please wait 15 minutes.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // ─── Blocked User-Agent patterns ───────────────────────────────────────────
 
 const BLOCKED_UA_PATTERNS = [
@@ -106,6 +153,45 @@ function noSqlMiddleware(req: Request, res: Response, next: NextFunction): void 
   if (req.body && blockNoSqlInjection(req.body)) {
     res.status(400).json({ error: 'Bad Request' });
     return;
+  }
+  next();
+}
+
+// ─── XSS body sanitizer ────────────────────────────────────────────────────
+// Strips HTML tags from every string value in req.body (shallow + one level deep).
+// This is a defence-in-depth layer; Zod schemas are the primary validation gate.
+
+const STRIP_TAGS_RE = /<[^>]*>/g;
+const JS_PROTO_RE = /javascript\s*:/gi;
+const DATA_URI_RE = /data\s*:[^,]*,/gi;
+
+function sanitizeValue(v: unknown): unknown {
+  if (typeof v !== 'string') return v;
+  return v
+    .replace(STRIP_TAGS_RE, '')
+    .replace(JS_PROTO_RE, '')
+    .replace(DATA_URI_RE, '')
+    .trim();
+}
+
+function sanitizeBodyRecursive(obj: unknown, depth = 0): unknown {
+  if (depth > 3) return obj;
+  if (obj === null || obj === undefined) return obj;
+  if (typeof obj === 'string') return sanitizeValue(obj);
+  if (Array.isArray(obj)) return obj.map((v) => sanitizeBodyRecursive(v, depth + 1));
+  if (typeof obj === 'object') {
+    const cleaned: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+      cleaned[k] = sanitizeBodyRecursive(v, depth + 1);
+    }
+    return cleaned;
+  }
+  return obj;
+}
+
+function xssSanitizerMiddleware(req: Request, _res: Response, next: NextFunction): void {
+  if (req.body && typeof req.body === 'object') {
+    req.body = sanitizeBodyRecursive(req.body);
   }
   next();
 }
@@ -182,6 +268,7 @@ export function applySecurityMiddleware(app: Express): void {
   app.use(helmetOptions);
   app.use(hpp());
   app.use(noSqlMiddleware);
+  app.use(xssSanitizerMiddleware);
   app.use(wafMiddleware);
 
   app.use('/api/auth', authLimiter, authSlowDown);

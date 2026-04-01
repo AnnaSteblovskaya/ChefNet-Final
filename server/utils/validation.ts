@@ -49,20 +49,42 @@ export const loginSchema = z.object({
   recaptchaToken: z.string().optional(),
 });
 
+// Regex that blocks the five HTML-dangerous chars
+const NO_HTML_RE = /^[^<>"'&]*$/;
+
 // ─── Profile schema ────────────────────────────────────────────────────────
 
 export const updateProfileSchema = z.object({
   email: emailSchema.optional(),
   full_name: nameSchema.optional(),
   phone: phoneSchema,
-  country: z.string().max(100).optional(),
-  address: z.string().max(500).optional(),
+  country: z
+    .string()
+    .max(100)
+    .regex(NO_HTML_RE, 'Country contains invalid characters')
+    .transform((v) => v.trim())
+    .optional(),
+  address: z
+    .string()
+    .max(500)
+    .regex(NO_HTML_RE, 'Address contains invalid characters')
+    .transform((v) => v.trim())
+    .optional(),
   date_of_birth: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD')
     .optional(),
-  nationality: z.string().max(100).optional(),
-  zip_code: z.string().max(20).optional(),
+  nationality: z
+    .string()
+    .max(100)
+    .regex(NO_HTML_RE, 'Nationality contains invalid characters')
+    .transform((v) => v.trim())
+    .optional(),
+  zip_code: z
+    .string()
+    .max(20)
+    .regex(/^[A-Za-z0-9\s\-]{0,20}$/, 'Invalid zip code format')
+    .optional(),
 });
 
 // ─── Investment schema ────────────────────────────────────────────────────
