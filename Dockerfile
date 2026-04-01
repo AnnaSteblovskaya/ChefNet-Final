@@ -31,9 +31,9 @@ COPY --from=builder /app/server ./server
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
 ENV NODE_ENV=production
-ENV API_PORT=3001
+ENV API_PORT=5000
 
-EXPOSE 3001
+EXPOSE 5000
 
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "--import", "tsx/esm", "server/index.ts"]
