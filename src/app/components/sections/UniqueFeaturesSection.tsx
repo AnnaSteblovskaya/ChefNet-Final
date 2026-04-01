@@ -1,5 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { motion } from 'motion/react';
+import { motion, useMotionValue, animate } from 'motion/react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { translations } from '@/locales/translations';
 import { useSiteContent } from '@/contexts/SiteContentContext';
@@ -41,13 +41,10 @@ export default function UniqueFeaturesSection() {
   const [lastClicked, setLastClicked] = useState<'prev' | 'next' | null>(null);
   const [isLaptop, setIsLaptop] = useState(true);
   const [rotatingIcons, setRotatingIcons] = useState<{ [key: number]: boolean }>({});
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const [activeCard, setActiveCard] = useState<number | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState(0);
   const carouselRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  const x = useMotionValue(0);
 
   // Calculate visible cards and container width
   useLayoutEffect(() => {
@@ -106,51 +103,21 @@ export default function UniqueFeaturesSection() {
     return 32;
   };
 
-  const getSlideOffset = () => {
+  const getTargetOffset = (index: number) => {
     if (!containerWidth) return 0;
     const gap = getGapPx();
     const cardWidth = (containerWidth - (visibleCards - 1) * gap) / visibleCards;
-    return -(currentIndex * (cardWidth + gap));
+    return -(index * (cardWidth + gap));
   };
 
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    setTouchStart(e.touches[0].clientX);
-    setTouchEnd(null);
-    setIsDragging(true);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!isDragging || touchStart === null) return;
-    const currentTouch = e.touches[0].clientX;
-    setTouchEnd(currentTouch);
-    const diff = currentTouch - touchStart;
-    setDragOffset(diff);
-  };
-
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) {
-      setIsDragging(false);
-      setDragOffset(0);
-      return;
-    }
-    
-    setIsDragging(false);
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
-    
-    if (isLeftSwipe) {
-      handleNext();
-    }
-    if (isRightSwipe) {
-      handlePrev();
-    }
-    
-    // Reset
-    setDragOffset(0);
-    setTouchStart(null);
-    setTouchEnd(null);
-  };
+  // Animate x whenever the index or layout changes (button clicks / resize)
+  useEffect(() => {
+    animate(x, getTargetOffset(currentIndex), {
+      type: 'tween',
+      duration: 0.45,
+      ease: [0.25, 0.1, 0.25, 1.0],
+    });
+  }, [currentIndex, containerWidth, visibleCards]);
 
   return (
     <section id="unique-features" className="py-12 bg-background relative overflow-hidden">
@@ -222,25 +189,37 @@ export default function UniqueFeaturesSection() {
           <div ref={carouselRef} className="overflow-hidden px-4 py-2">
             <motion.div
               drag="x"
-              dragElastic={0.15}
+              dragConstraints={{
+                left: getTargetOffset(maxIndex),
+                right: 0,
+              }}
+              dragElastic={0.05}
+              dragMomentum={false}
               onDragEnd={(_, info) => {
                 const threshold = 50;
-                if (info.offset.x > threshold) {
-                  handlePrev();
-                } else if (info.offset.x < -threshold) {
-                  handleNext();
+                const velocity = info.velocity.x;
+                let newIndex = currentIndex;
+                if (info.offset.x > threshold || velocity > 300) {
+                  newIndex = Math.max(0, currentIndex - 1);
+                  setLastClicked('prev');
+                } else if (info.offset.x < -threshold || velocity < -300) {
+                  newIndex = Math.min(maxIndex, currentIndex + 1);
+                  setLastClicked('next');
                 }
+                setCurrentIndex(newIndex);
+                animate(x, getTargetOffset(newIndex), {
+                  type: 'tween',
+                  duration: 0.45,
+                  ease: [0.25, 0.1, 0.25, 1.0],
+                });
               }}
               className="flex gap-4 sm:gap-8"
-              animate={{
-                x: getSlideOffset(),
-              }}
               style={{
+                x,
                 cursor: 'grab',
                 touchAction: 'pan-y',
               }}
               whileTap={{ cursor: 'grabbing' }}
-              transition={{ type: 'tween', duration: 0.4, ease: 'easeOut' }}
             >
               {features.map((feature, index) => {
                 const Icon = feature.icon;
@@ -256,8 +235,8 @@ export default function UniqueFeaturesSection() {
                     transition={isMobile ? {} : { duration: 0.5, delay: index * 0.1 }}
                     style={{ width: cardWidthPx || undefined }}
                     className="flex-shrink-0"
-                    onTouchStart={() => {
-                      setActiveCard(activeCard === index ? null : index);
+                    onClick={() => {
+                      if (!isLaptop) setActiveCard(activeCard === index ? null : index);
                     }}
                   >
                     <div className={`bg-white border-2 rounded-2xl p-4 sm:p-6 min-h-[360px] sm:h-[400px] transition-all duration-300 group flex flex-col items-center text-center ${
