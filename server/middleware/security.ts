@@ -45,6 +45,46 @@ const uploadLimiter = rateLimit({
   legacyHeaders: false,
 });
 
+const investmentCreateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: 'Too many investment requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const profileUpdateLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: { error: 'Too many profile update requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many password reset requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const verificationEmailLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: { error: 'Too many verification email requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const kycTokenLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: { error: 'Too many KYC token requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 // ─── Blocked User-Agent patterns ───────────────────────────────────────────
 
 const BLOCKED_UA_PATTERNS = [
@@ -192,4 +232,12 @@ export function applySecurityMiddleware(app: Express): void {
   app.use('/api/', apiLimiter);
 }
 
-export { authLimiter, apiLimiter };
+export {
+  authLimiter,
+  apiLimiter,
+  investmentCreateLimiter,
+  profileUpdateLimiter,
+  passwordResetLimiter,
+  verificationEmailLimiter,
+  kycTokenLimiter,
+};
