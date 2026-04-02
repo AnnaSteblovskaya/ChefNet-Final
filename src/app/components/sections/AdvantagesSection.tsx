@@ -133,44 +133,41 @@ export default function AdvantagesSection() {
     setTimeout(() => setIsAnimating(false), 500); // Unlock after 500ms
   };
 
-  // Touch handlers - COPIED FROM UniqueFeaturesSection
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    setTouchStart(e.touches[0].clientX);
-    setTouchEnd(null);
+  // Pointer handlers for swipe detection (works for both mouse and touch)
+  const pointerStartX = useRef<number | null>(null);
+  const pointerStartTime = useRef<number>(0);
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    pointerStartX.current = e.clientX;
+    pointerStartTime.current = Date.now();
     setIsDragging(true);
   };
 
-  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!isDragging || touchStart === null) return;
-    const currentTouch = e.touches[0].clientX;
-    setTouchEnd(currentTouch);
-    const diff = currentTouch - touchStart;
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging || pointerStartX.current === null) return;
+    const diff = e.clientX - pointerStartX.current;
     setDragOffset(diff);
   };
 
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) {
+  const handlePointerUp = () => {
+    if (pointerStartX.current === null) {
       setIsDragging(false);
       setDragOffset(0);
       return;
     }
-    
+
     setIsDragging(false);
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > 50;
-    const isRightSwipe = distance < -50;
-    
-    if (isLeftSwipe) {
+    const threshold = 40;
+
+    if (dragOffset < -threshold) {
       goToNext();
-    }
-    if (isRightSwipe) {
+    } else if (dragOffset > threshold) {
       goToPrev();
     }
-    
+
     // Reset
     setDragOffset(0);
-    setTouchStart(null);
-    setTouchEnd(null);
+    pointerStartX.current = null;
   };
 
   // Calculate scale for each phone based on distance from center — COVERFLOW effect
@@ -537,19 +534,12 @@ export default function AdvantagesSection() {
           >
             {/* Carousel Track - all phones in a row */}
             <motion.div
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={0.08}
-              onDragEnd={(_, info) => {
-                const threshold = 40;
-                if (info.offset.x < -threshold) {
-                  goToNext();
-                } else if (info.offset.x > threshold) {
-                  goToPrev();
-                }
-              }}
+              onPointerDown={handlePointerDown}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePointerUp}
+              onPointerLeave={handlePointerUp}
               animate={{
-                x: getCarouselOffset(),
+                x: getCarouselOffset() + (isDragging ? dragOffset * 0.3 : 0),
                 y: '-50%',
               }}
               style={{
@@ -558,12 +548,12 @@ export default function AdvantagesSection() {
                 position: 'absolute',
                 left: 0,
                 top: '50%',
-                cursor: 'grab',
+                cursor: isDragging ? 'grabbing' : 'grab',
                 touchAction: 'pan-y',
                 willChange: 'transform',
+                userSelect: 'none',
               }}
-              whileTap={{ cursor: 'grabbing' }}
-              transition={enableTransition ? { 
+              transition={enableTransition && !isDragging ? {
                 type: 'tween',
                 duration: 0.45,
                 ease: [0.25, 0.46, 0.45, 0.94]
