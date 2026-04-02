@@ -2125,6 +2125,14 @@ if (isProduction) {
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`API server running on port ${PORT}${isProduction ? ' (production)' : ''}`);
   console.log(`[site-url] ${getSiteUrlServer()} (REPLIT_DEPLOYMENT=${process.env.REPLIT_DEPLOYMENT}, REPLIT_DOMAINS=${process.env.REPLIT_DOMAINS || 'not set'})`);
-  await ensureDbSchema();
-  await verifySmtpConnection();
+    try {
+          await ensureDbSchema();
+    } catch (err: any) {
+          console.error('[startup] ensureDbSchema failed:', err.message);
+    }
+    try {
+          await verifySmtpConnection();
+    } catch (err: any) {
+          console.error('[startup] verifySmtpConnection failed:', err.message);
+    }
 });
