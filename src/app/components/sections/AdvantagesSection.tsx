@@ -173,21 +173,34 @@ export default function AdvantagesSection() {
     setTouchEnd(null);
   };
 
-  // Calculate scale for each phone based on distance from center
+  // Calculate scale for each phone based on distance from center — COVERFLOW effect
   const getPhoneScale = (index: number) => {
-    if (isMobile) {
-      // Mobile: gentle scaling for smooth transitions
-      const distance = Math.abs(index - currentStep);
-      if (distance === 0) return 1.0;  // Center
-      if (distance === 1) return 0.88; // Neighbors
-      return 0.78; // Far items
-    }
-    // Desktop: gradual scaling
     const distance = Math.abs(index - currentStep);
-    if (distance === 0) return 1.0; // Center
-    if (distance === 1) return 0.88; // Neighbors
-    if (distance === 2) return 0.78; // Next neighbors
-    return 0.7; // Far items
+    if (isMobile) {
+      if (distance === 0) return 1.0;
+      if (distance === 1) return 0.82;
+      return 0.68;
+    }
+    // Desktop: dramatic coverflow cascade
+    if (distance === 0) return 1.0;    // Center — full size
+    if (distance === 1) return 0.82;   // Neighbors — noticeably smaller
+    if (distance === 2) return 0.68;   // Next — even smaller
+    return 0.58;                        // Far — smallest
+  };
+
+  // Z-index: center phone is on top, decreases with distance
+  const getPhoneZIndex = (index: number) => {
+    const distance = Math.abs(index - currentStep);
+    return Math.max(1, 20 - distance * 5);
+  };
+
+  // Vertical offset to push side items down slightly (cascade/waterfall)
+  const getPhoneYOffset = (index: number) => {
+    const distance = Math.abs(index - currentStep);
+    if (distance === 0) return 0;
+    if (distance === 1) return isMobile ? 20 : 30;
+    if (distance === 2) return isMobile ? 35 : 55;
+    return isMobile ? 45 : 70;
   };
 
   // Calculate X offset to center the current phone as the 3rd visible item (index 2 of 5)
@@ -575,6 +588,7 @@ export default function AdvantagesSection() {
                     animate={{
                       scale,
                       opacity: 1,
+                      y: getPhoneYOffset(index),
                     }}
                     transition={enableTransition ? {
                       type: 'tween',
@@ -586,6 +600,7 @@ export default function AdvantagesSection() {
                       flexShrink: 0,
                       cursor: !isMobile && !isCenter ? 'pointer' : 'default',
                       willChange: 'transform',
+                      zIndex: getPhoneZIndex(index),
                     }}
                     className="relative"
                   >
