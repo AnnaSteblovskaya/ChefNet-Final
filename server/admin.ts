@@ -63,10 +63,8 @@ async function deleteFromSupabase(fileUrl: string): Promise<void> {
 }
 
 function getAdminSiteUrl(): string {
-  const domains = process.env.REPLIT_DOMAINS;
-  if (domains) return `https://${domains.split(',')[0].trim()}`;
-  if (process.env.REPLIT_DEV_DOMAIN) return `https://${process.env.REPLIT_DEV_DOMAIN}`;
-  return 'http://localhost:3001';
+  if (process.env.VITE_SITE_URL) return process.env.VITE_SITE_URL;
+  return 'https://chefnet.ai';
 }
 
 export function createAdminRouter(pool: Pool, requireAuth: express.RequestHandler) {

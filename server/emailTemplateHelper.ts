@@ -1,16 +1,9 @@
 import { getUncachableGmailClient } from './gmail.js';
+import { isSmtpConfigured, sendEmailViaSMTP } from './smtp.js';
 
 function getSiteUrl(): string {
   if (process.env.VITE_SITE_URL) return process.env.VITE_SITE_URL;
-  if (process.env.REPLIT_DEPLOYMENT === '1') {
-    if (process.env.REPLIT_DOMAINS) {
-      const firstDomain = process.env.REPLIT_DOMAINS.split(',')[0].trim();
-      return `https://${firstDomain}`;
-    }
-    return 'https://chefnet.replit.app';
-  }
-  if (process.env.REPLIT_DEV_DOMAIN) return `https://${process.env.REPLIT_DEV_DOMAIN}`;
-  return 'https://chefnet.replit.app';
+  return 'https://chefnet.ai';
 }
 
 const dashboardBtnLabels: Record<string, string> = {
@@ -105,6 +98,13 @@ export async function buildAndSendTemplateEmail(
 ): Promise<boolean> {
   try {
     const html = buildTemplateHtml(subject, body, lang);
+
+    if (isSmtpConfigured()) {
+      await sendEmailViaSMTP(to, subject, html);
+      console.log(`[template-email] Sent "${subject}" to ${to} via SMTP (lang=${lang})`);
+      return true;
+    }
+
     const gmail = await getUncachableGmailClient();
     const raw = buildRawEmail(to, subject, html);
     const encodedMessage = Buffer.from(raw)
@@ -118,7 +118,7 @@ export async function buildAndSendTemplateEmail(
       requestBody: { raw: encodedMessage },
     });
 
-    console.log(`[template-email] Sent "${subject}" to ${to} (lang=${lang})`);
+    console.log(`[template-email] Sent "${subject}" to ${to} via Gmail (lang=${lang})`);
     return true;
   } catch (err) {
     console.error('[template-email] Failed:', err);

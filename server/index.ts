@@ -105,6 +105,24 @@ async function requireAuth(req: express.Request, res: express.Response, next: ex
 
 async function ensureDbSchema() {
   const tableMigrations = [
+    `CREATE TABLE IF NOT EXISTS profiles (
+      id text PRIMARY KEY,
+      email text,
+      full_name text,
+      phone text,
+      country text,
+      address text,
+      date_of_birth text,
+      nationality text,
+      zip_code text,
+      verification_token text,
+      verification_token_expires timestamptz,
+      email_verified boolean DEFAULT false,
+      referred_by text,
+      is_admin boolean DEFAULT false,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now()
+    )`,
     `CREATE TABLE IF NOT EXISTS rounds (
       id text PRIMARY KEY,
       name text NOT NULL,
@@ -1626,19 +1644,8 @@ app.post('/api/seed-demo-data', requireAuth, async (_req, res) => {
 });
 
 function getSiteUrlServer(): string {
-  // Explicit override takes priority (set VITE_SITE_URL=https://chefnet.replit.app in secrets)
   if (process.env.VITE_SITE_URL) return process.env.VITE_SITE_URL;
-  // In deployment: REPLIT_DOMAINS contains the real production domains (e.g. "chefnet.replit.app")
-  if (process.env.REPLIT_DEPLOYMENT === '1') {
-    if (process.env.REPLIT_DOMAINS) {
-      const firstDomain = process.env.REPLIT_DOMAINS.split(',')[0].trim();
-      return `https://${firstDomain}`;
-    }
-    return 'https://chefnet.replit.app';
-  }
-  // In dev: use the worf.replit.dev preview domain
-  if (process.env.REPLIT_DEV_DOMAIN) return `https://${process.env.REPLIT_DEV_DOMAIN}`;
-  return 'https://chefnet.replit.app';
+  return 'https://chefnet.ai';
 }
 
 const verificationRateLimit = new Map<string, number>();
@@ -2124,7 +2131,7 @@ if (isProduction) {
 
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`API server running on port ${PORT}${isProduction ? ' (production)' : ''}`);
-  console.log(`[site-url] ${getSiteUrlServer()} (REPLIT_DEPLOYMENT=${process.env.REPLIT_DEPLOYMENT}, REPLIT_DOMAINS=${process.env.REPLIT_DOMAINS || 'not set'})`);
+  console.log(`[site-url] ${getSiteUrlServer()}`);
     try {
           await ensureDbSchema();
     } catch (err: any) {

@@ -307,7 +307,7 @@ function buildReferralNotificationHtml(
             <p style="margin:0 0 24px;color:#444;font-size:15px;line-height:1.7;">${message}</p>
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr><td align="center" style="padding:8px 0 24px;">
-                <a href="https://chefnet.replit.app" style="display:inline-block;padding:12px 32px;background:linear-gradient(135deg,#D4522A,#E8744F);color:#ffffff;text-decoration:none;border-radius:12px;font-size:15px;font-weight:600;box-shadow:0 4px 16px rgba(212,82,42,0.3);">
+                <a href="https://chefnet.ai" style="display:inline-block;padding:12px 32px;background:linear-gradient(135deg,#D4522A,#E8744F);color:#ffffff;text-decoration:none;border-radius:12px;font-size:15px;font-weight:600;box-shadow:0 4px 16px rgba(212,82,42,0.3);">
                   Открыть личный кабинет
                 </a>
               </td></tr>
@@ -393,7 +393,7 @@ export async function sendNewsNotificationEmail(
             <p style="margin:0 0 28px;color:#444;font-size:15px;line-height:1.7;">${safeBody}</p>
             <table width="100%" cellpadding="0" cellspacing="0">
               <tr><td align="center" style="padding:4px 0 24px;">
-                <a href="https://chefnet.replit.app" style="display:inline-block;padding:12px 32px;background:linear-gradient(135deg,#D4522A,#E8744F);color:#ffffff;text-decoration:none;border-radius:12px;font-size:15px;font-weight:600;box-shadow:0 4px 16px rgba(212,82,42,0.3);">
+                <a href="https://chefnet.ai" style="display:inline-block;padding:12px 32px;background:linear-gradient(135deg,#D4522A,#E8744F);color:#ffffff;text-decoration:none;border-radius:12px;font-size:15px;font-weight:600;box-shadow:0 4px 16px rgba(212,82,42,0.3);">
                   Открыть личный кабинет
                 </a>
               </td></tr>
