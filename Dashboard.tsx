@@ -1,0 +1,596 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { ChefHat, LayoutDashboard, TrendingUp, FileText, Users, ShieldCheck, MessageCircleQuestion, User, LogOut, Bell, Menu, X, Newspaper, Volume2, VolumeX } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { dashboardTranslations } from '@/utils/dashboardTranslations';
+import LanguageSwitcher from '@/app/components/LanguageSwitcher';
+import { playIfUnmuted, isMuted, setMuted, unlockAudioContext } from '@/utils/notificationSounds';
+import { getAuthHeaders } from '@/utils/api';
+import { useRealtimeTable } from '@/utils/useRealtimeTable';
+import DashboardTab from './DashboardTab';
+import InvestmentsTab from './InvestmentsTab';
+import DocumentsTab from './DocumentsTab';
+import ReferralTab from './ReferralTab';
+import KYCTab from './KYCTab';
+import NotificationsTab from './NotificationsTab';
+import ProfileTab from './ProfileTab';
+import ChartVariantsDemo from './ChartVariantsDemo';
+import QATab from './QATab';
+import NewsTab from './NewsTab';
+
+interface DashboardProps {
+  onBackToHome: () => void;
+}
+
+export default function Dashboard({ onBackToHome }: DashboardProps) {
+  const { user, logout } = useAuth();
+  const { language } = useLanguage();
+  const t = dashboardTranslations[language];
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showChartDemo, setShowChartDemo] = useState(false);
+  const [showMobileBottomMenu, setShowMobileBottomMenu] = useState(false);
+  const mainContentRef = useRef<HTMLElement>(null);
+
+  // ── Sound mute toggle ────────────────────────────────────────────────────
+  const [muted, setMutedState] = useState(isMuted);
+  const toggleMute = () => {
+    const next = !muted;
+    setMuted(next);
+    setMutedState(next);
+  };
+
+  // ── Unlock AudioContext on first user interaction ─────────────────────────
+  // Browsers suspend AudioContext until a real click/touch occurs.
+  useEffect(() => {
+    let unlocked = false;
+    const unlock = () => {
+      if (unlocked) return;
+      unlocked = true;
+      unlockAudioContext().catch(() => {});
+      document.removeEventListener('click', unlock);
+      document.removeEventListener('keydown', unlock);
+      document.removeEventListener('touchstart', unlock);
+    };
+    document.addEventListener('click', unlock);
+    document.addEventListener('keydown', unlock);
+    document.addEventListener('touchstart', unlock);
+    return () => {
+      document.removeEventListener('click', unlock);
+      document.removeEventListener('keydown', unlock);
+      document.removeEventListener('touchstart', unlock);
+    };
+  }, []);
+
+  // ── Notification state ────────────────────────────────────────────────────
+  const [unreadCount, setUnreadCount] = useState(0);
+  const seenIdsRef = useRef<Set<number>>(new Set());
+  const firstLoadRef = useRef(true);
+
+  const syncNotifications = useCallback(async () => {
+    try {
+      const headers = await getAuthHeaders();
+      const res = await fetch('/api/notifications', { headers, credentials: 'include' });
+      if (!res.ok) return;
+      const data: { id: number; type: string; status: string }[] = await res.json();
+      if (!Array.isArray(data)) return;
+
+      const active = data.filter(n => n.status === 'active');
+      setUnreadCount(active.length);
+
+      if (firstLoadRef.current) {
+        active.forEach(n => seenIdsRef.current.add(n.id));
+        firstLoadRef.current = false;
+        console.log('[Realtime] Initial load — seeded', seenIdsRef.current.size, 'known notification IDs');
+        return;
+      }
+
+      for (const n of active) {
+        if (!seenIdsRef.current.has(n.id)) {
+          seenIdsRef.current.add(n.id);
+          console.log('[Realtime] New notification detected — type:', n.type, 'id:', n.id);
+          playIfUnmuted(n.type);
+        }
+      }
+    } catch (e) {
+      console.warn('[Realtime] Notification sync error:', e);
+    }
+  }, []);
+
+  // Initial load + 60 s fallback poll
+  useEffect(() => {
+    syncNotifications();
+    const interval = setInterval(syncNotifications, 60_000);
+    return () => clearInterval(interval);
+  }, [syncNotifications]);
+
+  // Supabase Realtime — immediate updates when a notification row changes
+  useRealtimeTable({
+    table: 'notifications',
+    filter: user?.email ? `user_email=eq.${user.email}` : undefined,
+    event: '*',
+    enabled: !!user?.email,
+    onEvent: (payload) => {
+      console.log('[Realtime] notifications event:', payload.eventType);
+      syncNotifications();
+    },
+  });
+
+  // Clear any legacy fake referral data that may have been stored in localStorage
+  useEffect(() => {
+    localStorage.removeItem('chefnet_referrals_data');
+    localStorage.removeItem('chefnet_referrals_version');
+  }, []);
+
+  // Scroll to top when activeTab changes
+  useEffect(() => {
+    if (mainContentRef.current) {
+      mainContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [activeTab]);
+
+  // Предотвращаем жест "назад" браузера при горизонтальной прокрутке
+  useEffect(() => {
+    const preventSwipeBack = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      const scrollContainer = target.closest('.mobile-scrollbar');
+      
+      if (scrollContainer) {
+        e.stopPropagation();
+      }
+    };
+
+    document.addEventListener('touchstart', preventSwipeBack, { passive: true });
+    return () => document.removeEventListener('touchstart', preventSwipeBack);
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    onBackToHome();
+  };
+
+  // Primary menu items for bottom nav (5 most important)
+  const primaryMenuItems = [
+    { id: 'dashboard', icon: LayoutDashboard, label: t.dashboard, shortLabel: 'Панель' in t.dashboard ? 'Панель' : 'Home' },
+    { id: 'investments', icon: TrendingUp, label: t.myInvestments, shortLabel: 'Портфель' },
+    { id: 'documents', icon: FileText, label: t.documents, shortLabel: 'Доки' },
+    { id: 'notifications', icon: Bell, label: t.notifications, shortLabel: 'Уведомл.' },
+  ];
+
+  // Secondary menu items (shown in "More" drawer)
+  const secondaryMenuItems = [
+    { id: 'kyc', icon: ShieldCheck, label: t.kycVerification },
+    { id: 'referral', icon: Users, label: t.referralProgram },
+    { id: 'news', icon: Newspaper, label: t.news },
+    { id: 'qa', icon: MessageCircleQuestion, label: t.faq },
+  ];
+
+  // All menu items for desktop
+  const allMenuItems = [...primaryMenuItems, ...secondaryMenuItems];
+
+  const moreButtonLabel = language === 'ru' ? 'Ещё' : 'More';
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <DashboardTab />;
+      case 'investments':
+        return <InvestmentsTab setActiveTab={setActiveTab} />;
+      case 'documents':
+        return <DocumentsTab setActiveTab={setActiveTab} />;
+      case 'referral':
+        return <ReferralTab setActiveTab={setActiveTab} />;
+      case 'kyc':
+        return <KYCTab setActiveTab={setActiveTab} />;
+      case 'notifications':
+        return <NotificationsTab setActiveTab={setActiveTab} />;
+      case 'news':
+        return <NewsTab />;
+      case 'qa':
+        return <QATab />;
+      case 'profile':
+        return <ProfileTab setActiveTab={setActiveTab} />;
+      default:
+        return <DashboardTab />;
+    }
+  };
+
+  return (
+    <div className="flex h-screen bg-[#F5F0EB] overflow-x-hidden w-full max-w-full">
+      {/* Sidebar - Desktop Only */}
+      <aside className="hidden lg:flex w-72 bg-[#F5F0EB] border-r border-[var(--color-border)] flex-col shadow-sm flex-shrink-0">
+        {/* Logo */}
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="p-6"
+        >
+          <button 
+            onClick={() => window.location.href = '/'}
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity cursor-pointer"
+          >
+            <ChefHat className="w-8 h-8 text-[#FF6B35]" />
+            <div>
+              <span className="font-bold text-xl text-[var(--color-text)]">ChefNet</span>{' '}
+              <span className="text-xl text-[#FF6B35] font-bold">Invest</span>
+            </div>
+          </button>
+        </motion.div>
+
+        {/* Navigation */}
+        <nav className="flex-1 px-4" role="tablist">
+          {allMenuItems.map((item, index) => (
+            <motion.button
+              key={item.id}
+              role="tab"
+              aria-selected={activeTab === item.id}
+              aria-controls="dashboard-content"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+              onClick={() => setActiveTab(item.id)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-all ${
+                activeTab === item.id
+                  ? 'bg-gradient-to-r from-[#FF7A59] to-[#EB5632] text-white shadow-lg shadow-[#FF6B35]/30'
+                  : 'text-[var(--color-text)] hover:bg-[#FFF5F0] hover:text-[#FF6B35]'
+              }`}
+            >
+              <item.icon className="w-5 h-5 flex-shrink-0" />
+              <span className="text-sm font-medium">{item.label}</span>
+            </motion.button>
+          ))}
+        </nav>
+
+        {/* Bottom actions */}
+        <div className="p-4 border-t border-[var(--color-border)]">
+          {/* User Profile */}
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            aria-label="User profile menu"
+            onClick={() => setActiveTab('profile')}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[var(--color-text)] hover:bg-[#FFF5F0] transition-all cursor-pointer"
+          >
+            {/* Avatar with Initials */}
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#FF7A59] to-[#EB5632] flex items-center justify-center flex-shrink-0 shadow-md">
+              <span className="text-white text-sm font-bold">
+                {user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : 'JD'}
+              </span>
+            </div>
+            
+            {/* Name and Email */}
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-base font-semibold truncate">
+                {user ? `${user.firstName} ${user.lastName}` : 'John Doe'}
+              </p>
+              <p className="text-sm text-[var(--color-text-secondary)] truncate">
+                {user?.email || 'investor@example.com'}
+              </p>
+            </div>
+          </motion.button>
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.45 }}
+            onClick={toggleMute}
+            aria-label={muted ? 'Enable notification sound' : 'Disable notification sound'}
+            title={muted ? 'Включить звук уведомлений' : 'Выключить звук уведомлений'}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[var(--color-text)] hover:bg-[#FFF5F0] hover:text-[#FF6B35] transition-all mt-1"
+          >
+            {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+            <span className="text-sm font-medium">
+              {muted
+                ? { en: 'Sound off', ru: 'Звук выкл.', de: 'Ton aus', es: 'Sonido apagado', tr: 'Ses kapalı' }[language] || 'Sound off'
+                : { en: 'Sound on', ru: 'Звук вкл.', de: 'Ton an', es: 'Sonido activado', tr: 'Ses açık' }[language] || 'Sound on'
+              }
+            </span>
+          </motion.button>
+          <motion.button
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            aria-label="Logout"
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-[var(--color-text)] hover:bg-red-50 hover:text-red-600 transition-all mt-2"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="text-base font-medium">{t.logout}</span>
+          </motion.button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main id="dashboard-content" role="tabpanel" className="flex-1 overflow-auto bg-[#F5F0EB] pb-20 lg:pb-0" onClick={() => {
+        setShowMobileMenu(false);
+        setShowMobileBottomMenu(false);
+      }} ref={mainContentRef}>
+        {/* Header - только для Dashboard */}
+        {activeTab === 'dashboard' && (
+          <header className="bg-transparent border-b border-[var(--color-border)] px-4 lg:px-8 py-4 lg:py-5">
+            <div className="flex items-center justify-between">
+              {/* Mobile Logo */}
+              <button 
+                onClick={() => window.location.href = '/'}
+                className="flex lg:hidden items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer"
+              >
+                <ChefHat className="w-6 h-6 text-[#FF6B35]" />
+                <div className="flex items-center gap-1">
+                  <span className="font-bold text-base text-[var(--color-text)]">ChefNet</span>
+                  <span className="text-base text-[#FF6B35] font-bold">Invest</span>
+                </div>
+              </button>
+              
+              {/* Desktop Welcome */}
+              <h1 className="hidden lg:block text-2xl font-semibold text-[var(--color-text)]">
+                Dashboard: {t.welcomePrefix} {user?.firstName || t.investor}!
+              </h1>
+              
+              <div className="flex items-center gap-3 lg:gap-4">
+                <LanguageSwitcher variant="dark" />
+                
+                {/* Mobile Profile Menu Button */}
+                <button
+                  aria-label="User profile menu"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMobileMenu(!showMobileMenu);
+                  }}
+                  className="lg:hidden flex items-center gap-2 px-2 py-1"
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF7A59] to-[#EB5632] flex items-center justify-center shadow-sm">
+                    <span className="text-white text-xs font-bold">
+                      {user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : 'JD'}
+                    </span>
+                  </div>
+                </button>
+                
+                {/* Sound toggle */}
+                <button
+                  onClick={toggleMute}
+                  aria-label={muted ? 'Enable notification sound' : 'Disable notification sound'}
+                  title={muted ? 'Включить звук' : 'Выключить звук'}
+                  className="hidden lg:flex p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-gray-100 transition-all"
+                >
+                  {muted
+                    ? <VolumeX className="w-5 h-5" />
+                    : <Volume2 className="w-5 h-5" />}
+                </button>
+
+                {/* Desktop Notification Bell */}
+                <button
+                  className="hidden lg:block relative cursor-pointer p-1.5 rounded-lg hover:bg-gray-100 transition-all"
+                  onClick={() => setActiveTab('notifications')}
+                  aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ''}`}
+                >
+                  <Bell className="w-6 h-6 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors" />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-[var(--color-primary)] text-white text-xs rounded-full flex items-center justify-center font-medium" aria-hidden="true">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </header>
+        )}
+
+        {/* Mobile Header для других разделов */}
+        {activeTab !== 'dashboard' && (
+          <header className="lg:hidden bg-transparent border-b border-[var(--color-border)] px-4 py-4">
+            <div className="flex items-center justify-between">
+              {/* Mobile Logo */}
+              <button 
+                onClick={() => window.location.href = '/'}
+                className="flex items-center gap-1.5 hover:opacity-80 transition-opacity cursor-pointer"
+              >
+                <ChefHat className="w-6 h-6 text-[#FF6B35]" />
+                <div className="flex items-center gap-1">
+                  <span className="font-bold text-base text-[var(--color-text)]">ChefNet</span>
+                  <span className="text-base text-[#FF6B35] font-bold">Invest</span>
+                </div>
+              </button>
+              
+              <div className="flex items-center gap-3">
+                <LanguageSwitcher variant="dark" />
+                
+                {/* Mobile Profile Menu Button */}
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMobileMenu(!showMobileMenu);
+                  }}
+                  className="flex items-center gap-2 px-2 py-1"
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#FF7A59] to-[#EB5632] flex items-center justify-center shadow-sm">
+                    <span className="text-white text-xs font-bold">
+                      {user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : 'JD'}
+                    </span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </header>
+        )}
+
+        {/* Mobile Profile Menu Dropdown */}
+        <AnimatePresence>
+          {showMobileMenu && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              onClick={(e) => e.stopPropagation()}
+              className="lg:hidden absolute top-16 right-4 bg-white rounded-xl shadow-xl border border-[var(--color-border)] z-50 overflow-hidden"
+            >
+              <button
+                aria-label="View profile"
+                onClick={() => {
+                  setShowMobileMenu(false);
+                  setActiveTab('profile');
+                }}
+                className="w-full p-4 border-b border-[var(--color-border)] hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF7A59] to-[#EB5632] flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">
+                      {user ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase() : 'JD'}
+                    </span>
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-semibold text-[var(--color-text)]">
+                      {user ? `${user.firstName} ${user.lastName}` : 'John Doe'}
+                    </p>
+                    <p className="text-xs text-[var(--color-text-secondary)]">
+                      {user?.email || 'investor@example.com'}
+                    </p>
+                  </div>
+                </div>
+              </button>
+              <button
+                aria-label="Logout"
+                onClick={() => {
+                  setShowMobileMenu(false);
+                  handleLogout();
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 text-[var(--color-text)] hover:bg-red-50 hover:text-red-600 transition-all"
+              >
+                <LogOut className="w-5 h-5" />
+                <span className="text-sm font-medium">{t.logout}</span>
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Dashboard Content */}
+        <div className="p-4 lg:p-8 flex-1 overflow-auto">
+          {renderTabContent()}
+        </div>
+      </main>
+
+      {/* Bottom Navigation - Mobile Only */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-[var(--color-border)] shadow-lg z-50 safe-area-pb" aria-label="Dashboard navigation">
+        <div className="flex items-end justify-around h-[70px] px-0.5 py-2 gap-0.5" role="tablist">
+          {primaryMenuItems.map((item) => (
+            <button
+              key={item.id}
+              role="tab"
+              aria-selected={activeTab === item.id}
+              aria-controls="dashboard-content"
+              onClick={() => setActiveTab(item.id)}
+              className={`flex flex-col items-center justify-center gap-0.5 px-1 py-1.5 flex-1 rounded-lg transition-all duration-200 ${
+                activeTab === item.id
+                  ? 'bg-[#FFF5F0]'
+                  : 'hover:bg-gray-50'
+              }`}
+              title={item.label}
+            >
+              <div className="flex items-center justify-center h-5 w-5">
+                <item.icon
+                  className={`w-5 h-5 transition-colors flex-shrink-0 ${
+                    activeTab === item.id
+                      ? 'text-[#D4522A]'
+                      : 'text-[var(--color-text-secondary)]'
+                  }`}
+                />
+              </div>
+              <span
+                className={`text-[10px] font-semibold transition-colors leading-tight text-center max-w-full line-clamp-1 ${
+                  activeTab === item.id
+                    ? 'text-[#D4522A]'
+                    : 'text-[var(--color-text-secondary)]'
+                }`}
+              >
+                {item.shortLabel || item.label}
+              </span>
+            </button>
+          ))}
+
+          {/* More Button */}
+          <div className="relative">
+            <button
+              aria-label="More options"
+              aria-expanded={showMobileBottomMenu}
+              aria-haspopup="dialog"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMobileBottomMenu(!showMobileBottomMenu);
+              }}
+              className={`flex flex-col items-center justify-center gap-0.5 px-1 py-1.5 flex-1 rounded-lg transition-all duration-200 ${
+                showMobileBottomMenu
+                  ? 'bg-[#FFF5F0]'
+                  : 'hover:bg-gray-50'
+              }`}
+              title={moreButtonLabel}
+            >
+              <div className="flex items-center justify-center h-5 w-5">
+                <Menu
+                  className={`w-5 h-5 transition-colors flex-shrink-0 ${
+                    showMobileBottomMenu
+                      ? 'text-[#D4522A]'
+                      : 'text-[var(--color-text-secondary)]'
+                  }`}
+                />
+              </div>
+              <span
+                className={`text-[10px] font-semibold transition-colors leading-tight text-center ${
+                  showMobileBottomMenu
+                    ? 'text-[#D4522A]'
+                    : 'text-[var(--color-text-secondary)]'
+                }`}
+              >
+                {moreButtonLabel}
+              </span>
+            </button>
+
+            {/* More Menu Drawer */}
+            <AnimatePresence>
+              {showMobileBottomMenu && (
+                <motion.div
+                  role="dialog"
+                  aria-label="More options"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: -8 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute bottom-full right-0 mb-1 bg-white rounded-2xl shadow-2xl border border-[var(--color-border)] overflow-hidden w-48 z-50"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="py-2 px-2">
+                    {secondaryMenuItems.map((item, index) => (
+                      <motion.button
+                        key={item.id}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        onClick={() => {
+                          setActiveTab(item.id);
+                          setShowMobileBottomMenu(false);
+                        }}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 ${
+                          activeTab === item.id
+                            ? 'bg-[#FFF5F0] text-[#D4522A]'
+                            : 'text-[var(--color-text)] hover:bg-gray-50'
+                        }`}
+                      >
+                        <item.icon className={`w-5 h-5 flex-shrink-0 ${
+                          activeTab === item.id ? 'text-[#D4522A]' : 'text-[var(--color-text-secondary)]'
+                        }`} />
+                        <span className="text-sm font-medium whitespace-nowrap">{item.label}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </nav>
+
+      {/* Chart Variants Demo Modal */}
+      {showChartDemo && <ChartVariantsDemo onClose={() => setShowChartDemo(false)} />}
+    </div>
+  );
+}

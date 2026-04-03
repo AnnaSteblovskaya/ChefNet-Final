@@ -29,6 +29,7 @@ import Dashboard from '@/app/components/dashboard/Dashboard';
 import StickyNavigation from '@/app/components/StickyNavigation';
 import TeamSection from '@/app/components/sections/TeamSection';
 import CookieConsent from '@/app/components/CookieConsent';
+import AccessibilityPanel from '@/app/components/AccessibilityPanel';
 
 const verifiedTexts: Record<string, string> = {
   en: 'Email confirmed! You can now log in.',
@@ -194,7 +195,7 @@ function AppContent() {
   // While auth is loading on /dashboard — show full-screen spinner (no landing flash)
   if (loading && showDashboard) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--color-background)]">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--color-background)]" role="status" aria-label="Loading">
         <div className="w-10 h-10 border-4 border-[#D4522A] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -208,7 +209,7 @@ function AppContent() {
   // Show main landing page (StickyNavigation is always mounted so referral modal
   // can open reliably regardless of auth loading state)
   return (
-    <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)] transition-colors duration-300 overflow-x-hidden w-full max-w-full">
+    <main id="main-content" role="main" className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)] transition-colors duration-300 overflow-x-hidden w-full max-w-full">
       {(isPasswordRecovery) && <NewPasswordModal />}
       {resetToken && <NewPasswordModal resetToken={resetToken} onClose={() => setResetToken(null)} />}
       {/* StickyNavigation always rendered — needed for referral link auto-open */}
@@ -219,14 +220,14 @@ function AppContent() {
         </div>
       ) : (<>
       {verifiedBanner && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] bg-green-600 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 max-w-[90vw]">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] bg-green-600 text-white px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4 max-w-[90vw]" role="alert" aria-live="polite">
           <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
           <span className="font-medium text-sm">{verifiedTexts[language] || verifiedTexts.ru}</span>
           <button onClick={() => setVerifiedBanner(false)} className="ml-2 text-white/80 hover:text-white">×</button>
         </div>
       )}
       {verifyErrorBanner && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] bg-red-600 text-white rounded-xl shadow-2xl animate-in fade-in slide-in-from-top-4 max-w-[92vw] w-full sm:max-w-md">
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] bg-red-600 text-white rounded-xl shadow-2xl animate-in fade-in slide-in-from-top-4 max-w-[92vw] w-full sm:max-w-md" role="alert" aria-live="polite">
           <div className="px-4 py-3 flex items-start gap-3">
             <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
             <div className="flex-1 min-w-0">
@@ -284,8 +285,9 @@ function AppContent() {
       <TeamSection />
       <Footer />
       <CookieConsent />
+      <AccessibilityPanel />
       </>)}
-    </div>
+    </main>
   );
 }
 

@@ -119,7 +119,7 @@ const translations: Record<Language, Record<string, string | Record<string, stri
   },
 };
 
-const CookieToggle = ({ enabled, onChange, disabled = false }: { enabled: boolean; onChange: (v: boolean) => void; disabled?: boolean }) => {
+const CookieToggle = ({ enabled, onChange, disabled = false, ariaLabel }: { enabled: boolean; onChange: (v: boolean) => void; disabled?: boolean; ariaLabel?: string }) => {
   return (
     <button
       onClick={() => !disabled && onChange(!enabled)}
@@ -127,6 +127,9 @@ const CookieToggle = ({ enabled, onChange, disabled = false }: { enabled: boolea
       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
         enabled ? 'bg-[#FF6B35]' : 'bg-gray-300'
       } ${disabled ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer hover:shadow-md'}`}
+      role="switch"
+      aria-checked={enabled}
+      aria-label={ariaLabel}
     >
       <motion.span
         layout
@@ -266,6 +269,12 @@ export default function CookieConsent() {
     setExpanded(true);
   };
 
+  const handleDialogKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Escape') {
+      setExpanded(false);
+    }
+  };
+
   return (
     <>
       {/* Floating Cookie Settings Link - Always visible in bottom right */}
@@ -278,6 +287,7 @@ export default function CookieConsent() {
             onClick={openSettings}
             className="fixed bottom-6 right-6 z-40 px-4 py-2 text-xs font-semibold text-white bg-[#FF6B35] rounded-full hover:bg-[#D4522A] transition-all hover:shadow-lg"
             title={t.settings as string}
+            aria-label="Open cookie settings"
           >
             🍪 {t.settings}
           </motion.button>
@@ -296,6 +306,7 @@ export default function CookieConsent() {
                 exit={{ opacity: 0 }}
                 onClick={() => setExpanded(false)}
                 className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm"
+                aria-hidden="true"
               />
             )}
 
@@ -309,6 +320,10 @@ export default function CookieConsent() {
               className={`fixed z-40 left-0 right-0 ${
                 expanded ? 'inset-0 flex items-center justify-center px-4' : 'bottom-0'
               }`}
+              role={expanded ? "dialog" : undefined}
+              aria-label={expanded ? "Cookie consent" : undefined}
+              aria-modal={expanded}
+              onKeyDown={expanded ? handleDialogKeyDown : undefined}
             >
               <div
                 className={`w-full max-w-2xl bg-gradient-to-br from-[#1a1a1a] to-[#2a2a2a] text-white rounded-t-3xl shadow-2xl border border-[#FF6B35]/20 ${
@@ -327,7 +342,7 @@ export default function CookieConsent() {
                     <button
                       onClick={() => setExpanded(false)}
                       className="flex-shrink-0 p-2 hover:bg-white/10 rounded-lg transition-colors ml-4"
-                      aria-label="Close"
+                      aria-label="Close cookie settings"
                     >
                       <X className="w-5 h-5 text-gray-300" />
                     </button>
@@ -364,6 +379,7 @@ export default function CookieConsent() {
                               enabled={true}
                               onChange={() => {}}
                               disabled={true}
+                              ariaLabel={t.necessary as string}
                             />
                           </div>
                         </div>
@@ -382,6 +398,7 @@ export default function CookieConsent() {
                               onChange={(v) =>
                                 setPreferences({ ...preferences, analytics: v })
                               }
+                              ariaLabel={t.analytics as string}
                             />
                           </div>
                         </div>
@@ -400,6 +417,7 @@ export default function CookieConsent() {
                               onChange={(v) =>
                                 setPreferences({ ...preferences, marketing: v })
                               }
+                              ariaLabel={t.marketing as string}
                             />
                           </div>
                         </div>
@@ -418,6 +436,7 @@ export default function CookieConsent() {
                               onChange={(v) =>
                                 setPreferences({ ...preferences, functional: v })
                               }
+                              ariaLabel={t.functional as string}
                             />
                           </div>
                         </div>
