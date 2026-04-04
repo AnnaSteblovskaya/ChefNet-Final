@@ -26,7 +26,7 @@ export default function Footer() {
   };
 
   return (
-    <footer id="footer" className="bg-[#e9ded6] border-t border-[#FFE5DE] relative overflow-hidden">
+    <footer id="footer" role="contentinfo" className="bg-[#e9ded6] border-t border-[#FFE5DE] relative overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pt-20 sm:pt-20">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12 mb-12">
           {/* Logo and Tagline */}
@@ -62,6 +62,7 @@ export default function Footer() {
                 href="https://www.facebook.com/groups/chefnet.official/"
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="Facebook"
                 whileHover={{ scale: 1.15 }}
                 whileTap={{ scale: 0.95 }}
                 className="w-12 h-12 rounded-2xl bg-white/80 backdrop-blur-sm border border-[#FFE5DE] flex items-center justify-center text-[#6B4423] hover:bg-gradient-to-br hover:from-[#FF6B35] hover:to-[#FF8C42] hover:text-white hover:border-transparent hover:shadow-lg hover:shadow-[#FF6B35]/30 transition-all duration-300"
@@ -73,6 +74,7 @@ export default function Footer() {
                 href="https://t.me/chefnet_ai"
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="Telegram"
                 whileHover={{ scale: 1.15 }}
                 whileTap={{ scale: 0.95 }}
                 className="w-12 h-12 rounded-2xl bg-white/80 backdrop-blur-sm border border-[#FFE5DE] flex items-center justify-center text-[#6B4423] hover:bg-gradient-to-br hover:from-[#FF6B35] hover:to-[#FF8C42] hover:text-white hover:border-transparent hover:shadow-lg hover:shadow-[#FF6B35]/30 transition-all duration-300"
@@ -84,6 +86,7 @@ export default function Footer() {
                 href="https://www.tiktok.com/@chefnet.app?_r=1"
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="TikTok"
                 whileHover={{ scale: 1.15 }}
                 whileTap={{ scale: 0.95 }}
                 className="w-12 h-12 rounded-2xl bg-white/80 backdrop-blur-sm border border-[#FFE5DE] flex items-center justify-center text-[#6B4423] hover:bg-gradient-to-br hover:from-[#FF6B35] hover:to-[#FF8C42] hover:text-white hover:border-transparent hover:shadow-lg hover:shadow-[#FF6B35]/30 transition-all duration-300"
@@ -95,22 +98,23 @@ export default function Footer() {
                 href="https://www.instagram.com/chefnet.ai/"
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="Instagram"
                 onClick={(e) => {
                   e.preventDefault();
-                  
+
                   // Определяем тип устройства
                   const userAgent = navigator.userAgent.toLowerCase();
                   const isAndroid = userAgent.includes('android');
                   const isIOS = /iphone|ipad|ipod/.test(userAgent);
-                  
+
                   if (isAndroid) {
                     // ✅ Android: используем intent:// URL для прямого открытия приложения
                     const intentUrl = 'intent://instagram.com/_u/chefnet.ai/#Intent;scheme=https;package=com.instagram.android;end';
-                    
+
                     try {
                       // Попытка открыть через intent
                       window.location.href = intentUrl;
-                      
+
                       // Фоллбэк на веб-версию через 2 секунды, если приложение не открылось
                       setTimeout(() => {
                         window.open('https://www.instagram.com/chefnet.ai/', '_blank', 'noopener,noreferrer');
@@ -119,16 +123,16 @@ export default function Footer() {
                       // Если не удалось, открываем веб-версию
                       window.open('https://www.instagram.com/chefnet.ai/', '_blank', 'noopener,noreferrer');
                     }
-                    
+
                   } else if (isIOS) {
                     // ✅ iOS: используем instagram:// URL схему
                     const instagramAppUrl = 'instagram://user?username=chefnet.ai';
                     const webUrl = 'https://www.instagram.com/chefnet.ai/';
                     const startTime = Date.now();
-                    
+
                     // Попытка открыть приложение
                     window.location.href = instagramAppUrl;
-                    
+
                     // Если приложение не открылось за 1.5 секунды, открываем веб-версию
                     setTimeout(() => {
                       if (Date.now() - startTime < 2000) {
@@ -150,12 +154,18 @@ export default function Footer() {
             </div>
 
             {/* Legal links */}
-            <div className="mt-8 flex flex-col gap-2">
+            <div className="mt-8 flex flex-col gap-2" aria-label="Legal documents">
               {[
                 { href: '/privacy', label: { ru: 'Политика конфиденциальности', en: 'Privacy Policy', de: 'Datenschutzrichtlinie', es: 'Política de privacidad', tr: 'Gizlilik Politikası' } },
                 { href: '/terms', label: { ru: 'Пользовательское соглашение', en: 'Terms of Use', de: 'Nutzungsbedingungen', es: 'Términos de uso', tr: 'Kullanım Koşulları' } },
                 { href: '/risks', label: { ru: 'Раскрытие рисков', en: 'Risk Disclosure', de: 'Risikohinweise', es: 'Divulgación de riesgos', tr: 'Risk Açıklaması' } },
                 { href: '/referral-terms', label: { ru: 'Условия реф. программы', en: 'Referral Program Terms', de: 'Empfehlungsprogramm', es: 'Programa de referidos', tr: 'Referans Programı' } },
+                { href: '/cookies', label: { ru: 'Политика cookie', en: 'Cookie Policy', de: 'Cookie-Richtlinie', es: 'Política de cookies', tr: 'Çerez Politikası' } },
+                { href: '/impressum', label: { ru: 'Импрессум', en: 'Impressum', de: 'Impressum', es: 'Aviso legal', tr: 'Yasal Bildirim' } },
+                { href: '/aml-kyc', label: { ru: 'Политика AML/KYC', en: 'AML/KYC Policy', de: 'AML/KYC-Richtlinie', es: 'Política AML/KYC', tr: 'AML/KYC Politikası' } },
+                { href: '/disclaimer', label: { ru: 'Отказ от ответственности', en: 'Disclaimer', de: 'Haftungsausschluss', es: 'Descargo de responsabilidad', tr: 'Sorumluluk Reddi' } },
+                { href: '/datenschutz', label: { ru: 'Защита данных (DSGVO)', en: 'Privacy (GDPR)', de: 'Datenschutzerklärung', es: 'Protección de datos', tr: 'Veri Koruma' } },
+                { href: '/nutzungsbedingungen', label: { ru: 'Условия использования (AGB)', en: 'Terms (AGB)', de: 'Nutzungsbedingungen', es: 'Condiciones de uso', tr: 'Kullanım Şartları' } },
               ].map(link => (
                 <motion.a
                   key={link.href}
@@ -240,7 +250,9 @@ export default function Footer() {
               {get('footer_newsletter_desc', lang, t.footerNewsletterDesc)}
             </p>
             <form onSubmit={handleNewsletterSubmit} className="relative">
+              <label htmlFor="newsletter-email" className="sr-only">Email for newsletter</label>
               <input
+                id="newsletter-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -253,7 +265,7 @@ export default function Footer() {
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-xl bg-gradient-to-br from-[#FF7A59] to-[#EB5632] text-white flex items-center justify-center hover:shadow-lg hover:shadow-[#FF6B35]/40 transition-all duration-300"
-                aria-label={t.footerNewsletterButton}
+                aria-label="Subscribe to newsletter"
               >
                 <ArrowRight className="w-5 h-5" />
               </motion.button>
@@ -276,4 +288,4 @@ export default function Footer() {
       </div>
     </footer>
   );
-}
+                }
