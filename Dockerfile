@@ -27,13 +27,14 @@ COPY package*.json ./
 RUN npm install --omit=dev
 
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/public ./public
 COPY --from=builder /app/server ./server
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
 ENV NODE_ENV=production
-ENV API_PORT=5000
+ENV API_PORT=3001
 
-EXPOSE 5000
+EXPOSE 3001
 
 ENTRYPOINT ["dumb-init", "--"]
 CMD ["node", "--import", "tsx/esm", "server/index.ts"]
