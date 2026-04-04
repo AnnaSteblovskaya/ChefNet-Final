@@ -2124,6 +2124,11 @@ app.use('/uploads', express.static(uploadsPath));
 if (isProduction) {
   const distPath = path.resolve(__dirname, '..', 'dist');
   app.use(express.static(distPath));
+
+  // Fallback: also serve public/ directly so OG images & other assets are always reachable
+  // even if Vite build didn't copy them into dist/
+  const publicPath = path.resolve(__dirname, '..', 'public');
+  app.use(express.static(publicPath));
   app.get(/.*/, (_req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
   });
